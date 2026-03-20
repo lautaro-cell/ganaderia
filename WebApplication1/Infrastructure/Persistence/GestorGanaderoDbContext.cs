@@ -15,6 +15,7 @@ public class GestorGanaderoDbContext : DbContext
         _tenantProvider = tenantProvider;
     }
 
+    // --- Original DbSets ---
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<User> Users => Set<User>();
     public DbSet<ExternalCatalog> ExternalCatalogs => Set<ExternalCatalog>();
@@ -22,31 +23,70 @@ public class GestorGanaderoDbContext : DbContext
     public DbSet<LivestockEvent> LivestockEvents => Set<LivestockEvent>();
     public DbSet<AccountingDraft> AccountingDrafts => Set<AccountingDraft>();
 
+    // --- New DbSets (migrated from Node.js) ---
+    public DbSet<Field> Fields => Set<Field>();
+    public DbSet<Activity> Activities => Set<Activity>();
+    public DbSet<AnimalCategory> AnimalCategories => Set<AnimalCategory>();
+    public DbSet<GestorMaxConfig> GestorMaxConfigs => Set<GestorMaxConfig>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Configuración de jsonb para ExternalCatalog.Data (PostgreSQL)
+        // --- jsonb for ExternalCatalog (PostgreSQL) ---
         modelBuilder.Entity<ExternalCatalog>()
             .Property(e => e.Data)
             .HasColumnType("jsonb");
 
-        // Filtro Global de Multi-Tenant
-        // Aplicamos el filtro a todas las entidades que tienen TenantId
-        
+        // --- Decimal precision: HasPrecision(18, 2) for all numeric fields ---
+        modelBuilder.Entity<AccountingDraft>(b =>
+        {
+            b.Property(e => e.DebitAmount).HasPrecision(18, 2);
+            b.Property(e => e.CreditAmount).HasPrecision(18, 2);
+            b.Property(e => e.WeightKg).HasPrecision(12, 2);
+            b.Property(e => e.WeightPerHead).HasPrecision(10, 2);
+        });
+
+        modelBuilder.Entity<LivestockEvent>(b =>
+        {
+            b.Property(e => e.EstimatedWeightKg).HasPrecision(12, 2);
+            b.Property(e => e.TotalAmount).HasPrecision(18, 2);
+            b.Property(e => e.WeightPerHead).HasPrecision(10, 2);
+        });
+
+        modelBuilder.Entity<AnimalCategory>(b =>
+        {
+            b.Property(e => e.StandardWeightKg).HasPrecision(10, 2);
+        });
+
+        // --- Multi-tenant Global Query Filters ---
         modelBuilder.Entity<User>().HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
         modelBuilder.Entity<ExternalCatalog>().HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
         modelBuilder.Entity<EventTemplate>().HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
         modelBuilder.Entity<LivestockEvent>().HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
         modelBuilder.Entity<AccountingDraft>().HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
+        modelBuilder.Entity<Field>().HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
+        modelBuilder.Entity<GestorMaxConfig>().HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
+        // Activity & AnimalCategory support null TenantId (global), so we filter only tenant-specific or global
+        modelBuilder.Entity<Activity>().HasQueryFilter(e => e.TenantId == null || e.TenantId == _tenantProvider.TenantId);
+        modelBuilder.Entity<AnimalCategory>().HasQueryFilter(e => e.TenantId == null || e.TenantId == _tenantProvider.TenantId);
 
-        // Configuraciones adicionales de relaciones si fuera necesario
+        // --- Relationships ---
         modelBuilder.Entity<LivestockEvent>()
             .HasMany(e => e.AccountingDrafts)
             .WithOne(e => e.LivestockEvent)
             .HasForeignKey(e => e.LivestockEventId);
-            
-        // Auditoría automática (opcionalmente configurada aquí o vía Interceptor)
+
+        modelBuilder.Entity<LivestockEvent>()
+            .HasOne(e => e.Field)
+            .WithMany(f => f.LivestockEvents)
+            .HasForeignKey(e => e.FieldId)
+            .IsRequired(false);
+
+        modelBuilder.Entity<AnimalCategory>()
+            .HasOne(c => c.Activity)
+            .WithMany(a => a.AnimalCategories)
+            .HasForeignKey(c => c.ActivityId);
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -57,11 +97,9 @@ public class GestorGanaderoDbContext : DbContext
             {
                 case EntityState.Added:
                     entry.Entity.CreatedAt = DateTimeOffset.UtcNow;
-                    // entry.Entity.CreatedBy = ... (del User Context)
                     break;
                 case EntityState.Modified:
                     entry.Entity.UpdatedAt = DateTimeOffset.UtcNow;
-                    // entry.Entity.UpdatedBy = ... (del User Context)
                     break;
             }
         }

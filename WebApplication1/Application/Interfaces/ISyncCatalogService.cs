@@ -5,7 +5,7 @@ namespace WebApplication1.Application.Interfaces;
 public interface ISyncCatalogService
 {
     /// <summary>
-    /// SyncCatalogsAsync(TenantId, CatalogData)
+    /// Sincroniza todos los catálogos (cuentas, centros de costo, categorías) del tenant desde el ERP.
     /// </summary>
-    Task SyncCatalogsAsync(Guid tenantId, JsonDocument catalogData);
+    Task SyncAllCatalogsAsync(Guid tenantId);
 }

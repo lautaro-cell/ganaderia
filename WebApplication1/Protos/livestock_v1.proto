@@ -1,0 +1,134 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+option csharp_namespace = "GestorGanadero.Grpc.V1";
+
+package livestock.v1;
+
+service LivestockService {
+  // --- FASE 2: MOTOR OPERATIVO Y CONTABLE ---
+  rpc GetEventTemplates (GetTemplatesRequest) returns (EventTemplateList);
+  rpc RegisterEvent (RegisterEventRequest) returns (ActionResponse);
+  rpc GetLedger (LedgerFilter) returns (stream LedgerEntry);
+  rpc GetPendingSyncEvents (PendingSyncFilter) returns (PendingSyncList);
+  rpc SyncToERP (SyncRequest) returns (SyncResult);
+
+  // --- FASE 3: INFRAESTRUCTURA ESPACIAL (GIS) ---
+  rpc SaveLoteGeometria (LoteGeoRequest) returns (ActionResponse);
+
+  // --- CATALOGOS: Fields, Activities, Categories ---
+  rpc GetFields (GetCatalogRequest) returns (FieldList);
+  rpc GetActivities (GetCatalogRequest) returns (ActivityList);
+  rpc GetAnimalCategories (GetCatalogRequest) returns (AnimalCategoryList);
+}
+
+// =====================================================
+// MENSAJES DE CONFIGURACIÓN DE EVENTOS
+// =====================================================
+message EventTemplate {
+  string id = 1;
+  string name = 2;
+  string icon = 3;
+  repeated string fields = 4;
+  string color_code = 5;
+}
+
+message GetTemplatesRequest { string tenant_id = 1; }
+message EventTemplateList { repeated EventTemplate templates = 1; }
+
+// =====================================================
+// MENSAJES DE OPERACIÓN
+// =====================================================
+message RegisterEventRequest {
+  string template_id = 1;
+  google.protobuf.Timestamp occurred_on = 2;
+  string animal_id = 3;
+  double primary_value = 4;   // kg totales o monto
+  map<string, string> dynamic_data = 5;
+  string observations = 6;
+
+  // --- Nuevos campos migrados desde Node.js ---
+  string field_id = 7;        // FK a Field (campo/estancia)
+  string activity_id = 8;     // FK a Activity
+  string category_id = 9;     // FK a AnimalCategory (tipo CLIENTE)
+  string weight_per_head = 10; // Kg/cabeza (string para precisión decimal)
+  int32 head_count = 11;
+}
+
+// =====================================================
+// MENSAJES DE CONSULTA (LIBRO MAYOR)
+// =====================================================
+message LedgerFilter {
+  google.protobuf.Timestamp start_date = 1;
+  google.protobuf.Timestamp end_date = 2;
+  int32 page_index = 3;
+  int32 page_size = 4;
+  string search_term = 5;
+}
+
+message LedgerEntry {
+  string id = 1;
+  google.protobuf.Timestamp date = 2;
+  string description = 3;
+  double amount = 4;
+  string account_code = 5;
+  string status = 6;
+  string entry_type = 7;        // "DEBE" / "HABER"
+  int32 head_count = 8;
+  string weight_kg = 9;         // string para precisión decimal
+}
+
+// =====================================================
+// MENSAJES GIS
+// =====================================================
+message LoteGeoRequest {
+  string lote_id = 1;
+  string geojson_polygon = 2;
+}
+
+// =====================================================
+// CATALOGOS: Fields, Activities, Categories
+// =====================================================
+message GetCatalogRequest { string tenant_id = 1; }
+
+message FieldMessage {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  bool is_active = 4;
+}
+
+message ActivityMessage {
+  string id = 1;
+  string name = 2;
+  bool is_global = 3; // true if TenantId is null
+}
+
+message AnimalCategoryMessage {
+  string id = 1;
+  string name = 2;
+  string activity_id = 3;
+  string standard_weight_kg = 4; // string para precisión decimal
+  string category_type = 5;      // "Client" or "Gestor"
+  string external_id = 6;
+  bool is_active = 7;
+}
+
+message FieldList          { repeated FieldMessage fields = 1; }
+message ActivityList       { repeated ActivityMessage activities = 1; }
+message AnimalCategoryList { repeated AnimalCategoryMessage categories = 1; }
+
+// =====================================================
+// RESPUESTAS COMUNES
+// =====================================================
+message ActionResponse {
+  bool success = 1;
+  string message = 2;
+  string object_id = 3;
+}
+
+message PendingSyncFilter { string tenant_id = 1; }
+message PendingSyncList   { repeated LedgerEntry entries = 1; }
+message SyncRequest       { repeated string entry_ids = 1; }
+message SyncResult        { int32 count = 1; string log = 2; }
