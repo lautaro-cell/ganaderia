@@ -10,7 +10,8 @@ public interface ILivestockEventService
     // Previous methods from earlier requirements (MVP)
     Task<string> CommitToErpAsync(IEnumerable<Guid> livestockEventIds);
     Task<LivestockEventDto> GetByIdAsync(Guid id);
-    Task<IEnumerable<LivestockEventDto>> GetAllAsync(Guid tenantId);
-    Task UpdateAsync(LivestockEventDto dto);
-    Task DeleteAsync(Guid id);
+    Task<IEnumerable<LivestockEventResponse>> GetEventsAsync(Guid? tenantId, DateTimeOffset? start, DateTimeOffset? end);
+    Task<LivestockEventDetailDto> GetEventDetailsAsync(Guid id);
+    Task UpdateEventAsync(UpdateEventRequestDto dto);
+    Task DeleteEventAsync(Guid id);
 }

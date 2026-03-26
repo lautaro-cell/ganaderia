@@ -25,6 +25,7 @@ public class GestorGanaderoDbContext : DbContext
 
     // --- New DbSets (migrated from Node.js) ---
     public DbSet<Field> Fields => Set<Field>();
+    public DbSet<Lote> Lotes => Set<Lote>();
     public DbSet<Activity> Activities => Set<Activity>();
     public DbSet<AnimalCategory> AnimalCategories => Set<AnimalCategory>();
     public DbSet<GestorMaxConfig> GestorMaxConfigs => Set<GestorMaxConfig>();
@@ -66,6 +67,7 @@ public class GestorGanaderoDbContext : DbContext
         modelBuilder.Entity<LivestockEvent>().HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
         modelBuilder.Entity<AccountingDraft>().HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
         modelBuilder.Entity<Field>().HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
+        modelBuilder.Entity<Lote>().HasQueryFilter(e => e.Field.TenantId == _tenantProvider.TenantId);
         modelBuilder.Entity<GestorMaxConfig>().HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
         // Activity & AnimalCategory support null TenantId (global), so we filter only tenant-specific or global
         modelBuilder.Entity<Activity>().HasQueryFilter(e => e.TenantId == null || e.TenantId == _tenantProvider.TenantId);
@@ -87,6 +89,11 @@ public class GestorGanaderoDbContext : DbContext
             .HasOne(c => c.Activity)
             .WithMany(a => a.AnimalCategories)
             .HasForeignKey(c => c.ActivityId);
+
+        // Many-to-many between Lote and Activity
+        modelBuilder.Entity<Lote>()
+            .HasMany(l => l.Activities)
+            .WithMany(); 
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

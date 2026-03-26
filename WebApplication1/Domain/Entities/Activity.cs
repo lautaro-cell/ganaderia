@@ -11,6 +11,7 @@ public class Activity : BaseAuditableEntity
 {
     public string Name { get; set; } = string.Empty;
     public Guid? TenantId { get; set; } // null = global (compartida entre tenants)
+    public bool IsGlobal { get; set; } = false;
 
     public Tenant? Tenant { get; set; }
     public ICollection<AnimalCategory> AnimalCategories { get; set; } = new List<AnimalCategory>();

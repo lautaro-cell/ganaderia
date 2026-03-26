@@ -4,5 +4,6 @@ public enum LivestockEventStatus
 {
     Draft,
     Validated,
-    Synced
+    Synced,
+    Audited
 }

@@ -1,88 +1,85 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using System.Text.Json;
-using WebApplication1.Domain.Entities;
-using WebApplication1.Domain.Enums;
+using Microsoft.Extensions.Logging;
+using System.IO;
 
 namespace WebApplication1.Infrastructure.Persistence;
 
 public static class DatabaseSeeder
 {
-    private static readonly Guid DemoTenantId = Guid.Parse("00000000-0000-0000-0000-000000000001");
-
     public static async Task SeedAsync(this IServiceProvider serviceProvider)
     {
         using var scope = serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<GestorGanaderoDbContext>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<GestorGanaderoDbContext>>();
 
-        // Crear base de datos si no existe
-        await context.Database.EnsureCreatedAsync();
-
-        // Verificar si hay datos ignorando filtros de Tenant
-        if (await context.EventTemplates.IgnoreQueryFilters().AnyAsync())
+        try 
         {
-            return; // Ya hay datos, no re-poblar
-        }
+            // 1. Aplicar migraciones pendientes
+            await context.Database.MigrateAsync();
+            logger.LogInformation("Migraciones aplicadas correctamente.");
 
-        // 1. Insertar Tenant
-        var tenant = new Tenant
-        {
-            Id = DemoTenantId,
-            Name = "Ganadería Demo",
-            ErpTenantId = "tenant_demo",
-            CreatedAt = DateTimeOffset.UtcNow
-        };
-        context.Tenants.Add(tenant);
+            // 2. Limpiar base de datos (Reset)
+            await context.Database.ExecuteSqlRawAsync(@"
+                TRUNCATE TABLE ""AccountingDrafts"" RESTART IDENTITY CASCADE;
+                TRUNCATE TABLE ""LivestockEvents"" RESTART IDENTITY CASCADE;
+                TRUNCATE TABLE ""EventTemplates"" RESTART IDENTITY CASCADE;
+                TRUNCATE TABLE ""Lotes"" RESTART IDENTITY CASCADE;
+                TRUNCATE TABLE ""AnimalCategories"" RESTART IDENTITY CASCADE;
+                TRUNCATE TABLE ""Activities"" RESTART IDENTITY CASCADE;
+                TRUNCATE TABLE ""Fields"" RESTART IDENTITY CASCADE;
+                TRUNCATE TABLE ""Users"" RESTART IDENTITY CASCADE;
+                TRUNCATE TABLE ""Tenants"" RESTART IDENTITY CASCADE;
+                TRUNCATE TABLE ""ExternalCatalogs"" RESTART IDENTITY CASCADE;
+                TRUNCATE TABLE ""GestorMaxConfigs"" RESTART IDENTITY CASCADE;
+                TRUNCATE TABLE ""ActivityLote"" RESTART IDENTITY CASCADE;
+            ");
+            logger.LogInformation("Tablas vaciadas (TRUNCATE CASCADE).");
 
-        // 2. Insertar Catálogos Externos (jsonb)
-        var catalogData = new
-        {
-            Accounts = new[]
+            // 3. Buscar y ejecutar data.sql
+            var searchPaths = new List<string>
             {
-                new { Code = "11010010", Description = "Existencia de Hacienda" },
-                new { Code = "41010010", Description = "Producción Ganadera" }
-            },
-            CostCenters = new[]
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "sql", "data.sql"), // Dev fallback
+                Path.Combine(Directory.GetCurrentDirectory(), "sql", "data.sql"),                        // Relative to project root
+                Path.Combine(Directory.GetCurrentDirectory(), "WebApplication1", "sql", "data.sql"),      // Relative to parent
+                "sql/data.sql",
+                "data.sql",
+                @"c:\Users\HWLScuffi\Desktop\ganaderia\WebApplication1\sql\data.sql"                    // Absolute fallback
+            };
+
+            string foundPath = null;
+            foreach (var path in searchPaths)
             {
-                new { Id = "CC-001", Name = "Lote Norte - Cría" }
+                if (File.Exists(path))
+                {
+                    foundPath = path;
+                    break;
+                }
             }
-        };
 
-        var catalog = new ExternalCatalog
+            if (foundPath != null)
+            {
+                logger.LogInformation("Ejecutando seed desde: {Path}", foundPath);
+                string sql = await File.ReadAllTextAsync(foundPath);
+                
+                // Usamos ADO.NET directo para evitar problemas de EF con los caracteres '{' y '}' en el JSON del SQL
+                var connection = context.Database.GetDbConnection();
+                await connection.OpenAsync();
+                using var command = connection.CreateCommand();
+                command.CommandText = sql;
+                await command.ExecuteNonQueryAsync();
+                
+                logger.LogInformation("Seed SQL ejecutado con éxito.");
+            }
+            else
+            {
+                logger.LogWarning("No se encontró el archivo data.sql en ninguna de las rutas buscadas.");
+            }
+        }
+        catch (Exception ex)
         {
-            TenantId = DemoTenantId,
-            CatalogType = CatalogType.PlanCuentas,
-            Data = JsonDocument.Parse(JsonSerializer.Serialize(catalogData)),
-            LastSyncedAt = DateTimeOffset.UtcNow
-        };
-        context.ExternalCatalogs.Add(catalog);
-
-        // 3. Insertar Plantilla de Evento
-        var template = new EventTemplate
-        {
-            TenantId = DemoTenantId,
-            Name = "Nacimiento de Terneros",
-            EventType = EventType.Nacimiento, // Using Nacimiento as requested in step1.md, or Alta if preferred. Seed.md says EventType.Alta but mine has Birth-like enums.
-            DebitAccountCode = "11010010",
-            CreditAccountCode = "41010010",
-            IsActive = true
-        };
-        context.EventTemplates.Add(template);
-
-        // 4. Insertar Evento Operativo en Draft
-        var livestockEvent = new LivestockEvent
-        {
-            TenantId = DemoTenantId,
-            EventTemplate = template,
-            CostCenterCode = "CC-001",
-            HeadCount = 15,
-            EstimatedWeightKg = 900,
-            TotalAmount = 450000,
-            Status = LivestockEventStatus.Draft,
-            EventDate = DateTimeOffset.UtcNow
-        };
-        context.LivestockEvents.Add(livestockEvent);
-
-        await context.SaveChangesAsync();
+            logger.LogError(ex, "Error durante el seeding de la base de datos.");
+            throw;
+        }
     }
 }

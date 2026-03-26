@@ -7,7 +7,7 @@ public class HttpContextTenantProvider : ITenantProvider
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
     private const string TenantHeaderName = "X-Tenant-Id";
-    private static readonly Guid DefaultTenantId = Guid.Parse("00000000-0000-0000-0000-000000000001"); // For testing
+    private static readonly Guid DefaultTenantId = Guid.Parse("11111111-1111-1111-1111-111111111111"); // Matches data.sql
 
     public HttpContextTenantProvider(IHttpContextAccessor httpContextAccessor)
     {
