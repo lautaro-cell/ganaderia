@@ -1,0 +1,98 @@
+.module-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.filters {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-end;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.filter-group label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+.filter-group input, .filter-group select {
+    background-color: var(--bg-surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border-subtle);
+    padding: 0.5rem;
+    border-radius: 4px;
+}
+
+.btn-primary {
+    background-color: var(--primary-accent);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.5rem;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.btn-primary:hover {
+    opacity: 0.9;
+}
+
+.tree-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--bg-surface);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.tree-table th {
+    background-color: var(--bg-panel);
+    padding: 1rem;
+    text-align: left;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.tree-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.row-group {
+    background-color: rgba(255, 255, 255, 0.02);
+    font-weight: 600;
+}
+
+.row-subtotal {
+    background-color: rgba(255, 255, 255, 0.01);
+}
+
+.row-total {
+    background-color: var(--bg-panel);
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.text-end { text-align: right; }
+.ps-4 { padding-left: 2.5rem !important; }
+.ps-2 { padding-left: 1.5rem !important; }
+.fw-bold { font-weight: bold; }
+
+.loading, .empty-state {
+    padding: 4rem;
+    text-align: center;
+    color: var(--text-secondary);
+    background-color: var(--bg-surface);
+    border-radius: 8px;
+    border: 1px dashed var(--border-subtle);
+}
