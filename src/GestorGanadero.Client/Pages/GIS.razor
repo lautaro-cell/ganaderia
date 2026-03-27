@@ -1,0 +1,89 @@
+@page "/gis"
+@using GestorGanadero.Client.Services
+@using GestorGanadero.Grpc.V1
+@inject LivestockService.LivestockServiceClient Client
+@inject AppState State
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<div class="module-header">
+    <h1>Infraestructura Espacial (GIS)</h1>
+    <div class="map-controls">
+        <button class="btn-primary" @onclick="EnableDrawing">Dibujar Lote</button>
+        <button class="btn-secondary" @onclick="SaveGeometry" disabled="@(!_hasNewGeometry)">Guardar Geometría</button>
+    </div>
+</div>
+
+<div class="gis-layout">
+    <div class="sidebar-lotes">
+        <h3>Lotes Registrados</h3>
+        <ul class="lote-list">
+            @foreach (var lote in _lotes)
+            {
+                <li class="@(_selectedLoteId == lote.Id ? "active" : "")" @onclick="() => SelectLote(lote.Id)">
+                    @lote.Name
+                    <span class="field-name">@lote.FieldName</span>
+                </li>
+            }
+        </ul>
+    </div>
+    <div id="map" class="map-container"></div>
+</div>
+
+@code {
+    private List<LoteMessage> _lotes = new();
+    private string? _selectedLoteId;
+    private bool _hasNewGeometry = false;
+    private IJSObjectReference? _module;
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.OnChange += async () => { await LoadLotes(); StateHasChanged(); };
+        await LoadLotes();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/gis-map.js");
+            await _module.InvokeVoidAsync("initMap", "map");
+        }
+    }
+
+    private async Task LoadLotes()
+    {
+        if (string.IsNullOrEmpty(State.SelectedTenantId)) return;
+        try {
+            var res = await Client.GetLotesAsync(new GetLotesRequest { TenantId = State.SelectedTenantId });
+            _lotes = res.Lotes.ToList();
+        } catch { }
+    }
+
+    private async Task SelectLote(string id)
+    {
+        _selectedLoteId = id;
+        // In a real scenario, we would load the geometry for this lote
+        // For now, let's assume we highlight it on the map
+    }
+
+    private async Task EnableDrawing()
+    {
+        if (string.IsNullOrEmpty(_selectedLoteId)) return;
+        await _module!.InvokeVoidAsync("startDrawing");
+        _hasNewGeometry = true;
+    }
+
+    private async Task SaveGeometry()
+    {
+        var geojson = await _module!.InvokeAsync<string>("getGeometry");
+        var req = new LoteGeoRequest { LoteId = _selectedLoteId, GeojsonPolygon = geojson };
+        await Client.SaveLoteGeometriaAsync(req);
+        _hasNewGeometry = false;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module != null) await _module.DisposeAsync();
+    }
+}
