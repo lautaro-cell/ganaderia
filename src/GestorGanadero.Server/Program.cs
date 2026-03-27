@@ -10,8 +10,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.ConfigureKestrel(options =>
 {
-    // Permitir HTTP/2 sin TLS (h2c) en el puerto 5073 para pruebas de gRPC con Postman
-    options.ListenLocalhost(5073, o => o.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http2);
+    // Permitir HTTP/1 y HTTP/2 en el puerto 5073 para navegación y gRPC
+    options.ListenLocalhost(5073, o => o.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2);
     // Puerto HTTPS normal
     options.ListenLocalhost(7240, o => o.UseHttps());
 });
@@ -67,6 +67,8 @@ if (!app.Environment.IsDevelopment())
 
 app.UseCors("BlazorPolicy");
 
+app.UseBlazorFrameworkFiles();
+app.UseStaticFiles();
 app.UseGrpcWeb();
 
 app.UseAuthorization();
@@ -76,6 +78,9 @@ app.MapControllers();
 app.MapGrpcService<LivestockServiceImplementation>()
    .EnableGrpcWeb()
    .RequireCors("BlazorPolicy");
+
+app.MapFallbackToFile("index.html");
+
 await app.Services.SeedAsync();
 
 app.Run();
