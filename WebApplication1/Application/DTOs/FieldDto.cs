@@ -1,8 +1,0 @@
-namespace WebApplication1.Application.DTOs;
-
-public record FieldDto(
-    Guid Id,
-    string Name,
-    string? Description,
-    bool IsActive,
-    Guid TenantId);

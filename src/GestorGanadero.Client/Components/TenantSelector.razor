@@ -1,0 +1,48 @@
+@using GestorGanadero.Client.Services
+@using GestorGanadero.Grpc.V1
+@inject LivestockService.LivestockServiceClient Client
+@inject AppState State
+@implements IDisposable
+
+<div class="tenant-selector">
+    <select @onchange="OnTenantChanged" value="@State.SelectedTenantId">
+        <option value="">Seleccionar Empresa...</option>
+        @foreach (var tenant in _tenants)
+        {
+            <option value="@tenant.Id">@tenant.Name</option>
+        }
+    </select>
+</div>
+
+@code {
+    private List<TenantMessage> _tenants = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.OnChange += StateHasChanged;
+        try
+        {
+            var response = await Client.GetAvailableTenantsAsync(new Google.Protobuf.WellKnownTypes.Empty());
+            _tenants = response.Tenants.ToList();
+            
+            if (string.IsNullOrEmpty(State.SelectedTenantId) && _tenants.Any())
+            {
+                State.SelectedTenantId = _tenants.First().Id;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading tenants: {ex.Message}");
+        }
+    }
+
+    private void OnTenantChanged(ChangeEventArgs e)
+    {
+        State.SelectedTenantId = e.Value?.ToString();
+    }
+
+    public void Dispose()
+    {
+        State.OnChange -= StateHasChanged;
+    }
+}

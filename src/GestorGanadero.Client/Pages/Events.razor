@@ -1,0 +1,206 @@
+@page "/"
+@using GestorGanadero.Client.Services
+@using GestorGanadero.Grpc.V1
+@using Google.Protobuf.WellKnownTypes
+@inject LivestockService.LivestockServiceClient Client
+@inject AppState State
+@implements IDisposable
+
+<div class="module-header">
+    <h1>Centro Operativo</h1>
+    <div class="period-filter">
+        <input type="date" @bind="_startDate" />
+        <span>a</span>
+        <input type="date" @bind="_endDate" />
+        <button class="btn-secondary" @onclick="LoadEvents">Filtrar</button>
+    </div>
+</div>
+
+<div class="events-dashboard">
+    <section class="templates-section">
+        <h3>Registrar Nuevo Evento</h3>
+        <div class="template-grid">
+            @if (_templates == null)
+            {
+                <div class="loader">Cargando plantillas...</div>
+            }
+            else
+            {
+                @foreach (var template in _templates)
+                {
+                    <button class="template-card" style="--accent: @template.ColorCode" @onclick="() => SelectTemplate(template)">
+                        <span class="icon">@template.Icon</span>
+                        <span class="name">@template.Name</span>
+                    </button>
+                }
+            }
+        </div>
+    </section>
+
+    <section class="recent-events">
+        <h3>Auditoría Reciente</h3>
+        <div class="event-list">
+            @if (_events == null)
+            {
+                <div class="loader">Cargando eventos...</div>
+            }
+            else if (!_events.Any())
+            {
+                <div class="empty">No hay eventos registrados en este periodo.</div>
+            }
+            else
+            {
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Tipo</th>
+                            <th>Campo</th>
+                            <th class="text-end">Cabezas</th>
+                            <th class="text-end">Peso Prom.</th>
+                            <th class="text-end">Total KG</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var ev in _events)
+                        {
+                            <tr>
+                                <td>@ev.OccurredOn.ToDateTime().ToLocalTime().ToString("dd/MM/yyyy")</td>
+                                <td><span class="badge" style="background-color: var(--primary-accent)">@ev.TypeName</span></td>
+                                <td>@ev.FieldName</td>
+                                <td class="text-end">@ev.HeadCount</td>
+                                <td class="text-end">@ev.WeightPerHead kg</td>
+                                <td class="text-end">@ev.TotalWeight.ToString("N2") kg</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </section>
+</div>
+
+@if (_selectedTemplate != null)
+{
+    <div class="drawer-overlay" @onclick="() => _selectedTemplate = null">
+        <div class="drawer-content" @onclick:stopPropagation="true">
+            <div class="drawer-header">
+                <h2>Registrar @_selectedTemplate.Name</h2>
+                <button class="close-btn" @onclick="() => _selectedTemplate = null">✕</button>
+            </div>
+            <div class="drawer-form">
+                <div class="form-group">
+                    <label>Fecha del Evento</label>
+                    <input type="date" @bind="_occurredOn" />
+                </div>
+                
+                @if (_selectedTemplate.Fields.Contains("head_count"))
+                {
+                    <div class="form-group">
+                        <label>Cantidad de Cabezas</label>
+                        <input type="number" @bind="_newEvent.HeadCount" />
+                    </div>
+                }
+
+                @if (_selectedTemplate.Fields.Contains("weight_per_head"))
+                {
+                    <div class="form-group">
+                        <label>Peso promedio (kg)</label>
+                        <input type="text" @bind="_newEvent.WeightPerHead" />
+                    </div>
+                }
+
+                <div class="form-group">
+                    <label>Observaciones</label>
+                    <textarea @bind="_newEvent.Observations"></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button class="btn-secondary" @onclick="() => _selectedTemplate = null">Cancelar</button>
+                    <button class="btn-primary" @onclick="SaveEvent" disabled="@_isSaving">
+                        @(_isSaving ? "Guardando..." : "Registrar Evento")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<EventTemplate>? _templates;
+    private List<EventDetail>? _events;
+    private DateTime _startDate = DateTime.Today.AddDays(-7);
+    private DateTime _endDate = DateTime.Today;
+    
+    private EventTemplate? _selectedTemplate;
+    private RegisterEventRequest _newEvent = new();
+    private bool _isSaving = false;
+
+    private DateTime _occurredOn {
+        get => _newEvent.OccurredOn?.ToDateTime() ?? DateTime.Today;
+        set => _newEvent.OccurredOn = Timestamp.FromDateTime(value.ToUniversalTime());
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.OnChange += async () => {
+            await LoadTemplates();
+            await LoadEvents();
+            StateHasChanged();
+        };
+        await LoadTemplates();
+        await LoadEvents();
+    }
+
+    private async Task LoadTemplates()
+    {
+        if (string.IsNullOrEmpty(State.SelectedTenantId)) return;
+        try {
+            var res = await Client.GetEventTemplatesAsync(new GetTemplatesRequest { TenantId = State.SelectedTenantId });
+            _templates = res.Templates.ToList();
+        } catch { }
+    }
+
+    private async Task LoadEvents()
+    {
+        if (string.IsNullOrEmpty(State.SelectedTenantId)) return;
+        try {
+            var req = new GetEventsRequest {
+                TenantId = State.SelectedTenantId,
+                StartDate = Timestamp.FromDateTime(_startDate.ToUniversalTime()),
+                EndDate = Timestamp.FromDateTime(_endDate.ToUniversalTime())
+            };
+            var res = await Client.GetEventsAsync(req);
+            _events = res.Events.ToList();
+        } catch { }
+    }
+
+    private void SelectTemplate(EventTemplate template)
+    {
+        _selectedTemplate = template;
+        _newEvent = new RegisterEventRequest {
+            TemplateId = template.Id,
+            OccurredOn = Timestamp.FromDateTime(DateTime.UtcNow),
+            DynamicData = { }
+        };
+    }
+
+    private async Task SaveEvent()
+    {
+        _isSaving = true;
+        try {
+            await Client.RegisterEventAsync(_newEvent);
+            _selectedTemplate = null;
+            await LoadEvents();
+        } catch (Exception ex) {
+            Console.WriteLine(ex.Message);
+        } finally {
+            _isSaving = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        State.OnChange -= async () => { };
+    }
+}

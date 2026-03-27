@@ -1,0 +1,51 @@
+@using GestorGanadero.Client.Services
+@using GestorGanadero.Grpc.V1
+@inject LivestockService.LivestockServiceClient Client
+@inject AppState State
+@implements IDisposable
+
+<div class="user-profile">
+    @if (_profile != null)
+    {
+        <div class="profile-info">
+            <span class="user-name">@_profile.Name</span>
+            <span class="user-role">@_profile.Role</span>
+        </div>
+        <div class="profile-avatar">
+            @if (!string.IsNullOrEmpty(_profile.ProfileImageUrl))
+            {
+                <img src="@_profile.ProfileImageUrl" alt="Avatar" />
+            }
+            else
+            {
+                <div class="avatar-placeholder">@_profile.Name[0]</div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="profile-loading">Cargando...</div>
+    }
+</div>
+
+@code {
+    private GestorGanadero.Grpc.V1.UserProfile? _profile;
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.OnChange += StateHasChanged;
+        try
+        {
+            _profile = await Client.GetMyProfileAsync(new Google.Protobuf.WellKnownTypes.Empty());
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading profile: {ex.Message}");
+        }
+    }
+
+    public void Dispose()
+    {
+        State.OnChange -= StateHasChanged;
+    }
+}
