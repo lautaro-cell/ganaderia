@@ -61,9 +61,11 @@ public class LivestockServiceImplementation : LivestockService.LivestockServiceB
         var templates = new EventTemplateList();
         templates.Templates.AddRange(new[]
         {
-            new EventTemplate { Id = "template-nacimiento", Name = "Nacimiento", Icon = "baby", ColorCode = "#52c41a", Fields = { "Peso al Nacer", "Id Madre", "Sexo" } },
-            new EventTemplate { Id = "template-destete", Name = "Destete", Icon = "swap", ColorCode = "#1890ff", Fields = { "Peso Destete", "Lote Destino" } },
-            new EventTemplate { Id = "template-mortandad", Name = "Mortandad", Icon = "frown", ColorCode = "#f5222d", Fields = { "Causa", "Observaciones" } }
+            new EventTemplate { Id = "template-nacimiento", Name = "Nacimiento",        Icon = "child_care",                  ColorCode = "#27ae60", Fields = { "head_count", "weight_per_head" } },
+            new EventTemplate { Id = "template-destete",    Name = "Destete",           Icon = "transfer_within_a_station",    ColorCode = "#2980b9", Fields = { "head_count", "weight_per_head" } },
+            new EventTemplate { Id = "template-mortandad",  Name = "Mortandad",         Icon = "crisis_alert",                ColorCode = "#c0392b", Fields = { "head_count" } },
+            new EventTemplate { Id = "template-pesaje",     Name = "Pesaje de Control", Icon = "monitor_weight",              ColorCode = "#e67e22", Fields = { "head_count", "weight_per_head" } },
+            new EventTemplate { Id = "template-venta",      Name = "Venta",             Icon = "sell",                        ColorCode = "#8e44ad", Fields = { "head_count", "weight_per_head" } }
         });
         return Task.FromResult(templates);
     }
@@ -110,10 +112,13 @@ public class LivestockServiceImplementation : LivestockService.LivestockServiceB
         var response = new EventList();
         response.Events.AddRange(events.Select(e => new EventDetail
         {
-            Id = e.Id.ToString(),
-            OccurredOn = Timestamp.FromDateTimeOffset(e.EventDate),
-            HeadCount = e.HeadCount,
-            TotalWeight = (double)e.EstimatedWeightKg
+            Id            = e.Id.ToString(),
+            OccurredOn    = Timestamp.FromDateTimeOffset(e.EventDate),
+            HeadCount     = e.HeadCount,
+            TotalWeight   = (double)e.EstimatedWeightKg,
+            TypeName      = e.TypeName,
+            FieldName     = e.FieldName,
+            WeightPerHead = e.WeightPerHead.ToString()
         }));
         return response;
     }

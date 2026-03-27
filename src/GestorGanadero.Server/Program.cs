@@ -46,9 +46,11 @@ builder.Services.AddHttpClient<IERPProvider, GestorMaxProvider>();
 // 4.2. Motor de reglas contables (Domain Service)
 builder.Services.AddTransient<GestorGanadero.Server.Domain.Services.AccountingEntryGenerator>();
 
-builder.Services.AddControllers();
+builder.Services.AddControllersWithViews();
+builder.Services.AddRazorPages();
 builder.Services.AddGrpc();
 builder.Services.AddGrpcReflection();
+builder.Services.AddAntiforgery();
 
 builder.Services.AddOpenApi();
 
@@ -56,6 +58,7 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
+    app.UseWebAssemblyDebugging();
     app.MapOpenApi();
     app.MapGrpcReflectionService();
 }
@@ -65,10 +68,13 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-app.UseCors("BlazorPolicy");
-
 app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
+
+app.UseRouting();
+app.UseAntiforgery();
+
+app.UseCors("BlazorPolicy");
 app.UseGrpcWeb();
 
 app.UseAuthorization();

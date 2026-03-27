@@ -6,8 +6,9 @@
         <div class="logo">
             <img src="icon-192.png" alt="Gestor Ganadero" />
             <span>Gestor Ganadero</span>
+            <span class="brand-tag">Pro</span>
         </div>
-        
+
         <div class="nav-actions">
             <TenantSelector />
             <UserProfileDisplay />
@@ -16,11 +17,36 @@
 
     <nav class="main-tabs">
         <ul>
-            <li><NavLink href="" Match="NavLinkMatch.All">Eventos</NavLink></li>
-            <li><NavLink href="ledger">Mayor</NavLink></li>
-            <li><NavLink href="balance">Balance</NavLink></li>
-            <li><NavLink href="gis">Mapas (GIS)</NavLink></li>
-            <li><NavLink href="admin">Administración</NavLink></li>
+            <li>
+                <NavLink href="" Match="NavLinkMatch.All">
+                    <span class="material-icons" style="font-size:16px">event_note</span>
+                    Operativo
+                </NavLink>
+            </li>
+            <li>
+                <NavLink href="ledger">
+                    <span class="material-icons" style="font-size:16px">menu_book</span>
+                    Mayor
+                </NavLink>
+            </li>
+            <li>
+                <NavLink href="balance">
+                    <span class="material-icons" style="font-size:16px">account_balance</span>
+                    Balance
+                </NavLink>
+            </li>
+            <li>
+                <NavLink href="gis">
+                    <span class="material-icons" style="font-size:16px">map</span>
+                    Mapas
+                </NavLink>
+            </li>
+            <li>
+                <NavLink href="admin">
+                    <span class="material-icons" style="font-size:16px">settings</span>
+                    Admin
+                </NavLink>
+            </li>
         </ul>
     </nav>
 

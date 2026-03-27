@@ -1,0 +1,24 @@
+/* CentroOperativo scoped styles */
+
+.events-dashboard {
+    animation: fadeInUp 0.3s ease;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.template-card .icon-wrap {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+}
+
+.template-card:hover .icon-wrap {
+    transform: scale(1.1);
+}

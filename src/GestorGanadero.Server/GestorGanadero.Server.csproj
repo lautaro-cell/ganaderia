@@ -19,9 +19,6 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.3" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Protobuf Include="..\GestorGanadero.Shared\Protos\livestock_v1.proto" GrpcServices="Server" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\GestorGanadero.Shared\GestorGanadero.Shared.csproj" />

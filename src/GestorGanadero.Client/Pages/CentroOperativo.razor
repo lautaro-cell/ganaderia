@@ -9,10 +9,14 @@
 <div class="module-header">
     <h1>Centro Operativo</h1>
     <div class="period-filter">
+        <span class="material-icons" style="font-size:16px;color:var(--text-muted)">date_range</span>
         <input type="date" @bind="_startDate" />
-        <span>a</span>
+        <span>→</span>
         <input type="date" @bind="_endDate" />
-        <button class="btn-secondary" @onclick="LoadEvents">Filtrar</button>
+        <button class="btn-secondary" @onclick="LoadEvents">
+            <span class="material-icons" style="font-size:14px">filter_alt</span>
+            Filtrar
+        </button>
     </div>
 </div>
 
@@ -22,14 +26,25 @@
         <div class="template-grid">
             @if (_templates == null)
             {
-                <div class="loader">Cargando plantillas...</div>
+                <div class="loader">
+                    <span class="material-icons" style="font-size:16px;animation:spin 1s linear infinite">sync</span>
+                    Cargando plantillas...
+                </div>
+            }
+            else if (!_templates.Any())
+            {
+                <div class="empty">Sin plantillas configuradas</div>
             }
             else
             {
                 @foreach (var template in _templates)
                 {
-                    <button class="template-card" style="--accent: @template.ColorCode" @onclick="() => SelectTemplate(template)">
-                        <span class="icon">@template.Icon</span>
+                    <button class="template-card" 
+                            style="--accent: @template.ColorCode" 
+                            @onclick="() => SelectTemplate(template)">
+                        <div class="icon-wrap" style="background: @(template.ColorCode + "22"); color: @template.ColorCode">
+                            <span class="material-icons">@template.Icon</span>
+                        </div>
                         <span class="name">@template.Name</span>
                     </button>
                 }
@@ -42,11 +57,17 @@
         <div class="event-list">
             @if (_events == null)
             {
-                <div class="loader">Cargando eventos...</div>
+                <div class="loader">
+                    <span class="material-icons" style="font-size:16px;animation:spin 1s linear infinite">sync</span>
+                    Cargando eventos...
+                </div>
             }
             else if (!_events.Any())
             {
-                <div class="empty">No hay eventos registrados en este periodo.</div>
+                <div class="empty">
+                    <span class="material-icons" style="display:block;font-size:2.5rem;margin-bottom:.5rem;opacity:.3">inbox</span>
+                    No hay eventos en este período
+                </div>
             }
             else
             {
@@ -66,7 +87,11 @@
                         {
                             <tr>
                                 <td>@ev.OccurredOn.ToDateTime().ToLocalTime().ToString("dd/MM/yyyy")</td>
-                                <td><span class="badge" style="background-color: var(--primary-accent)">@ev.TypeName</span></td>
+                                <td>
+                                    <span class="badge" style="background: @GetEventColor(ev.TypeName)">
+                                        @ev.TypeName
+                                    </span>
+                                </td>
                                 <td>@ev.FieldName</td>
                                 <td class="text-end">@ev.HeadCount</td>
                                 <td class="text-end">@ev.WeightPerHead kg</td>
@@ -85,20 +110,25 @@
     <div class="drawer-overlay" @onclick="() => _selectedTemplate = null">
         <div class="drawer-content" @onclick:stopPropagation="true">
             <div class="drawer-header">
-                <h2>Registrar @_selectedTemplate.Name</h2>
-                <button class="close-btn" @onclick="() => _selectedTemplate = null">✕</button>
+                <div style="display:flex;align-items:center;gap:.6rem">
+                    <span class="material-icons" style="color:var(--primary-hover);font-size:1.2rem">add_circle</span>
+                    <h2>Registrar @_selectedTemplate.Name</h2>
+                </div>
+                <button class="close-btn" @onclick="() => _selectedTemplate = null">
+                    <span class="material-icons" style="font-size:18px">close</span>
+                </button>
             </div>
             <div class="drawer-form">
                 <div class="form-group">
                     <label>Fecha del Evento</label>
                     <input type="date" @bind="_occurredOn" />
                 </div>
-                
+
                 @if (_selectedTemplate.Fields.Contains("head_count"))
                 {
                     <div class="form-group">
                         <label>Cantidad de Cabezas</label>
-                        <input type="number" @bind="_newEvent.HeadCount" />
+                        <input type="number" min="0" @bind="_newEvent.HeadCount" />
                     </div>
                 }
 
@@ -112,12 +142,13 @@
 
                 <div class="form-group">
                     <label>Observaciones</label>
-                    <textarea @bind="_newEvent.Observations"></textarea>
+                    <textarea rows="3" @bind="_newEvent.Observations" placeholder="Opcional..."></textarea>
                 </div>
 
                 <div class="form-actions">
                     <button class="btn-secondary" @onclick="() => _selectedTemplate = null">Cancelar</button>
                     <button class="btn-primary" @onclick="SaveEvent" disabled="@_isSaving">
+                        <span class="material-icons" style="font-size:15px">@(_isSaving ? "hourglass_top" : "check")</span>
                         @(_isSaving ? "Guardando..." : "Registrar Evento")
                     </button>
                 </div>
@@ -126,12 +157,16 @@
     </div>
 }
 
+<style>
+    @@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
 @code {
     private List<EventTemplate>? _templates;
     private List<EventDetail>? _events;
-    private DateTime _startDate = DateTime.Today.AddDays(-7);
+    private DateTime _startDate = DateTime.Today.AddDays(-30);
     private DateTime _endDate = DateTime.Today;
-    
+
     private EventTemplate? _selectedTemplate;
     private RegisterEventRequest _newEvent = new();
     private bool _isSaving = false;
@@ -140,6 +175,14 @@
         get => _newEvent.OccurredOn?.ToDateTime() ?? DateTime.Today;
         set => _newEvent.OccurredOn = Timestamp.FromDateTime(value.ToUniversalTime());
     }
+
+    private string GetEventColor(string typeName) => typeName?.ToLower() switch {
+        var t when t.Contains("nac") => "#27ae60",
+        var t when t.Contains("dest") => "#e67e22",
+        var t when t.Contains("mort") => "#c0392b",
+        var t when t.Contains("venta") => "#2980b9",
+        _ => "#7f8c8d"
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -158,7 +201,7 @@
         try {
             var res = await Client.GetEventTemplatesAsync(new GetTemplatesRequest { TenantId = State.SelectedTenantId });
             _templates = res.Templates.ToList();
-        } catch { }
+        } catch { _templates = new(); }
     }
 
     private async Task LoadEvents()
@@ -172,7 +215,7 @@
             };
             var res = await Client.GetEventsAsync(req);
             _events = res.Events.ToList();
-        } catch { }
+        } catch { _events = new(); }
     }
 
     private void SelectTemplate(EventTemplate template)
