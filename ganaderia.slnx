@@ -1,5 +1,0 @@
-<Solution>
-  <Project Path="src/GestorGanadero.Server/GestorGanadero.Server.csproj" />
-  <Project Path="src/GestorGanadero.Client/GestorGanadero.Client.csproj" />
-  <Project Path="src/GestorGanadero.Shared/GestorGanadero.Shared.csproj" />
-</Solution>

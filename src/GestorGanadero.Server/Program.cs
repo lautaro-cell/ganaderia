@@ -10,8 +10,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.ConfigureKestrel(options =>
 {
-    // Permitir HTTP/2 sin TLS (h2c) en el puerto 5073 para pruebas de gRPC con Postman
-    options.ListenLocalhost(5073, o => o.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http2);
+    // Permitir HTTP/1 y HTTP/2 en el puerto 5073 para navegación y gRPC
+    options.ListenLocalhost(5073, o => o.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2);
     // Puerto HTTPS normal
     options.ListenLocalhost(7240, o => o.UseHttps());
 });
@@ -46,9 +46,11 @@ builder.Services.AddHttpClient<IERPProvider, GestorMaxProvider>();
 // 4.2. Motor de reglas contables (Domain Service)
 builder.Services.AddTransient<GestorGanadero.Server.Domain.Services.AccountingEntryGenerator>();
 
-builder.Services.AddControllers();
+builder.Services.AddControllersWithViews();
+builder.Services.AddRazorPages();
 builder.Services.AddGrpc();
 builder.Services.AddGrpcReflection();
+builder.Services.AddAntiforgery();
 
 builder.Services.AddOpenApi();
 
@@ -56,6 +58,7 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
+    app.UseWebAssemblyDebugging();
     app.MapOpenApi();
     app.MapGrpcReflectionService();
 }
@@ -65,8 +68,13 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-app.UseCors("BlazorPolicy");
+app.UseBlazorFrameworkFiles();
+app.UseStaticFiles();
 
+app.UseRouting();
+app.UseAntiforgery();
+
+app.UseCors("BlazorPolicy");
 app.UseGrpcWeb();
 
 app.UseAuthorization();
@@ -76,6 +84,9 @@ app.MapControllers();
 app.MapGrpcService<LivestockServiceImplementation>()
    .EnableGrpcWeb()
    .RequireCors("BlazorPolicy");
+
+app.MapFallbackToFile("index.html");
+
 await app.Services.SeedAsync();
 
 app.Run();

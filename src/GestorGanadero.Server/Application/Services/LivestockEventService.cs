@@ -52,7 +52,17 @@ public class LivestockEventService : ILivestockEventService
         return await _context.LivestockEvents
             .Where(e => e.Status == LivestockEventStatus.Draft)
             .Select(e => new LivestockEventResponse(
-                e.Id, e.EventTemplateId, e.CostCenterCode, e.HeadCount, e.EstimatedWeightKg, e.TotalAmount, e.Status.ToString(), e.EventDate))
+                e.Id, 
+                e.EventTemplateId, 
+                e.CostCenterCode, 
+                e.HeadCount, 
+                e.EstimatedWeightKg, 
+                e.TotalAmount, 
+                e.Status.ToString(), 
+                e.EventDate,
+                e.EventTemplate != null ? e.EventTemplate.Name : "Evento",
+                e.Field != null ? e.Field.Name : "",
+                e.WeightPerHead ?? 0))
             .ToListAsync();
     }
 
@@ -67,7 +77,17 @@ public class LivestockEventService : ILivestockEventService
 
         return await query
             .Select(e => new LivestockEventResponse(
-                e.Id, e.EventTemplateId, e.CostCenterCode, e.HeadCount, e.EstimatedWeightKg, e.TotalAmount, e.Status.ToString(), e.EventDate))
+                e.Id, 
+                e.EventTemplateId, 
+                e.CostCenterCode, 
+                e.HeadCount, 
+                e.EstimatedWeightKg, 
+                e.TotalAmount, 
+                e.Status.ToString(), 
+                e.EventDate,
+                e.EventTemplate != null ? e.EventTemplate.Name : "Evento",
+                e.Field != null ? e.Field.Name : "",
+                e.WeightPerHead ?? 0))
             .ToListAsync();
     }
 

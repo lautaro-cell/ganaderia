@@ -4,8 +4,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
-    <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
+    <OverrideHtmlAssetPlaceholders>false</OverrideHtmlAssetPlaceholders>
+    <FingerprintAssets>false</FingerprintAssets>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,9 +24,6 @@
     <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Protobuf Include="..\GestorGanadero.Shared\Protos\livestock_v1.proto" GrpcServices="Client" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\GestorGanadero.Shared\GestorGanadero.Shared.csproj" />

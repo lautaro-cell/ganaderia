@@ -8,4 +8,7 @@ public record LivestockEventResponse(
     decimal EstimatedWeightKg,
     decimal TotalAmount,
     string Status,
-    DateTimeOffset EventDate);
+    DateTimeOffset EventDate,
+    string TypeName,
+    string FieldName,
+    decimal WeightPerHead);
