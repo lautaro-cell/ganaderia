@@ -1,9 +1,9 @@
-@page "/"
+@page "/centro-operativo"
 @using GestorGanadero.Client.Services
 @using GestorGanadero.Grpc.V1
 @using Google.Protobuf.WellKnownTypes
 @inject LivestockService.LivestockServiceClient Client
-@inject AppState State
+@inject AppStateContainer State
 @implements IDisposable
 
 <div class="module-header">
@@ -197,19 +197,19 @@
 
     private async Task LoadTemplates()
     {
-        if (string.IsNullOrEmpty(State.SelectedTenantId)) return;
+        if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
         try {
-            var res = await Client.GetEventTemplatesAsync(new GetTemplatesRequest { TenantId = State.SelectedTenantId });
+            var res = await Client.GetEventTemplatesAsync(new GetTemplatesRequest { TenantId = State.ActiveTenantId });
             _templates = res.Templates.ToList();
         } catch { _templates = new(); }
     }
 
     private async Task LoadEvents()
     {
-        if (string.IsNullOrEmpty(State.SelectedTenantId)) return;
+        if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
         try {
             var req = new GetEventsRequest {
-                TenantId = State.SelectedTenantId,
+                TenantId = State.ActiveTenantId,
                 StartDate = Timestamp.FromDateTime(_startDate.ToUniversalTime()),
                 EndDate = Timestamp.FromDateTime(_endDate.ToUniversalTime())
             };

@@ -33,8 +33,8 @@ builder.Services.AddSingleton(sp =>
         InnerHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb, httpClientHandler)
     };
 
-    // Phase 0.4 - gRPC-Web channel (https://localhost:7001)
-    var channel = GrpcChannel.ForAddress("https://localhost:7001", new GrpcChannelOptions
+    // Phase 0.4 - gRPC-Web channel (http://localhost:5073)
+    var channel = GrpcChannel.ForAddress("http://localhost:5073", new GrpcChannelOptions
     {
         HttpHandler = jwtHandler
     });
