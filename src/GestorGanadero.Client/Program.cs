@@ -1,44 +1,48 @@
-using System.Net.Http;
-using Grpc.Net.Client;
-using Grpc.Net.Client.Web;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using GestorGanadero.Client;
+using Grpc.Net.Client;
+using Grpc.Net.Client.Web;
 using GestorGanadero.Client.Services;
 using GestorGanadero.Client.Infrastructure;
 using GestorGanadero.Grpc.V1;
+using Microsoft.JSInterop;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-// Register AppState
-builder.Services.AddScoped<AppState>();
+// Phase 0.3 - StateContainer
+builder.Services.AddScoped<AppStateContainer>();
 
-// Register Interceptor
-builder.Services.AddTransient<GrpcInterceptor>();
+// Phase 1.1 - AuthService
+builder.Services.AddScoped<IAuthService, AuthService>();
 
-// Configure gRPC Client
-builder.Services.AddScoped(sp =>
+// Phase 0.3 & 0.4 - JWT Handler & gRPC Channel
+// Registramos el handler para que pueda ser inyectado (aunque GrpcChannel.ForAddress lo use manualmente)
+builder.Services.AddTransient<JwtDelegatingHandler>();
+
+builder.Services.AddSingleton(sp =>
 {
-    var appState = sp.GetRequiredService<AppState>();
-    var interceptor = sp.GetRequiredService<GrpcInterceptor>();
+    var httpClientHandler = new HttpClientHandler();
+    var jsRuntime = sp.GetRequiredService<IJSRuntime>();
     
-    // For now, using HostEnvironment.BaseAddress as backend URL. 
-    // In production, this should be configurable.
-    var backendUrl = builder.HostEnvironment.BaseAddress;
-    
-    var handler = new GrpcWebHandler(GrpcWebMode.GrpcWebText, new HttpClientHandler());
-    interceptor.InnerHandler = handler;
-    
-    var channel = GrpcChannel.ForAddress(backendUrl, new GrpcChannelOptions 
-    { 
-        HttpHandler = interceptor 
+    // Configuramos el handler de JWT
+    var jwtHandler = new JwtDelegatingHandler(jsRuntime)
+    {
+        InnerHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb, httpClientHandler)
+    };
+
+    // Phase 0.4 - gRPC-Web channel (https://localhost:7001)
+    var channel = GrpcChannel.ForAddress("https://localhost:7001", new GrpcChannelOptions
+    {
+        HttpHandler = jwtHandler
     });
-    
+
     return new LivestockService.LivestockServiceClient(channel);
 });
 
+// HttpClient base (opcional, pero se mantiene por compatibilidad si se requiere)
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
 await builder.Build().RunAsync();

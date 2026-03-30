@@ -1,0 +1,191 @@
+@page "/maps"
+@using GestorGanadero.Client.Services
+@using GestorGanadero.Grpc.V1
+@using Microsoft.JSInterop
+@inject AppStateContainer State
+@inject LivestockService.LivestockServiceClient GrpcClient
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+<div class="module-header">
+    <h1>Mapas y Catastro</h1>
+</div>
+
+<div class="map-container card">
+    <div class="map-controls">
+        <div class="control-group">
+            <label>Lote para dibujar:</label>
+            <select @bind="activeLoteId">
+                <option value="">Seleccione un lote...</option>
+                @if (lotes != null)
+                {
+                    @foreach (var lote in lotes)
+                    {
+                        <option value="@lote.Id">@lote.Name (@lote.FieldName)</option>
+                    }
+                }
+            </select>
+            <p class="help-text">Seleccione un lote antes de usar la herramienta de dibujo.</p>
+        </div>
+        
+        @if (!string.IsNullOrEmpty(statusMessage))
+        {
+            <div class="status-alert @(statusSuccess ? "success" : "error")">
+                @statusMessage
+            </div>
+        }
+    </div>
+
+    <div id="map" style="height: 70vh; border-radius: 8px; z-index: 1;"></div>
+</div>
+
+<style>
+    .map-container {
+        padding: 0;
+        position: relative;
+    }
+
+    .map-controls {
+        position: absolute;
+        top: 20px;
+        left: 60px;
+        z-index: 1000;
+        background-color: var(--surface);
+        padding: 16px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-lg);
+        max-width: 300px;
+    }
+
+    .control-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .control-group label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+    }
+
+    .help-text {
+        font-size: 0.7rem;
+        color: var(--text-secondary);
+        margin: 0;
+    }
+
+    .status-alert {
+        margin-top: 12px;
+        padding: 8px 12px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .status-alert.success { background: rgba(0, 255, 0, 0.1); color: #00ff00; }
+    .status-alert.error { background: rgba(255, 0, 0, 0.1); color: var(--accent); }
+</style>
+
+@code {
+    private List<LoteMessage>? lotes;
+    private string activeLoteId = "";
+    private string statusMessage = "";
+    private bool statusSuccess = false;
+    private DotNetObjectReference<Mapas>? objRef;
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.OnChange += StateHasChanged;
+        await LoadLotes();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            objRef = DotNetObjectReference.Create(this);
+            // Prompt 5.1: Integración Leaflet dark mode
+            await JSRuntime.InvokeVoidAsync("initMap", "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", objRef);
+            
+            // Prompt 5.2: Renderizar polígonos existentes
+            await RenderExistingPolygons();
+        }
+    }
+
+    private async Task LoadLotes()
+    {
+        if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
+        try
+        {
+            var response = await GrpcClient.GetLotesAsync(new GetLotesRequest { TenantId = State.ActiveTenantId });
+            lotes = response.Lotes.ToList();
+        }
+        catch (Exception ex) { Console.WriteLine(ex.Message); }
+    }
+
+    private async Task RenderExistingPolygons()
+    {
+        if (lotes == null) return;
+        foreach (var lote in lotes.Where(l => !string.IsNullOrEmpty(l.GeojsonPolygon)))
+        {
+            await JSRuntime.InvokeVoidAsync("addLotePolygon", lote.Id, lote.Name, lote.GeojsonPolygon);
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnPolygonDrawn(string geojson)
+    {
+        if (string.IsNullOrEmpty(activeLoteId))
+        {
+            statusSuccess = false;
+            statusMessage = "Error: Debe seleccionar un lote antes de guardar la geometría.";
+            StateHasChanged();
+            return;
+        }
+
+        try
+        {
+            var request = new LoteGeoRequest
+            {
+                LoteId = activeLoteId,
+                GeojsonPolygon = geojson
+            };
+
+            var response = await GrpcClient.SaveLoteGeometriaAsync(request);
+            if (response.Success)
+            {
+                statusSuccess = true;
+                statusMessage = "✓ Geometría guardada correctamente.";
+                // Opcional: Recargar o actualizar el polígono en el mapa con el nombre
+                var lote = lotes?.FirstOrDefault(l => l.Id == activeLoteId);
+                if (lote != null)
+                {
+                    await JSRuntime.InvokeVoidAsync("addLotePolygon", lote.Id, lote.Name, geojson);
+                }
+            }
+            else
+            {
+                statusSuccess = false;
+                statusMessage = "Error al guardar geometría.";
+            }
+        }
+        catch (Exception ex)
+        {
+            statusSuccess = false;
+            statusMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        State.OnChange -= StateHasChanged;
+        objRef?.Dispose();
+    }
+}

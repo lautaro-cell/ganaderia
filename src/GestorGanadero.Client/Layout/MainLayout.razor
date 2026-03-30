@@ -1,56 +1,28 @@
 @inherits LayoutComponentBase
-@using GestorGanadero.Client.Components
+@using GestorGanadero.Client.Layout
 
-<div class="app-container">
-    <header class="top-nav">
-        <div class="logo">
-            <img src="icon-192.png" alt="Gestor Ganadero" />
-            <span>Gestor Ganadero</span>
-            <span class="brand-tag">Pro</span>
-        </div>
+<div class="app-shell">
+    <TopNav />
 
-        <div class="nav-actions">
-            <TenantSelector />
-            <UserProfileDisplay />
-        </div>
-    </header>
-
-    <nav class="main-tabs">
-        <ul>
-            <li>
-                <NavLink href="" Match="NavLinkMatch.All">
-                    <span class="material-icons" style="font-size:16px">event_note</span>
-                    Operativo
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="ledger">
-                    <span class="material-icons" style="font-size:16px">menu_book</span>
-                    Mayor
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="balance">
-                    <span class="material-icons" style="font-size:16px">account_balance</span>
-                    Balance
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="gis">
-                    <span class="material-icons" style="font-size:16px">map</span>
-                    Mapas
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="admin">
-                    <span class="material-icons" style="font-size:16px">settings</span>
-                    Admin
-                </NavLink>
-            </li>
-        </ul>
+    <nav class="nav-tabs">
+        <NavLink href="" Match="NavLinkMatch.All" class="nav-tab" ActiveClass="active">
+            Eventos
+        </NavLink>
+        <NavLink href="ledger" class="nav-tab" ActiveClass="active">
+            Mayor
+        </NavLink>
+        <NavLink href="balance" class="nav-tab" ActiveClass="active">
+            Balance
+        </NavLink>
+        <NavLink href="maps" class="nav-tab" ActiveClass="active">
+            Mapas
+        </NavLink>
+        <NavLink href="admin" class="nav-tab" ActiveClass="active">
+            Administración
+        </NavLink>
     </nav>
 
-    <main class="content-area">
+    <main class="main-content">
         @Body
     </main>
 </div>

@@ -1,0 +1,130 @@
+@page "/login"
+@using GestorGanadero.Client.Services
+@using Microsoft.JSInterop
+@inject IAuthService AuthService
+@inject NavigationManager Nav
+@inject IJSRuntime JSRuntime
+
+<div class="login-container">
+    <div class="login-card">
+        <h1>Iniciar Sesión</h1>
+        <p class="text-secondary">Gestor Ganadero Premium</p>
+
+        <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
+            <DataAnnotationsValidator />
+            
+            <div class="form-group mt-4">
+                <label>Email</label>
+                <InputText @bind-Value="loginModel.Email" placeholder="usuario@empresa.com" />
+            </div>
+
+            <div class="form-group">
+                <label>Contraseña</label>
+                <InputText @bind-Value="loginModel.Password" type="password" placeholder="••••••••" />
+            </div>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="validation-message">@errorMessage</div>
+            }
+
+            <button type="submit" class="login-btn mt-4" disabled="@isProcessing">
+                @if (isProcessing)
+                {
+                    <span>Procesando...</span>
+                }
+                else
+                {
+                    <span>Entrar</span>
+                }
+            </button>
+        </EditForm>
+    </div>
+</div>
+
+<style>
+    .login-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        background-color: var(--bg-primary);
+    }
+
+    .login-card {
+        background-color: var(--surface);
+        padding: 40px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        width: 100%;
+        max-width: 400px;
+        text-align: center;
+    }
+
+    .login-card h1 {
+        font-size: 1.5rem;
+        margin-bottom: 8px;
+    }
+
+    .login-btn {
+        width: 100%;
+        background-color: var(--accent);
+        border-radius: 8px;
+        padding: 12px;
+        font-size: 1rem;
+        margin-top: 24px;
+    }
+
+    .login-btn:hover {
+        opacity: 0.9;
+    }
+</style>
+
+@code {
+    private LoginModel loginModel = new();
+    private bool isProcessing = false;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+        if (!string.IsNullOrEmpty(token))
+        {
+            Nav.NavigateTo("/");
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        isProcessing = true;
+        errorMessage = null;
+
+        try
+        {
+            var success = await AuthService.LoginAsync(loginModel.Email, loginModel.Password);
+            if (success)
+            {
+                Nav.NavigateTo("/");
+            }
+            else
+            {
+                errorMessage = "Credenciales inválidas.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Error de conexión con el servidor.";
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    public class LoginModel
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+}

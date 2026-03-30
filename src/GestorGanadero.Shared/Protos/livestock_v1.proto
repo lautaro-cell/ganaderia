@@ -235,6 +235,8 @@ message LoteMessage {
   string field_id = 3;
   repeated string activity_ids = 4;
   string field_name = 5;
+  string geojson_polygon = 6;
+  string tenant_id = 7;
 }
 
 message FieldList          { repeated FieldMessage fields = 1; }

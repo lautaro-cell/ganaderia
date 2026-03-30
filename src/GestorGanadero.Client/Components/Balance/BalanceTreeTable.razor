@@ -1,0 +1,69 @@
+@using GestorGanadero.Grpc.V1
+@using System.Linq
+
+@if (Items != null && Items.Any())
+{
+    <table class="tree-table">
+        <thead>
+            <tr>
+                <th>Campo / Categoría</th>
+                <th class="text-end">Cabezas</th>
+                <th class="text-end">KG Total</th>
+                <th class="text-end">KG / CAB</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var fieldGroup in Items.GroupBy(i => i.FieldName))
+            {
+                var isExpanded = expandedFields.Contains(fieldGroup.Key);
+                var totalHeads = fieldGroup.Sum(i => i.HeadCount);
+                var totalWeight = fieldGroup.Sum(i => i.TotalWeight);
+                
+                <tr class="level-1" @onclick="() => ToggleField(fieldGroup.Key)">
+                    <td>
+                        <span class="expand-icon">@(isExpanded ? "▼" : "▶")</span>
+                        @fieldGroup.Key
+                    </td>
+                    <td class="text-end">@totalHeads</td>
+                    <td class="text-end">@totalWeight.ToString("N0")</td>
+                    <td class="text-end">@CalculateAvg(totalWeight, totalHeads).ToString("N2")</td>
+                </tr>
+
+                @if (isExpanded)
+                {
+                    @foreach (var item in fieldGroup)
+                    {
+                        <tr class="level-2">
+                            <td class="pl-indent">@item.CategoryName</td>
+                            <td class="text-end">@item.HeadCount</td>
+                            <td class="text-end">@item.TotalWeight.ToString("N0")</td>
+                            <td class="text-end">@CalculateAvg(item.TotalWeight, item.HeadCount).ToString("N2")</td>
+                        </tr>
+                    }
+                }
+            }
+        </tbody>
+    </table>
+}
+
+@* Styles moved to BalanceTreeTable.razor.css *@
+
+@code {
+    [Parameter] public List<BalanceItem> Items { get; set; } = new();
+
+    private HashSet<string> expandedFields = new();
+
+    private void ToggleField(string fieldName)
+    {
+        if (expandedFields.Contains(fieldName))
+            expandedFields.Remove(fieldName);
+        else
+            expandedFields.Add(fieldName);
+    }
+
+    private double CalculateAvg(double weight, int heads)
+    {
+        if (heads == 0) return 0;
+        return weight / heads;
+    }
+}

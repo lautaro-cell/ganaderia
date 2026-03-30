@@ -1,0 +1,138 @@
+@page "/admin"
+@using GestorGanadero.Client.Components.Admin
+@using GestorGanadero.Client.Services
+@inject AppStateContainer State
+@implements IDisposable
+
+<div class="module-header">
+    <h1>Configuración y Administración</h1>
+</div>
+
+<div class="admin-shell">
+    <!-- Sidebar Izquierda (Prompt 6.1) -->
+    <aside class="admin-sidebar">
+        <nav>
+            <button class="nav-item @(activeSection == AdminSection.Campos ? "active" : "")" 
+                    @onclick="() => activeSection = AdminSection.Campos">
+                <span class="material-icons">terrain</span> Campos
+            </button>
+            <button class="nav-item @(activeSection == AdminSection.Actividades ? "active" : "")" 
+                    @onclick="() => activeSection = AdminSection.Actividades">
+                <span class="material-icons">assignment</span> Actividades
+            </button>
+            <button class="nav-item @(activeSection == AdminSection.Categorias ? "active" : "")" 
+                    @onclick="() => activeSection = AdminSection.Categorias">
+                <span class="material-icons">category</span> Categorías
+            </button>
+            <button class="nav-item @(activeSection == AdminSection.Lotes ? "active" : "")" 
+                    @onclick="() => activeSection = AdminSection.Lotes">
+                <span class="material-icons">grid_view</span> Lotes
+            </button>
+            <div class="nav-divider"></div>
+            <button class="nav-item @(activeSection == AdminSection.Usuarios ? "active" : "")" 
+                    @onclick="() => activeSection = AdminSection.Usuarios">
+                <span class="material-icons">people</span> Usuarios
+            </button>
+        </nav>
+    </aside>
+
+    <!-- Contenido Derecha (Prompt 6.1) -->
+    <main class="admin-content card">
+        @switch (activeSection)
+        {
+            case AdminSection.Campos:
+                <FieldsAdmin />
+                break;
+            case AdminSection.Actividades:
+                <ActivitiesAdmin />
+                break;
+            case AdminSection.Categorias:
+                <CategoriesAdmin />
+                break;
+            case AdminSection.Lotes:
+                <LotesAdmin />
+                break;
+            case AdminSection.Usuarios:
+                <UsersAdmin />
+                break;
+        }
+    </main>
+</div>
+
+<style>
+    .admin-shell {
+        display: flex;
+        gap: 24px;
+        align-items: flex-start;
+        min-height: 70vh;
+    }
+
+    .admin-sidebar {
+        width: 220px;
+        flex-shrink: 0;
+        background: var(--surface);
+        border-radius: var(--radius-md);
+        padding: 12px;
+        border: 1px solid var(--border);
+    }
+
+    .admin-content {
+        flex: 1;
+        min-height: 70vh;
+        padding: 0; /* Los componentes internos manejan su padding */
+        overflow: hidden;
+    }
+
+    .nav-item {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        font-weight: 500;
+        text-align: left;
+        border-radius: var(--radius-sm);
+        transition: all 0.2s ease;
+        margin-bottom: 4px;
+    }
+
+    .nav-item .material-icons {
+        font-size: 20px;
+    }
+
+    .nav-item:hover {
+        background: var(--surface-2);
+        color: var(--text-primary);
+    }
+
+    .nav-item.active {
+        background: var(--surface-2);
+        color: var(--text-primary);
+        border-left: 3px solid var(--accent);
+        border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    }
+
+    .nav-divider {
+        height: 1px;
+        background: var(--border);
+        margin: 12px 0;
+    }
+</style>
+
+@code {
+    private enum AdminSection { Campos, Actividades, Categorias, Lotes, Usuarios }
+    private AdminSection activeSection = AdminSection.Campos;
+
+    protected override void OnInitialized()
+    {
+        State.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        State.OnChange -= StateHasChanged;
+    }
+}

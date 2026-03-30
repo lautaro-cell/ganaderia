@@ -1,0 +1,226 @@
+@page "/eventos"
+@using GestorGanadero.Client.Services
+@using GestorGanadero.Grpc.V1
+@using Google.Protobuf.WellKnownTypes
+@inject AppStateContainer State
+@inject LivestockService.LivestockServiceClient GrpcClient
+@inject IJSRuntime JsRuntime
+@implements IDisposable
+
+<div class="module-header">
+    <h1>Centro Operativo</h1>
+    <span class="text-secondary">@DateTime.Today.ToLongDateString()</span>
+</div>
+
+<div class="templates-section">
+    <h3>Registrar nuevo evento</h3>
+    <div class="template-grid">
+        @if (templates != null)
+        {
+            @foreach (var t in templates)
+            {
+                <div class="template-card" @onclick="() => OpenDrawer(t)" style="border-left: 4px solid @t.ColorCode">
+                    <div class="icon-wrap">@t.Icon</div>
+                    <div class="name">@t.Name</div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+<div class="events-section mt-4">
+    <h3>Eventos de hoy</h3>
+    <div class="table-container card">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Tipo</th>
+                    <th>Campo</th>
+                    <th class="text-end">Cabezas</th>
+                    <th class="text-end">KG/Cab</th>
+                    <th>Hora</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (todayEvents != null && todayEvents.Any())
+                {
+                    @foreach (var ev in todayEvents)
+                    {
+                        <tr>
+                            <td>
+                                <span class="badge-type" style="background-color: var(--surface-2); border-left: 3px solid var(--accent)">
+                                    @ev.TypeName
+                                </span>
+                            </td>
+                            <td>@ev.FieldName</td>
+                            <td class="text-end">@ev.HeadCount</td>
+                            <td class="text-end">@ev.WeightPerHead</td>
+                            <td>@ev.OccurredOn.ToDateTime().ToShortTimeString()</td>
+                            <td class="text-center">
+                                <button class="btn-icon" title="Editar" @onclick="() => EditEvent(ev)">✏️</button>
+                                <button class="btn-icon" title="Eliminar" @onclick="() => DeleteEvent(ev)">🗑️</button>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="6" class="text-center text-secondary py-4">No hay eventos registrados hoy.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@if (selectedTemplate != null)
+{
+    <GestorGanadero.Client.Components.Eventos.EventoDrawer 
+        SelectedTemplate="@selectedTemplate" 
+        OnClose="CloseDrawer" 
+        OnSaved="OnEventSaved" />
+}
+
+<style>
+    .template-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 16px;
+        margin-top: 12px;
+    }
+
+    .template-card {
+        background-color: var(--surface);
+        height: 100px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        transition: transform var(--transition), background-color var(--transition);
+        border: 1px solid var(--border);
+    }
+
+    .template-card:hover {
+        background-color: var(--surface-2);
+        transform: translateY(-2px);
+    }
+
+    .template-card .icon-wrap {
+        font-size: 1.5rem;
+    }
+
+    .template-card .name {
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-align: center;
+    }
+
+    .badge-type {
+        padding: 4px 10px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        border-radius: 4px;
+    }
+
+    .btn-icon {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1rem;
+        padding: 4px;
+        transition: opacity var(--transition);
+    }
+
+    .btn-icon:hover {
+        opacity: 0.7;
+    }
+
+    .table-container {
+        padding: 0;
+        overflow: hidden;
+    }
+
+    .py-4 { padding-top: 2rem; padding-bottom: 2rem; }
+    .text-center { text-align: center !important; }
+</style>
+
+@code {
+    private List<EventTemplate>? templates;
+    private List<EventDetail>? todayEvents;
+    private EventTemplate? selectedTemplate;
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.OnChange += StateHasChanged;
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
+
+        try
+        {
+            var templateResponse = await GrpcClient.GetEventTemplatesAsync(new GetTemplatesRequest { TenantId = State.ActiveTenantId });
+            templates = templateResponse.Templates.ToList();
+
+            var startOfDay = DateTime.Today.ToUniversalTime();
+            var endOfDay = DateTime.Today.AddDays(1).ToUniversalTime();
+
+            var eventsResponse = await GrpcClient.GetEventsAsync(new GetEventsRequest 
+            { 
+                TenantId = State.ActiveTenantId,
+                StartDate = Timestamp.FromDateTime(startOfDay),
+                EndDate = Timestamp.FromDateTime(endOfDay)
+            });
+            todayEvents = eventsResponse.Events.OrderByDescending(e => e.OccurredOn).ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading events data: {ex.Message}");
+        }
+    }
+
+    private void OpenDrawer(EventTemplate template)
+    {
+        selectedTemplate = template;
+    }
+
+    private void CloseDrawer()
+    {
+        selectedTemplate = null;
+    }
+
+    private async Task OnEventSaved()
+    {
+        CloseDrawer();
+        await LoadData();
+    }
+
+    private async Task EditEvent(EventDetail ev)
+    {
+        // For simplicity in Phase 3, we focus on Creation first. 
+        // Edit could reuse the drawer or a separate modal as per Prompt 3.3.
+    }
+
+    private async Task DeleteEvent(EventDetail ev)
+    {
+        // Confirmation would be better, but implementing direct call for now
+        try 
+        {
+            var res = await GrpcClient.DeleteEventAsync(new DeleteEventRequest { Id = ev.Id });
+            if (res.Success) await LoadData();
+        }
+        catch(Exception ex) { Console.WriteLine(ex.Message); }
+    }
+
+    public void Dispose()
+    {
+        State.OnChange -= StateHasChanged;
+    }
+}

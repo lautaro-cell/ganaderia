@@ -1,98 +1,71 @@
-.module-header {
+.filters-bar {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-}
-
-.filters {
-    display: flex;
-    gap: 1.5rem;
+    flex-wrap: wrap;
+    gap: 20px;
     align-items: flex-end;
+    background-color: var(--surface);
+    padding: 20px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
 }
 
 .filter-group {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 6px;
 }
 
 .filter-group label {
     font-size: 0.75rem;
+    font-weight: 600;
     color: var(--text-secondary);
     text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
-.filter-group input, .filter-group select {
-    background-color: var(--bg-surface);
-    color: var(--text-primary);
-    border: 1px solid var(--border-subtle);
-    padding: 0.5rem;
-    border-radius: 4px;
-}
-
-.btn-primary {
-    background-color: var(--primary-accent);
+.btn-consultar {
+    background-color: var(--accent);
     color: white;
-    border: none;
-    padding: 0.6rem 1.5rem;
-    border-radius: 4px;
+    padding: 10px 24px;
+    border-radius: var(--radius-sm);
     font-weight: 600;
-    cursor: pointer;
-    transition: opacity 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-.btn-primary:hover {
-    opacity: 0.9;
+.loader-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
 }
 
-.tree-table {
-    width: 100%;
-    border-collapse: collapse;
-    background-color: var(--bg-surface);
-    border-radius: 8px;
-    overflow: hidden;
+.spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
 }
 
-.tree-table th {
-    background-color: var(--bg-panel);
-    padding: 1rem;
-    text-align: left;
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    border-bottom: 1px solid var(--border-subtle);
+.spinner-large {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--surface-2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
 }
 
-.tree-table td {
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--border-subtle);
+@keyframes spin { 
+    to { transform: rotate(360deg); } 
 }
 
-.row-group {
-    background-color: rgba(255, 255, 255, 0.02);
-    font-weight: 600;
-}
-
-.row-subtotal {
-    background-color: rgba(255, 255, 255, 0.01);
-}
-
-.row-total {
-    background-color: var(--bg-panel);
-    font-weight: 700;
-    font-size: 1rem;
-}
-
-.text-end { text-align: right; }
-.ps-4 { padding-left: 2.5rem !important; }
-.ps-2 { padding-left: 1.5rem !important; }
-.fw-bold { font-weight: bold; }
-
-.loading, .empty-state {
-    padding: 4rem;
+.empty-state {
+    padding: 80px;
     text-align: center;
-    color: var(--text-secondary);
-    background-color: var(--bg-surface);
-    border-radius: 8px;
-    border: 1px dashed var(--border-subtle);
 }

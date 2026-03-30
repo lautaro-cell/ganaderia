@@ -1,119 +1,168 @@
 @page "/balance"
 @using GestorGanadero.Client.Services
 @using GestorGanadero.Grpc.V1
-@inject LivestockService.LivestockServiceClient Client
-@inject AppState State
+@using Google.Protobuf.WellKnownTypes
+@using Microsoft.AspNetCore.Components.Web
+@inject AppStateContainer State
+@inject LivestockService.LivestockServiceClient GrpcClient
 @implements IDisposable
 
 <div class="module-header">
     <h1>Balance de Existencias</h1>
-    <div class="filters">
-        <div class="filter-group">
-            <label>Fecha</label>
-            <input type="date" @bind="State.FilterDate" @bind:event="oninput" />
-        </div>
-        <div class="filter-group">
-            <label>Vista</label>
-            <select @bind="_categoryView">
-                <option value="gestor">Vista Gestor</option>
-                <option value="cliente">Vista Cliente</option>
-            </select>
-        </div>
-        <button class="btn-primary" @onclick="LoadBalance">Actualizar</button>
+</div>
+
+<div class="filters-bar card">
+    <div class="filter-group">
+        <label>Desde</label>
+        <input type="date" @bind="StartDate" />
+    </div>
+    <div class="filter-group">
+        <label>Hasta</label>
+        <input type="date" @bind="EndDate" />
+    </div>
+    
+    <div class="filter-group">
+        <label>Campo</label>
+        <select @bind="selectedFieldId">
+            <option value="">Todos los campos</option>
+            @if (fields != null)
+            {
+                foreach (var f in fields)
+                {
+                    <option value="@f.Id">@f.Name</option>
+                }
+            }
+        </select>
+    </div>
+
+    <div class="filter-group">
+        <label>Modalidad</label>
+        <select @bind="categoryView">
+            <option value="cliente">Vista Cliente</option>
+            <option value="gestor">Vista Gestor</option>
+        </select>
+    </div>
+
+    <div class="filter-actions">
+        <button class="btn-consultar" @onclick="FetchBalance" disabled="@isLoading">
+            @if (isLoading)
+            {
+                <span class="spinner"></span>
+            }
+            Consultar
+        </button>
     </div>
 </div>
 
-<div class="balance-content">
-    @if (_loading)
-    {
-        <div class="loading">Cargando reporte...</div>
-    }
-    else if (_report?.Items.Any() == true)
-    {
-        <table class="tree-table">
-            <thead>
-                <tr>
-                    <th>Concepto (Campo / Categoría)</th>
-                    <th class="text-end">Cabezas</th>
-                    <th class="text-end">Total KG</th>
-                    <th class="text-end">KG/CAB</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var group in _report.Items.GroupBy(i => i.FieldName))
-                {
-                    <tr class="row-group">
-                        <td colspan="4">
-                            <span class="folder-icon">📁</span> @group.Key
-                        </td>
-                    </tr>
-                    @foreach (var item in group)
-                    {
-                        <tr class="row-item">
-                            <td class="ps-4">@item.CategoryName</td>
-                            <td class="text-end">@item.HeadCount.ToString("N0")</td>
-                            <td class="text-end">@item.TotalWeight.ToString("N2")</td>
-                            <td class="text-end">@((item.HeadCount > 0 ? item.TotalWeight / item.HeadCount : 0).ToString("N2"))</td>
-                        </tr>
-                    }
-                    <tr class="row-subtotal">
-                         <td class="fw-bold ps-2">Subtotal @group.Key</td>
-                         <td class="text-end fw-bold">@group.Sum(i => i.HeadCount).ToString("N0")</td>
-                         <td class="text-end fw-bold">@group.Sum(i => i.TotalWeight).ToString("N2")</td>
-                         <td class="text-end fw-bold">-</td>
-                    </tr>
-                }
-            </tbody>
-            <tfoot>
-                <tr class="row-total">
-                    <td>TOTAL GENERAL</td>
-                    <td class="text-end">@_report.Items.Sum(i => i.HeadCount).ToString("N0")</td>
-                    <td class="text-end">@_report.Items.Sum(i => i.TotalWeight).ToString("N2")</td>
-                    <td></td>
-                </tr>
-            </tfoot>
-        </table>
-    }
-    else
-    {
-        <div class="empty-state">No hay datos para los filtros seleccionados.</div>
-    }
-</div>
+@if (isLoading)
+{
+    <div class="loader-container">
+        <div class="spinner-large"></div>
+        <p>Cargando balance...</p>
+    </div>
+}
+else if (balanceReport != null)
+{
+    @* Prompt 2.2 will implement the table here *@
+    <div class="mt-4">
+        <GestorGanadero.Client.Components.Balance.BalanceTreeTable Items="@balanceReport.Items.ToList()" />
+    </div>
+}
+else
+{
+    <div class="empty-state">
+        <p class="text-secondary">Seleccione los filtros y presione "Consultar" para ver los datos.</p>
+    </div>
+}
+
+@* Styles moved to Balance.razor.css *@
 
 @code {
-    private BalanceReport? _report;
-    private bool _loading = false;
-    private string _categoryView = "gestor";
+    private List<FieldMessage>? fields;
+    private string selectedFieldId = "";
+    private string categoryView = "cliente";
+    private bool isLoading = false;
+    private BalanceReport? balanceReport;
+
+    private DateTime StartDate
+    {
+        get => State.ActiveDateRange?.Start ?? DateTime.Today.AddMonths(-1);
+        set 
+        {
+            if (State.ActiveDateRange == null) State.ActiveDateRange = new DateRange();
+            State.ActiveDateRange.Start = value;
+        }
+    }
+
+    private DateTime EndDate
+    {
+        get => State.ActiveDateRange?.End ?? DateTime.Today;
+        set 
+        {
+            if (State.ActiveDateRange == null) State.ActiveDateRange = new DateRange();
+            State.ActiveDateRange.End = value;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
         State.OnChange += StateHasChanged;
-        await LoadBalance();
+        
+        if (State.ActiveDateRange == null)
+        {
+            State.ActiveDateRange = new DateRange 
+            { 
+                Start = DateTime.Today.AddMonths(-1), 
+                End = DateTime.Today 
+            };
+        }
+
+        await LoadFields();
     }
 
-    private async Task LoadBalance()
+    private async Task LoadFields()
     {
-        if (string.IsNullOrEmpty(State.SelectedTenantId)) return;
+        try
+        {
+            if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
 
-        _loading = true;
+            var response = await GrpcClient.GetFieldsAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
+            fields = response.Fields.ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading fields: {ex.Message}");
+        }
+    }
+
+    private async Task FetchBalance()
+    {
+        if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
+
+        isLoading = true;
+        balanceReport = null;
+        StateHasChanged();
+
         try
         {
             var request = new GetBalanceRequest
             {
-                TenantId = State.SelectedTenantId,
-                Date = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(State.FilterDate.ToUniversalTime()),
-                CategoryView = _categoryView
+                TenantId = State.ActiveTenantId,
+                Date = Timestamp.FromDateTime(EndDate.ToUniversalTime()),
+                FieldId = selectedFieldId,
+                CategoryView = categoryView
             };
 
-            _report = await Client.GetBalanceAsync(request);
+            balanceReport = await GrpcClient.GetBalanceAsync(request);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading balance: {ex.Message}");
+            Console.WriteLine($"Error fetching balance: {ex.Message}");
         }
         finally
         {
-            _loading = false;
+            isLoading = false;
+            StateHasChanged();
         }
     }
 

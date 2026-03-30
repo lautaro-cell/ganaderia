@@ -1,0 +1,92 @@
+@using GestorGanadero.Client.Services
+@using GestorGanadero.Grpc.V1
+@implements IDisposable
+@inject AppStateContainer State
+
+<header class="top-nav">
+    <div class="logo">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="var(--accent)" />
+            <path d="M2 17L12 22L22 17" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M2 12L12 17L22 12" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span>Gestor Ganadero</span>
+    </div>
+
+    <div class="tenant-dropdown">
+        @if (State.AvailableTenants != null && State.AvailableTenants.Any())
+        {
+            <select @onchange="OnTenantChanged" value="@State.ActiveTenantId">
+                @foreach (var tenant in State.AvailableTenants)
+                {
+                    <option value="@tenant.Id">@tenant.Name</option>
+                }
+            </select>
+        }
+        else
+        {
+            <select disabled>
+                <option>Cargando establecimientos...</option>
+            </select>
+        }
+    </div>
+
+    <div class="user-info">
+        @if (State.CurrentUser != null)
+        {
+            <span class="user-name text-secondary">@State.CurrentUser.Name</span>
+            <div class="user-avatar">
+                <span>@GetInitials(State.CurrentUser.Name)</span>
+            </div>
+        }
+        else
+        {
+            <div class="user-avatar">
+                <span>?</span>
+            </div>
+        }
+    </div>
+</header>
+
+<style>
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .user-name {
+        font-size: 0.85rem;
+    }
+</style>
+
+@code {
+    protected override void OnInitialized()
+    {
+        State.OnChange += StateHasChanged;
+    }
+
+    private void OnTenantChanged(ChangeEventArgs e)
+    {
+        var tenantId = e.Value?.ToString();
+        var tenant = State.AvailableTenants.FirstOrDefault(t => t.Id == tenantId);
+        
+        if (tenant != null)
+        {
+            State.ActiveTenantId = tenant.Id;
+            State.ActiveTenantName = tenant.Name;
+        }
+    }
+
+    private string GetInitials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "??";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1) return parts[0][0].ToString().ToUpper();
+        return (parts[0][0].ToString() + parts[parts.Length - 1][0].ToString()).ToUpper();
+    }
+
+    public void Dispose()
+    {
+        State.OnChange -= StateHasChanged;
+    }
+}
