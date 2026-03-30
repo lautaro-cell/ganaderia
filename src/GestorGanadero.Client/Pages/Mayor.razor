@@ -1,10 +1,15 @@
 @page "/ledger"
 @using GestorGanadero.Client.Services
-@using GestorGanadero.Grpc.V1
+@using GestorGanadero.Services.Common.Contracts
+@using GestorGanadero.Services.Identity.Contracts
+@using GestorGanadero.Services.Catalog.Contracts
+@using GestorGanadero.Services.Operations.Contracts
+@using GestorGanadero.Services.Reporting.Contracts
+@using GestorGanadero.Services.Sync.Contracts
 @using Google.Protobuf.WellKnownTypes
 @using global::Grpc.Core
 @inject AppStateContainer State
-@inject LivestockService.LivestockServiceClient GrpcClient
+@inject ReportingService.ReportingServiceClient GrpcClient
 @implements IDisposable
 
 <div class="module-header">
@@ -296,7 +301,7 @@
         if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
         try
         {
-            var response = await GrpcClient.GetPendingSyncEventsAsync(new PendingSyncFilter { TenantId = State.ActiveTenantId });
+            var response = await SyncClient.GetPendingSyncEventsAsync(new PendingSyncFilter { TenantId = State.ActiveTenantId });
             pendingEntries = response.Entries.ToList();
             selectedPendingIds.Clear();
         }
@@ -349,7 +354,7 @@
             var request = new SyncRequest();
             request.EntryIds.AddRange(selectedPendingIds);
 
-            var response = await GrpcClient.SyncToERPAsync(request);
+            var response = await SyncClient.SyncToERPAsync(request);
 
             if (response.Count >= 0) // Si respondió, lo consideramos éxito
             {
@@ -375,3 +380,4 @@
         State.OnChange -= StateHasChanged;
     }
 }
+

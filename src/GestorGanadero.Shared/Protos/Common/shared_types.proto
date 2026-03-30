@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+option csharp_namespace = "GestorGanadero.Services.Common.Contracts";
+package common.v1;
+
+message ActionResponse {
+  bool success = 1;
+  string message = 2;
+  string object_id = 3;
+}
+
+message DeleteEntityRequest {
+  string id = 1;
+  string tenant_id = 2;
+}
+
+message PaginationParams {
+  int32 page_index = 1;
+  int32 page_size = 2;
+}

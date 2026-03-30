@@ -1,0 +1,75 @@
+syntax = "proto3";
+import "google/protobuf/timestamp.proto";
+import "Protos/Common/shared_types.proto";
+
+option csharp_namespace = "GestorGanadero.Services.Operations.Contracts";
+package operations.v1;
+
+service OperationsService {
+  rpc GetEventTemplates (GetTemplatesRequest) returns (EventTemplateList);
+  rpc RegisterEvent (RegisterEventRequest) returns (common.v1.ActionResponse);
+  rpc UpdateEvent (UpdateEventRequest) returns (common.v1.ActionResponse);
+  rpc DeleteEvent (DeleteEventRequest) returns (common.v1.ActionResponse);
+  rpc GetEvents (GetEventsRequest) returns (EventList);
+  rpc GetEventDetails (GetEventDetailsRequest) returns (EventDetail);
+}
+
+message EventTemplate {
+  string id = 1;
+  string name = 2;
+  string icon = 3;
+  repeated string fields = 4;
+  string color_code = 5;
+}
+
+message GetTemplatesRequest { string tenant_id = 1; }
+message EventTemplateList { repeated EventTemplate templates = 1; }
+
+message RegisterEventRequest {
+  string template_id = 1;
+  google.protobuf.Timestamp occurred_on = 2;
+  string animal_id = 3;
+  double primary_value = 4;
+  map<string, string> dynamic_data = 5;
+  string observations = 6;
+  string field_id = 7;
+  string activity_id = 8;
+  string category_id = 9;
+  string weight_per_head = 10;
+  int32 head_count = 11;
+  string category_destination_id = 12;
+  string activity_destination_id = 13;
+  string field_destination_id = 14;
+}
+
+message UpdateEventRequest {
+  string id = 1;
+  google.protobuf.Timestamp occurred_on = 2;
+  int32 head_count = 3;
+  string weight_per_head = 4;
+  double primary_value = 5;
+  string observations = 6;
+}
+
+message DeleteEventRequest { string id = 1; }
+message GetEventDetailsRequest { string id = 1; }
+
+message GetEventsRequest {
+  string tenant_id = 1;
+  google.protobuf.Timestamp start_date = 2;
+  google.protobuf.Timestamp end_date = 3;
+}
+
+message EventDetail {
+  string id = 1;
+  string type_name = 2;
+  google.protobuf.Timestamp occurred_on = 3;
+  string field_name = 4;
+  int32 head_count = 5;
+  string weight_per_head = 6;
+  double total_weight = 7;
+  string observations = 8;
+  string type_code = 9;
+}
+
+message EventList { repeated EventDetail events = 1; }

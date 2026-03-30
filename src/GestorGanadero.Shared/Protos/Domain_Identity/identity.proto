@@ -1,0 +1,49 @@
+syntax = "proto3";
+import "google/protobuf/empty.proto";
+import "Protos/Common/shared_types.proto";
+
+option csharp_namespace = "GestorGanadero.Services.Identity.Contracts";
+package identity.v1;
+
+service IdentityService {
+  rpc GetMyProfile (google.protobuf.Empty) returns (UserProfile);
+  rpc GetAvailableTenants (google.protobuf.Empty) returns (TenantList);
+  rpc GetUsers (google.protobuf.Empty) returns (UserList);
+  rpc InviteUser (InviteUserRequest) returns (common.v1.ActionResponse);
+  rpc UpdateUser (UserMessage) returns (common.v1.ActionResponse);
+  rpc DeleteUser (common.v1.DeleteEntityRequest) returns (common.v1.ActionResponse);
+}
+
+message UserProfile {
+  string id = 1;
+  string email = 2;
+  string name = 3;
+  string role = 4;
+  string active_tenant_id = 5;
+  string profile_image_url = 6;
+}
+
+message TenantMessage {
+  string id = 1;
+  string name = 2;
+}
+
+message TenantList { repeated TenantMessage tenants = 1; }
+
+message InviteUserRequest {
+  string email = 1;
+  string name = 2;
+  string role_name = 3;
+  string tenant_id = 4;
+}
+
+message UserMessage {
+  string id = 1;
+  string email = 2;
+  string name = 3;
+  string role_name = 4;
+  bool is_active = 5;
+  string tenant_id = 6;
+}
+
+message UserList { repeated UserMessage users = 1; }

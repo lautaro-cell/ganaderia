@@ -1,10 +1,15 @@
 @page "/"
 @page "/eventos"
 @using GestorGanadero.Client.Services
-@using GestorGanadero.Grpc.V1
+@using GestorGanadero.Services.Common.Contracts
+@using GestorGanadero.Services.Identity.Contracts
+@using GestorGanadero.Services.Catalog.Contracts
+@using GestorGanadero.Services.Operations.Contracts
+@using GestorGanadero.Services.Reporting.Contracts
+@using GestorGanadero.Services.Sync.Contracts
 @using Google.Protobuf.WellKnownTypes
 @inject AppStateContainer State
-@inject LivestockService.LivestockServiceClient GrpcClient
+@inject OperationsService.OperationsServiceClient GrpcClient
 @inject IJSRuntime JsRuntime
 @implements IDisposable
 
@@ -225,3 +230,4 @@
         State.OnChange -= StateHasChanged;
     }
 }
+

@@ -1,4 +1,9 @@
-@using GestorGanadero.Grpc.V1
+@using GestorGanadero.Services.Common.Contracts
+@using GestorGanadero.Services.Identity.Contracts
+@using GestorGanadero.Services.Catalog.Contracts
+@using GestorGanadero.Services.Operations.Contracts
+@using GestorGanadero.Services.Reporting.Contracts
+@using GestorGanadero.Services.Sync.Contracts
 @using System.Linq
 
 @if (Items != null && Items.Any())
@@ -67,3 +72,4 @@
         return weight / heads;
     }
 }
+

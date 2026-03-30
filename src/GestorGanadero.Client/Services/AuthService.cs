@@ -5,7 +5,12 @@ using System.Threading.Tasks;
 using Microsoft.JSInterop;
 using Grpc.Core;
 using Google.Protobuf.WellKnownTypes;
-using GestorGanadero.Grpc.V1;
+using GestorGanadero.Services.Common.Contracts;
+using GestorGanadero.Services.Identity.Contracts;
+using GestorGanadero.Services.Catalog.Contracts;
+using GestorGanadero.Services.Operations.Contracts;
+using GestorGanadero.Services.Reporting.Contracts;
+using GestorGanadero.Services.Sync.Contracts;
 using System.Linq;
 
 namespace GestorGanadero.Client.Services
@@ -15,13 +20,13 @@ namespace GestorGanadero.Client.Services
         private readonly HttpClient _http;
         private readonly IJSRuntime _js;
         private readonly AppStateContainer _state;
-        private readonly LivestockService.LivestockServiceClient _grpcClient;
+        private readonly IdentityService.IdentityServiceClient _grpcClient;
 
         public AuthService(
             HttpClient http, 
             IJSRuntime js, 
             AppStateContainer state, 
-            LivestockService.LivestockServiceClient grpcClient)
+            IdentityService.IdentityServiceClient grpcClient)
         {
             _http = http;
             _js = js;
@@ -94,3 +99,4 @@ namespace GestorGanadero.Client.Services
         }
     }
 }
+

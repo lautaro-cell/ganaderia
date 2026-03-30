@@ -7,7 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Protobuf Include="Protos\livestock_v1.proto" GrpcServices="Both" />
+    <Protobuf Include="Protos\Common\shared_types.proto" GrpcServices="Both" />
+    <Protobuf Include="Protos\Domain_Identity\identity.proto" GrpcServices="Both" />
+    <Protobuf Include="Protos\Domain_Catalog\catalog.proto" GrpcServices="Both" />
+    <Protobuf Include="Protos\Domain_Operations\operations.proto" GrpcServices="Both" />
+    <Protobuf Include="Protos\Domain_Reporting\reporting.proto" GrpcServices="Both" />
+    <Protobuf Include="Protos\Domain_Sync\sync.proto" GrpcServices="Both" />
   </ItemGroup>
 
   <ItemGroup>

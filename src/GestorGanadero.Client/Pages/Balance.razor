@@ -1,10 +1,15 @@
 @page "/balance"
 @using GestorGanadero.Client.Services
-@using GestorGanadero.Grpc.V1
+@using GestorGanadero.Services.Common.Contracts
+@using GestorGanadero.Services.Identity.Contracts
+@using GestorGanadero.Services.Catalog.Contracts
+@using GestorGanadero.Services.Operations.Contracts
+@using GestorGanadero.Services.Reporting.Contracts
+@using GestorGanadero.Services.Sync.Contracts
 @using Google.Protobuf.WellKnownTypes
 @using Microsoft.AspNetCore.Components.Web
 @inject AppStateContainer State
-@inject LivestockService.LivestockServiceClient GrpcClient
+@inject ReportingService.ReportingServiceClient GrpcClient
 @implements IDisposable
 
 <div class="module-header">
@@ -126,7 +131,7 @@ else
         {
             if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
 
-            var response = await GrpcClient.GetFieldsAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
+            var response = await CatalogClient.GetFieldsAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
             fields = response.Fields.ToList();
         }
         catch (Exception ex)
@@ -171,3 +176,4 @@ else
         State.OnChange -= StateHasChanged;
     }
 }
+

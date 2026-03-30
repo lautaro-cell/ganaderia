@@ -1,0 +1,15 @@
+syntax = "proto3";
+import "Protos/Domain_Reporting/reporting.proto";
+
+option csharp_namespace = "GestorGanadero.Services.Sync.Contracts";
+package sync.v1;
+
+service SyncService {
+  rpc GetPendingSyncEvents (PendingSyncFilter) returns (PendingSyncList);
+  rpc SyncToERP (SyncRequest) returns (SyncResult);
+}
+
+message PendingSyncFilter { string tenant_id = 1; }
+message PendingSyncList   { repeated reporting.v1.LedgerEntry entries = 1; }
+message SyncRequest       { repeated string entry_ids = 1; }
+message SyncResult        { int32 count = 1; string log = 2; }

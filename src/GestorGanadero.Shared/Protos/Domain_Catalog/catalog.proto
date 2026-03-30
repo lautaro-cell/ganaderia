@@ -1,0 +1,74 @@
+syntax = "proto3";
+import "Protos/Common/shared_types.proto";
+
+option csharp_namespace = "GestorGanadero.Services.Catalog.Contracts";
+package catalog.v1;
+
+service CatalogService {
+  rpc GetFields (GetCatalogRequest) returns (FieldList);
+  rpc CreateField (FieldMessage) returns (common.v1.ActionResponse);
+  rpc UpdateField (FieldMessage) returns (common.v1.ActionResponse);
+  rpc DeleteField (common.v1.DeleteEntityRequest) returns (common.v1.ActionResponse);
+
+  rpc GetActivities (GetCatalogRequest) returns (ActivityList);
+  rpc CreateActivity (ActivityMessage) returns (common.v1.ActionResponse);
+  rpc UpdateActivity (ActivityMessage) returns (common.v1.ActionResponse);
+  rpc DeleteActivity (common.v1.DeleteEntityRequest) returns (common.v1.ActionResponse);
+
+  rpc GetAnimalCategories (GetCatalogRequest) returns (AnimalCategoryList);
+  rpc CreateAnimalCategory (AnimalCategoryMessage) returns (common.v1.ActionResponse);
+  rpc UpdateAnimalCategory (AnimalCategoryMessage) returns (common.v1.ActionResponse);
+  rpc DeleteAnimalCategory (common.v1.DeleteEntityRequest) returns (common.v1.ActionResponse);
+
+  rpc GetLotes (GetLotesRequest) returns (LoteList);
+  rpc CreateLote (LoteMessage) returns (common.v1.ActionResponse);
+  rpc UpdateLote (LoteMessage) returns (common.v1.ActionResponse);
+  rpc DeleteLote (common.v1.DeleteEntityRequest) returns (common.v1.ActionResponse);
+  rpc SaveLoteGeometria (LoteGeoRequest) returns (common.v1.ActionResponse);
+}
+
+message GetCatalogRequest { string tenant_id = 1; }
+
+message FieldMessage {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  bool is_active = 4;
+  string tenant_id = 5;
+}
+
+message ActivityMessage {
+  string id = 1;
+  string name = 2;
+  bool is_global = 3;
+  string tenant_id = 4;
+}
+
+message AnimalCategoryMessage {
+  string id = 1;
+  string name = 2;
+  string activity_id = 3;
+  string standard_weight_kg = 4;
+  string category_type = 5;
+  string external_id = 6;
+  bool is_active = 7;
+  string tenant_id = 8;
+}
+
+message LoteMessage {
+  string id = 1;
+  string name = 2;
+  string field_id = 3;
+  repeated string activity_ids = 4;
+  string field_name = 5;
+  string geojson_polygon = 6;
+  string tenant_id = 7;
+}
+
+message FieldList          { repeated FieldMessage fields = 1; }
+message ActivityList       { repeated ActivityMessage activities = 1; }
+message AnimalCategoryList { repeated AnimalCategoryMessage categories = 1; }
+message LoteList           { repeated LoteMessage lotes = 1; }
+
+message GetLotesRequest { string field_id = 1; string tenant_id = 2; }
+message LoteGeoRequest { string lote_id = 1; string geojson_polygon = 2; }

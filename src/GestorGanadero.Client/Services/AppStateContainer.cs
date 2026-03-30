@@ -1,6 +1,11 @@
 using System;
 using System.Collections.Generic;
-using GestorGanadero.Grpc.V1;
+using GestorGanadero.Services.Common.Contracts;
+using GestorGanadero.Services.Identity.Contracts;
+using GestorGanadero.Services.Catalog.Contracts;
+using GestorGanadero.Services.Operations.Contracts;
+using GestorGanadero.Services.Reporting.Contracts;
+using GestorGanadero.Services.Sync.Contracts;
 
 namespace GestorGanadero.Client.Services
 {
@@ -73,3 +78,4 @@ namespace GestorGanadero.Client.Services
         private void NotifyStateChanged() => OnChange?.Invoke();
     }
 }
+

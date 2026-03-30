@@ -81,9 +81,11 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.MapGrpcService<LivestockServiceImplementation>()
-   .EnableGrpcWeb()
-   .RequireCors("BlazorPolicy");
+app.MapGrpcService<GestorGanadero.Server.Grpc.IdentityServiceImplementation>().EnableGrpcWeb().RequireCors("BlazorPolicy");
+app.MapGrpcService<GestorGanadero.Server.Grpc.CatalogServiceImplementation>().EnableGrpcWeb().RequireCors("BlazorPolicy");
+app.MapGrpcService<GestorGanadero.Server.Grpc.OperationsServiceImplementation>().EnableGrpcWeb().RequireCors("BlazorPolicy");
+app.MapGrpcService<GestorGanadero.Server.Grpc.ReportingServiceImplementation>().EnableGrpcWeb().RequireCors("BlazorPolicy");
+app.MapGrpcService<GestorGanadero.Server.Grpc.SyncServiceImplementation>().EnableGrpcWeb().RequireCors("BlazorPolicy");
 
 app.MapFallbackToFile("index.html");
 

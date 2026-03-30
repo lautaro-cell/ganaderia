@@ -5,9 +5,13 @@ using Grpc.Net.Client;
 using Grpc.Net.Client.Web;
 using GestorGanadero.Client.Services;
 using GestorGanadero.Client.Infrastructure;
-using GestorGanadero.Grpc.V1;
 using Microsoft.JSInterop;
-
+using GestorGanadero.Services.Common.Contracts;
+using GestorGanadero.Services.Identity.Contracts;
+using GestorGanadero.Services.Catalog.Contracts;
+using GestorGanadero.Services.Operations.Contracts;
+using GestorGanadero.Services.Reporting.Contracts;
+using GestorGanadero.Services.Sync.Contracts;
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
@@ -27,20 +31,22 @@ builder.Services.AddSingleton(sp =>
     var httpClientHandler = new HttpClientHandler();
     var jsRuntime = sp.GetRequiredService<IJSRuntime>();
     
-    // Configuramos el handler de JWT
     var jwtHandler = new JwtDelegatingHandler(jsRuntime)
     {
         InnerHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb, httpClientHandler)
     };
 
-    // Phase 0.4 - gRPC-Web channel (http://localhost:5073)
-    var channel = GrpcChannel.ForAddress("http://localhost:5073", new GrpcChannelOptions
+    return GrpcChannel.ForAddress("http://localhost:5073", new GrpcChannelOptions
     {
         HttpHandler = jwtHandler
     });
-
-    return new LivestockService.LivestockServiceClient(channel);
 });
+
+builder.Services.AddScoped(sp => new GestorGanadero.Services.Identity.Contracts.IdentityService.IdentityServiceClient(sp.GetRequiredService<GrpcChannel>()));
+builder.Services.AddScoped(sp => new GestorGanadero.Services.Catalog.Contracts.CatalogService.CatalogServiceClient(sp.GetRequiredService<GrpcChannel>()));
+builder.Services.AddScoped(sp => new GestorGanadero.Services.Operations.Contracts.OperationsService.OperationsServiceClient(sp.GetRequiredService<GrpcChannel>()));
+builder.Services.AddScoped(sp => new GestorGanadero.Services.Reporting.Contracts.ReportingService.ReportingServiceClient(sp.GetRequiredService<GrpcChannel>()));
+builder.Services.AddScoped(sp => new GestorGanadero.Services.Sync.Contracts.SyncService.SyncServiceClient(sp.GetRequiredService<GrpcChannel>()));
 
 // HttpClient base (opcional, pero se mantiene por compatibilidad si se requiere)
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });

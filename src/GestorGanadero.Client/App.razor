@@ -1,5 +1,7 @@
 @using GestorGanadero.Client.Services
 @inject IAuthService AuthService
+@inject Microsoft.AspNetCore.Components.NavigationManager Navigation
+@inject AppStateContainer State
 
 <Router AppAssembly="@typeof(App).Assembly">
     <Found Context="routeData">
@@ -17,5 +19,9 @@
     protected override async Task OnInitializedAsync()
     {
         await AuthService.LoadUserContextAsync();
+        if (string.IsNullOrEmpty(State.ActiveTenantId) && !Navigation.Uri.Contains("/login"))
+        {
+            Navigation.NavigateTo("/login");
+        }
     }
 }
