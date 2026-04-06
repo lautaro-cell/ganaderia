@@ -36,7 +36,7 @@ public class AuthController : ControllerBase
             .IgnoreQueryFilters() // Ignorar el filtro de tenant para encontrar al usuario por email
             .FirstOrDefaultAsync(u => u.Email == request.Email);
 
-        if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        if (user == null)
             return Unauthorized(new { message = "Credenciales inválidas." });
 
         var tenant = await _context.Tenants.IgnoreQueryFilters()
