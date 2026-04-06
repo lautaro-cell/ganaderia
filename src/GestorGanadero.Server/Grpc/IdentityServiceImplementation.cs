@@ -31,7 +31,8 @@ public class IdentityServiceImplementation : IdentityService.IdentityServiceBase
             Email = profile.Email,
             Name = profile.Email.Split('@')[0],
             Role = profile.Role.ToString(),
-            ActiveTenantId = profile.TenantId.ToString()
+            ActiveTenantId = profile.TenantId.ToString(),
+            ProfileImageUrl = ""
         };
     }
 
@@ -51,7 +52,7 @@ public class IdentityServiceImplementation : IdentityService.IdentityServiceBase
         return response;
     }
 
-    public override async Task<ActionResponse> InviteUser(InviteUserRequest request, ServerCallContext context)
+    public override async Task<ActionResponse> InviteUser(Services.Identity.Contracts.InviteUserRequest request, ServerCallContext context)
     {
         var id = await _userService.InviteUserAsync(new GestorGanadero.Server.Application.DTOs.InviteUserRequest(request.Email, request.Name, request.RoleName, System.Guid.Parse(request.TenantId)));
         return new ActionResponse { Success = true, ObjectId = id.ToString() };

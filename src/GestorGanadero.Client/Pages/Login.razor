@@ -1,130 +1,106 @@
 @page "/login"
 @using GestorGanadero.Client.Services
-@using Microsoft.JSInterop
+@using System.ComponentModel.DataAnnotations
 @inject IAuthService AuthService
 @inject NavigationManager Nav
-@inject IJSRuntime JSRuntime
+@inject IJSRuntime JS
 
-<div class="login-container">
+<div class="login-wrapper">
     <div class="login-card">
-        <h1>Iniciar Sesión</h1>
-        <p class="text-secondary">Gestor Ganadero Premium</p>
+        <div class="login-brand">
+            <div class="brand-icon">GG</div>
+            <h1>Gestor Ganadero</h1>
+            <p>Inicia sesión para continuar</p>
+        </div>
 
-        <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
+        <EditForm Model="@model" OnValidSubmit="HandleLogin">
             <DataAnnotationsValidator />
             
-            <div class="form-group mt-4">
-                <label>Email</label>
-                <InputText @bind-Value="loginModel.Email" placeholder="usuario@empresa.com" />
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger mb-md" style="margin-bottom:16px;">
+                    <span class="material-icons" style="font-size:18px;">error</span>
+                    @errorMessage
+                </div>
+            }
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <InputText id="email" @bind-Value="model.Email" class="form-control" placeholder="admin@ganaderia.com" />
+                <ValidationMessage For="@(() => model.Email)" />
             </div>
 
             <div class="form-group">
-                <label>Contraseña</label>
-                <InputText @bind-Value="loginModel.Password" type="password" placeholder="••••••••" />
+                <label for="password">Contraseña</label>
+                <InputText id="password" @bind-Value="model.Password" type="password" class="form-control" placeholder="••••••••" />
+                <ValidationMessage For="@(() => model.Password)" />
             </div>
 
-            @if (!string.IsNullOrEmpty(errorMessage))
-            {
-                <div class="validation-message">@errorMessage</div>
-            }
-
-            <button type="submit" class="login-btn mt-4" disabled="@isProcessing">
-                @if (isProcessing)
+            <button type="submit" class="btn btn-primary login-btn mt-md" disabled="@isLoading">
+                @if (isLoading)
                 {
-                    <span>Procesando...</span>
+                    <span class="spinner"></span>
+                    <span>Iniciando sesión...</span>
                 }
                 else
                 {
-                    <span>Entrar</span>
+                    <span class="material-icons" style="font-size:18px;">login</span>
+                    <span>Iniciar Sesión</span>
                 }
             </button>
         </EditForm>
+
+        <div style="text-align:center; margin-top:24px; font-size:0.75rem; color:var(--text-muted);">
+            Credenciales de prueba: admin@ganaderia.com / admin123
+        </div>
     </div>
 </div>
 
-<style>
-    .login-container {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
-        background-color: var(--bg-primary);
-    }
-
-    .login-card {
-        background-color: var(--surface);
-        padding: 40px;
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        width: 100%;
-        max-width: 400px;
-        text-align: center;
-    }
-
-    .login-card h1 {
-        font-size: 1.5rem;
-        margin-bottom: 8px;
-    }
-
-    .login-btn {
-        width: 100%;
-        background-color: var(--accent);
-        border-radius: 8px;
-        padding: 12px;
-        font-size: 1rem;
-        margin-top: 24px;
-    }
-
-    .login-btn:hover {
-        opacity: 0.9;
-    }
-</style>
-
 @code {
-    private LoginModel loginModel = new();
-    private bool isProcessing = false;
+    private LoginModel model = new();
+    private bool isLoading = false;
     private string? errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
-        var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+        var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
         if (!string.IsNullOrEmpty(token))
-        {
             Nav.NavigateTo("/");
-        }
     }
 
     private async Task HandleLogin()
     {
-        isProcessing = true;
+        isLoading = true;
         errorMessage = null;
+        StateHasChanged();
 
         try
         {
-            var success = await AuthService.LoginAsync(loginModel.Email, loginModel.Password);
+            var success = await AuthService.LoginAsync(model.Email, model.Password);
             if (success)
-            {
                 Nav.NavigateTo("/");
-            }
             else
-            {
-                errorMessage = "Credenciales inválidas.";
-            }
+                errorMessage = "Credenciales inválidas. Verifica tu email y contraseña.";
         }
-        catch (Exception ex)
+        catch
         {
-            errorMessage = "Error de conexión con el servidor.";
-            Console.WriteLine(ex.Message);
+            errorMessage = "No se pudo conectar al servidor. Intenta de nuevo.";
         }
         finally
         {
-            isProcessing = false;
+            isLoading = false;
+            StateHasChanged();
         }
     }
 
     public class LoginModel
     {
-        public string Email { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
+        [Required(ErrorMessage = "El email es obligatorio.")]
+        [EmailAddress(ErrorMessage = "Formato de email inválido.")]
+        public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "La contraseña es obligatoria.")]
+        [MinLength(3, ErrorMessage = "La contraseña debe tener al menos 3 caracteres.")]
+        public string Password { get; set; } = "";
     }
 }

@@ -1,0 +1,30 @@
+@typeparam TItem
+
+<div class="data-table" style="width:100%; overflow:auto;">
+  @if (Items == null)
+  {
+    <div>Loading...</div>
+  }
+  else
+  {
+    <table class="table" style="width:100%; border-collapse: collapse;">
+      @if (HeaderTemplate != null)
+      {
+        <thead>@HeaderTemplate</thead>
+      }
+      <tbody>
+        @foreach (var item in Items)
+        {
+          <tr>@RowTemplate(item)</tr>
+        }
+      </tbody>
+    </table>
+  }
+  
+</div>
+
+@code {
+  [Parameter] public IEnumerable<TItem> Items { get; set; }
+  [Parameter] public RenderFragment HeaderTemplate { get; set; }
+  [Parameter] public RenderFragment<TItem> RowTemplate { get; set; }
+}

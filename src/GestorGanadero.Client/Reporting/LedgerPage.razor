@@ -1,0 +1,87 @@
+@page "/reportes/mayor"
+@using GestorGanadero.Client.Shared
+@using GestorGanadero.Client.Reporting
+@using GestorGanadero.Services.Reporting.Contracts
+@using GestorGanadero.Client.Services
+@inject ReportingClientService ReportingClientService
+
+<PageHeader Title="Ledger" />
+
+@if (IsLoading) { <div style="height:4px; background:linear-gradient(to right, #e74c3c, transparent);"></div> }
+
+<div class="topbar" style="display:flex; gap:8px; align-items:center; background:#111; padding:12px; border-radius:8px; margin:8px 0;">
+  <input type="date" @bind="StartDate" />
+  <span style="color:#888;">a</span>
+  <input type="date" @bind="EndDate" />
+  <input placeholder="Buscar..." @bind="SearchTerm" style="margin-left:auto; padding:6px 8px;" />
+  <button class="btn" style="background:#C0392B; color:#fff; border:none; padding:6px 12px; border-radius:6px;" @onclick="LoadLedger">Filtrar</button>
+</div>
+
+<table class="table" style="width:100%; border-collapse: collapse;">
+  <thead>
+    <tr>
+      <th>Fecha</th>
+      <th>Descripción</th>
+      <th>Tipo</th>
+      <th>Estado</th>
+      <th>Cabezas</th>
+      <th>Peso</th>
+      <th>Monto</th>
+    </tr>
+  </thead>
+  <tbody>
+    @foreach (var r in Ledger)
+    {
+      <tr>
+        <td>@r.Date.ToDateTime().ToString("yyyy-MM-dd")</td>
+        <td>@r.Description</td>
+        <td><span class="badge" style="background:#555; padding:4px 8px; border-radius:999px; color:#fff;">@r.EntryType</span></td>
+        <td><span class="chip" style="padding:4px 8px; border-radius:999px; background:#1e7e34; color:white;">@r.Status</span></td>
+        <td>@r.HeadCount</td>
+        <td>@r.WeightKg</td>
+        <td><strong style="color:#e74c3c;">@r.Amount</strong></td>
+      </tr>
+    }
+  </tbody>
+</table>
+
+@code {
+  private System.Collections.Generic.List<LedgerEntry> Ledger = new();
+  private System.DateTime? StartDate;
+  private System.DateTime? EndDate;
+  private string SearchTerm = string.Empty;
+  private bool IsLoading = false;
+
+  protected override async System.Threading.Tasks.Task OnInitializedAsync()
+  {
+      await LoadLedger();
+  }
+
+  private async System.Threading.Tasks.Task LoadLedger()
+  {
+      Ledger.Clear();
+      IsLoading = true;
+      var req = new LedgerFilter { 
+          TenantId = "TenantA", 
+          PageIndex = 0, 
+          PageSize = 100,
+          SearchTerm = SearchTerm
+      };
+
+      if (StartDate.HasValue) req.StartDate = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(StartDate.Value.ToUniversalTime());
+      if (EndDate.HasValue) req.EndDate = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(EndDate.Value.ToUniversalTime());
+
+      int count = 0;
+      await foreach (var item in ReportingClientService.GetLedgerAsync(req))
+      {
+          Ledger.Add(item);
+          if (++count % 20 == 0)
+          {
+              StateHasChanged();
+          }
+      }
+      
+      StateHasChanged();
+      IsLoading = false;
+  }
+}

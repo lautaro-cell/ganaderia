@@ -1,0 +1,42 @@
+@using GestorGanadero.Client.Catalog
+@using System.Collections.Generic
+@using System.Linq
+@inject CatalogClientService Catalog
+<div>
+  <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+    <h3 style="margin:0;">Categorías</h3>
+    <button class="btn" style="background:#444; color:#fff; border:none; padding:6px 12px; border-radius:6px;" @onclick="OpenNew">Nueva</button>
+  </div>
+  <table class="table" style="width:100%; border-collapse: collapse;">
+    <thead><tr><th>Nombre</th><th>Actividad</th><th>Peso Estándar</th><th>Tipo</th><th>Ext</th><th>Activo</th></tr></thead>
+    <tbody>
+      @foreach (var c in Categories)
+      {
+        <tr>
+          <td>@c.Name</td>
+          <td>@c.ActivityId</td>
+          <td>@c.StandardWeightKg</td>
+          <td>@c.CategoryType</td>
+          <td>@c.ExternalId</td>
+          <td><span class="chip" style="padding:4px 8px; border-radius:999px; background:#333;">@(c.IsActive?"Sí":"No")</span></td>
+        </tr>
+      }
+    </tbody>
+  </table>
+  <CategoryFormDrawer IsOpen="IsFormOpen" Category="SelectedCategory" OnClose="CloseForm" OnSave="HandleSave" />
+  </div>
+
+@code {
+  private List<GestorGanadero.Services.Catalog.Contracts.AnimalCategoryMessage> Categories = new();
+  private bool IsFormOpen = false;
+  private GestorGanadero.Services.Catalog.Contracts.AnimalCategoryMessage? SelectedCategory;
+
+  protected override async Task OnInitializedAsync()
+  {
+    var r = await Catalog.GetAnimalCategoriesAsync(new GestorGanadero.Services.Catalog.Contracts.GetCatalogRequest { TenantId = "TenantA" });
+    if (r.Success && r.Data != null) Categories = r.Data.Categories.ToList();
+  }
+  private void OpenNew() { SelectedCategory = new GestorGanadero.Services.Catalog.Contracts.AnimalCategoryMessage(); IsFormOpen = true; }
+  private void CloseForm() { IsFormOpen = false; }
+  private Task HandleSave(GestorGanadero.Services.Catalog.Contracts.AnimalCategoryMessage a) { IsFormOpen = false; return Task.CompletedTask; }
+}

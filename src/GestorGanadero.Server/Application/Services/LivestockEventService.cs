@@ -66,6 +66,22 @@ public class LivestockEventService : ILivestockEventService
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<EventTemplateDto>> GetEventTemplatesAsync(Guid tenantId)
+    {
+        return await _context.EventTemplates
+            .Where(t => t.TenantId == tenantId && t.IsActive)
+            .Select(t => new EventTemplateDto(
+                t.Id,
+                t.TenantId,
+                t.Name,
+                t.EventType,
+                t.DebitAccountCode,
+                t.CreditAccountCode,
+                t.IsActive
+            ))
+            .ToListAsync();
+    }
+
     public async Task<IEnumerable<LivestockEventResponse>> GetEventsAsync(Guid? tenantId, DateTimeOffset? start, DateTimeOffset? end)
     {
         var query = _context.LivestockEvents

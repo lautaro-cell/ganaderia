@@ -16,9 +16,6 @@ public class ReportService : IReportService
 
     public async Task<IEnumerable<BalanceItemDto>> GetBalanceAsync(Guid? fieldId, DateTime? date, string categoryView)
     {
-        // Consulta simplificada para obtener el balance de stock (Cabezas y Kg)
-        // Agrupa por Campo, Actividad y Categoría.
-        
         var query = _context.LivestockEvents
             .Include(e => e.Field)
             .Include(e => e.Activity)
@@ -31,7 +28,6 @@ public class ReportService : IReportService
         if (date.HasValue)
             query = query.Where(e => e.EventDate <= date.Value);
 
-        // Agrupación para calcular saldos
         var result = await query
             .GroupBy(e => new { 
                 FieldName = e.Field != null ? e.Field.Name : "Sin Campo",
@@ -41,12 +37,48 @@ public class ReportService : IReportService
             .Select(g => new BalanceItemDto(
                 g.Key.FieldName,
                 g.Key.CategoryName,
-                g.Sum(e => e.HeadCount), // Simplificación: suma simple. En real restaría si es venta/muerte.
+                g.Sum(e => e.HeadCount),
                 g.Sum(e => e.EstimatedWeightKg),
                 g.Key.ActivityName
             ))
             .ToListAsync();
 
         return result;
+    }
+
+    public async Task<IEnumerable<LedgerEntryDto>> GetLedgerAsync(DateTime? startDate, DateTime? endDate, int pageIndex, int pageSize, string searchTerm, Guid tenantId)
+    {
+        var query = _context.AccountingDrafts
+            .Include(a => a.LivestockEvent)
+            .Where(a => a.TenantId == tenantId)
+            .AsQueryable();
+
+        if (startDate.HasValue)
+            query = query.Where(a => a.CreatedAt >= startDate.Value);
+
+        if (endDate.HasValue)
+            query = query.Where(a => a.CreatedAt <= endDate.Value);
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+            query = query.Where(a => a.Concept.Contains(searchTerm) || a.AccountCode.Contains(searchTerm));
+
+        var entries = await query
+            .OrderBy(a => a.CreatedAt)
+            .Skip(pageIndex * pageSize)
+            .Take(pageSize)
+            .Select(a => new LedgerEntryDto(
+                a.Id,
+                a.CreatedAt.DateTime,
+                a.Concept,
+                a.DebitAmount > 0 ? a.DebitAmount : a.CreditAmount,
+                a.AccountCode,
+                a.LivestockEvent != null ? a.LivestockEvent.Status.ToString() : "Draft",
+                a.EntryType,
+                a.HeadCount,
+                a.WeightKg ?? 0
+            ))
+            .ToListAsync();
+
+        return entries;
     }
 }

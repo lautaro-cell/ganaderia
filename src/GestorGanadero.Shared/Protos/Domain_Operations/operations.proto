@@ -46,12 +46,12 @@ message UpdateEventRequest {
   string id = 1;
   google.protobuf.Timestamp occurred_on = 2;
   int32 head_count = 3;
-  string weight_per_head = 4;
+  double weight_per_head = 4;
   double primary_value = 5;
   string observations = 6;
 }
 
-message DeleteEventRequest { string id = 1; }
+message DeleteEventRequest { string id = 1; string tenant_id = 2; }
 message GetEventDetailsRequest { string id = 1; }
 
 message GetEventsRequest {
@@ -66,7 +66,7 @@ message EventDetail {
   google.protobuf.Timestamp occurred_on = 3;
   string field_name = 4;
   int32 head_count = 5;
-  string weight_per_head = 6;
+  double weight_per_head = 6;
   double total_weight = 7;
   string observations = 8;
   string type_code = 9;

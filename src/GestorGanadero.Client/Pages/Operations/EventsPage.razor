@@ -1,0 +1,83 @@
+@page "/operaciones"
+@using GestorGanadero.Client.Operations
+@using GestorGanadero.Client.Shared
+@using GestorGanadero.Services.Operations.Contracts
+@using System.Linq
+@inject OperationsClientService OperationsClientService
+@inject TenantState TenantState
+@inject Microsoft.AspNetCore.Components.NavigationManager Nav
+
+<PageHeader Title="Operaciones" />
+
+@if (IsLoading) { <p>Cargando eventos...</p> }
+else
+{
+<div class="filters" style="display:flex; gap:8px; align-items:center; background:#111; padding:12px; border-radius:8px; margin:8px 0;">
+  <label style="color:#bbb;">Desde</label>
+  <input type="date" @bind="StartDate" />
+  <label style="color:#bbb; margin-left:8px;">Hasta</label>
+  <input type="date" @bind="EndDate" />
+  <button class="btn" style="background:#C0392B; color:#fff; border:none; padding:6px 12px; border-radius:6px;" @onclick="LoadEvents">Filtrar</button>
+</div>
+
+<table class="table" style="width:100%; border-collapse: collapse;">
+  <thead>
+    <tr>
+      <th>Fecha</th>
+      <th>Tipo</th>
+      <th>Campo</th>
+      <th>Cabezas</th>
+      <th>Peso/head</th>
+      <th>Peso total</th>
+      <th>Observaciones</th>
+      <th>Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    @foreach (var e in Events)
+    {
+      <tr>
+        <td>@e.OccurredOn.ToDateTime().ToString("yyyy-MM-dd")</td>
+        <td><span class="badge" style="background:#444; padding:4px 8px; border-radius:999px; color:#fff;">@e.TypeName</span></td>
+        <td>@e.FieldName</td>
+        <td>@e.HeadCount</td>
+        <td>@e.WeightPerHead</td>
+        <td>@e.TotalWeight</td>
+        <td>@e.Observations</td>
+        <td><button class="btn" style="background:#444; color:#fff; padding:6px 10px; border-radius:6px;" @onclick="() => Expand(e.Id)">Detalle</button></td>
+      </tr>
+      @if (Expanded.ContainsKey(e.Id) && Expanded[e.Id])
+      {
+        <tr><td colspan="8" style="background:#141414; padding:8px; font-size:12px; color:#ddd;">@e.Observations</td></tr>
+      }
+    }
+  </tbody>
+</table>
+}
+
+<button class="fab" style="position: fixed; right: 20px; bottom: 20px; width: 56px; height: 56px; border-radius: 50%; background:#C0392B; border:none; color:white; font-size:28px;" @onclick='() => Nav.NavigateTo("/operaciones/nuevo")'>+</button>
+
+@code {
+  private List<EventDetail> Events = new();
+  private Dictionary<string, bool> Expanded = new();
+  private DateTime? StartDate { get; set; }
+  private DateTime? EndDate { get; set; }
+  private bool IsLoading = true;
+
+  protected override async Task OnInitializedAsync() { await LoadEvents(); }
+
+  private async Task LoadEvents()
+  {
+    IsLoading = true;
+    var req = new GetEventsRequest {
+        TenantId = TenantState.ActiveTenantId,
+        StartDate = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime((StartDate ?? DateTime.UtcNow.AddMonths(-1)).ToUniversalTime()),
+        EndDate = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime((EndDate ?? DateTime.UtcNow.AddDays(1)).ToUniversalTime())
+    };
+    var r = await OperationsClientService.GetEventsAsync(req);
+    if (r.Success && r.Data != null) Events = r.Data.Events.ToList();
+    IsLoading = false;
+  }
+
+  private void Expand(string id) { Expanded[id] = !Expanded.GetValueOrDefault(id); }
+}

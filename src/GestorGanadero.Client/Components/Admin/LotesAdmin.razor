@@ -1,289 +1,75 @@
 @using GestorGanadero.Services.Common.Contracts
-@using GestorGanadero.Services.Identity.Contracts
 @using GestorGanadero.Services.Catalog.Contracts
-@using GestorGanadero.Services.Operations.Contracts
-@using GestorGanadero.Services.Reporting.Contracts
-@using GestorGanadero.Services.Sync.Contracts
 @using GestorGanadero.Client.Services
 @inject AppStateContainer State
 @inject CatalogService.CatalogServiceClient GrpcClient
 @inject IJSRuntime JS
 
 <div class="split-view">
-    <div class="master-list">
-        <div class="list-header">
-            <h3>Lotes</h3>
-            <button class="btn-icon-add" @onclick="NewLote">
-                <span class="material-icons">add</span>
-            </button>
+    <div class="master-panel">
+        <div style="padding:16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border);">
+            <h3 style="font-size:1rem; font-weight:600;">Lotes</h3>
+            <button class="btn btn-primary btn-sm" @onclick="New"><span class="material-icons" style="font-size:16px;">add</span> Nuevo</button>
         </div>
-        
-        <div class="list-items">
-            @if (lotes == null)
-            {
-                <div class="spinner-sm"></div>
-            }
-            else if (!lotes.Any())
-            {
-                <p class="empty-msg">No hay lotes.</p>
-            }
-            else
-            {
-                @foreach (var lote in lotes)
-                {
-                    <div class="list-row @(selectedLote?.Id == lote.Id ? "selected" : "")" 
-                         @onclick="() => SelectLote(lote)">
-                        <div class="row-info">
-                            <span class="name">@lote.Name</span>
-                            <span class="sub-name">@lote.FieldName</span>
-                        </div>
-                        <span class="material-icons">chevron_right</span>
-                    </div>
-                }
-            }
+        <div style="flex:1; overflow-y:auto;">
+            @if (_items == null) { <div class="loading-container"><div class="spinner"></div></div> }
+            else { @foreach (var l in _items) {
+                <div class="master-item @(_sel?.Id == l.Id ? "selected" : "")" @onclick="() => Sel(l)">
+                    <div><div style="font-size:0.875rem; font-weight:500;">@l.Name</div><div style="font-size:0.75rem; color:var(--text-muted);">@l.FieldName</div></div>
+                </div>
+            }}
         </div>
     </div>
-
-    <div class="detail-form">
-        @if (selectedLote == null)
-        {
-            <div class="empty-state">
-                <span class="material-icons">grid_view</span>
-                <p>Seleccione un lote para editar.</p>
+    <div class="detail-panel">
+        @if (_sel == null) { <div class="empty-state"><span class="material-icons">grid_view</span><p>Selecciona o crea un lote.</p></div> }
+        else {
+            <h3 style="margin-bottom:24px;">@(string.IsNullOrEmpty(_sel.Id) ? "Nuevo" : "Editar") Lote</h3>
+            <div class="form-group"><label>Nombre</label><input type="text" @bind="_sel.Name" class="form-control" /></div>
+            <div class="form-group"><label>Campo</label>
+                <select @bind="_sel.FieldId" class="form-control"><option value="">Seleccione...</option>@if(_fields!=null){@foreach(var f in _fields){<option value="@f.Id">@f.Name</option>}}</select>
             </div>
-        }
-        else
-        {
-            <div class="form-scroll">
-                <h4>@(string.IsNullOrEmpty(selectedLote.Id) ? "Nuevo Lote" : "Editar Lote")</h4>
-                
-                <div class="form-group">
-                    <label>Nombre del Lote</label>
-                    <input type="text" @bind="selectedLote.Name" placeholder="Ej: Lote 1, Potrero Sur..." />
+            <div class="form-group"><label>Actividades Permitidas</label>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; background:var(--surface-2); padding:12px; border-radius:var(--radius-md); border:1px solid var(--border);">
+                    @if (_acts != null) { @foreach (var a in _acts) {
+                        <label class="checkbox-group"><input type="checkbox" checked="@_sel.ActivityIds.Contains(a.Id)" @onchange="e => ToggleAct(a.Id, e.Value)" /><span>@a.Name</span></label>
+                    }}
                 </div>
-
-                <div class="form-group">
-                    <label>Campo</label>
-                    <select @bind="selectedLote.FieldId">
-                        <option value="">Seleccione campo...</option>
-                        @if (fields != null)
-                        {
-                            @foreach (var f in fields)
-                            {
-                                <option value="@f.Id">@f.Name</option>
-                            }
-                        }
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Actividades Permitidas</label>
-                    <div class="multi-select">
-                        @if (activities != null)
-                        {
-                            @foreach (var act in activities)
-                            {
-                                <label class="checkbox-item">
-                                    <input type="checkbox" 
-                                           checked="@selectedLote.ActivityIds.Contains(act.Id)"
-                                           @onchange="@(e => ToggleActivity(act.Id, e.Value))" />
-                                    @act.Name
-                                </label>
-                            }
-                        }
-                    </div>
-                </div>
-
-                <div class="form-actions">
-                    @if (!string.IsNullOrEmpty(selectedLote.Id))
-                    {
-                        <button class="btn-danger-outline" @onclick="DeleteLote">Eliminar</button>
-                    }
-                    <div class="spacer"></div>
-                    <button class="btn-primary" @onclick="SaveLote" disabled="@isSaving">
-                        @if (isSaving) { <span class="spinner-inline"></span> }
-                        Guardar
-                    </button>
-                </div>
-
-                @if (!string.IsNullOrEmpty(message))
-                {
-                    <p class="form-message @(success ? "success" : "error")">@message</p>
-                }
+            </div>
+            @if (!string.IsNullOrEmpty(_msg)) { <div class="alert @(_ok?"alert-success":"alert-danger") mb-md" style="margin-bottom:16px;">@_msg</div> }
+            <div class="flex gap-sm">
+                @if (!string.IsNullOrEmpty(_sel.Id)) { <button class="btn btn-danger-outline" @onclick="Del">Eliminar</button> }
+                <div style="flex:1;"></div>
+                <button class="btn btn-primary" @onclick="Save" disabled="@_saving">@if(_saving){<span class="spinner"></span>} Guardar</button>
             </div>
         }
     </div>
 </div>
 
-<style>
-    .split-view { display: flex; height: 100%; }
-    .master-list { width: 320px; border-right: 1px solid var(--border); display: flex; flex-direction: column; }
-    .detail-form { flex: 1; background: var(--surface); padding: 24px; }
-    
-    .list-header { padding: 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
-    .list-items { flex: 1; overflow-y: auto; }
-    
-    .list-row { padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; flex-direction: column; gap: 4px; transition: background 0.2s; }
-    .list-row:hover { background: var(--surface-2); }
-    .list-row.selected { background: rgba(230, 0, 0, 0.05); border-left: 3px solid var(--accent); }
-    
-    .sub-name { font-size: 0.7rem; color: var(--text-secondary); }
-
-    .form-group { margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; }
-    .form-group label { font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; }
-    .form-group input, .form-group select { background: var(--surface-2); border: 1px solid var(--border); color: var(--text-primary); padding: 10px; border-radius: 6px; }
-    
-    .multi-select { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: var(--surface-2); padding: 12px; border-radius: 6px; border: 1px solid var(--border); }
-    .checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text-primary); cursor: pointer; }
-
-    .form-actions { margin-top: 32px; display: flex; gap: 12px; }
-    .spacer { flex: 1; }
-    
-    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-secondary); opacity: 0.5; }
-    .empty-state .material-icons { font-size: 64px; margin-bottom: 16px; }
-
-    .btn-icon-add { background: var(--accent); color: white; border: none; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-    .btn-danger-outline { background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 8px 16px; border-radius: 6px; }
-    
-    .form-message { margin-top: 16px; font-size: 0.85rem; font-weight: 600; }
-    .form-message.success { color: #00ff00; }
-    .form-message.error { color: var(--accent); }
-
-    .spinner-inline { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; margin-right: 8px; }
-    @@keyframes spin { to { transform: rotate(360deg); } }
-</style>
-
 @code {
-    private List<LoteMessage>? lotes;
-    private List<FieldMessage>? fields;
-    private List<ActivityMessage>? activities;
-    private LoteMessage? selectedLote;
-    private bool isSaving = false;
-    private string message = "";
-    private bool success = false;
+    private List<LoteMessage>? _items;
+    private List<FieldMessage>? _fields;
+    private List<ActivityMessage>? _acts;
+    private LoteMessage? _sel;
+    private bool _saving; private string _msg = ""; private bool _ok;
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadData();
+    protected override async Task OnInitializedAsync() => await Load();
+    private async Task Load() {
+        if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
+        try { var l = await GrpcClient.GetLotesAsync(new GetLotesRequest { TenantId = State.ActiveTenantId }); _items = l.Lotes.ToList(); var f = await GrpcClient.GetFieldsAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId }); _fields = f.Fields.ToList(); var a = await GrpcClient.GetActivitiesAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId }); _acts = a.Activities.ToList(); } catch { }
     }
-
-    private async Task LoadData()
-    {
-        try
-        {
-            var loteResp = await GrpcClient.GetLotesAsync(new GetLotesRequest { TenantId = State.ActiveTenantId });
-            lotes = loteResp.Lotes.ToList();
-
-            var fieldResp = await GrpcClient.GetFieldsAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
-            fields = fieldResp.Fields.ToList();
-
-            var actResp = await GrpcClient.GetActivitiesAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
-            activities = actResp.Activities.ToList();
-        }
-        catch (Exception ex) { Console.WriteLine(ex.Message); }
+    private void New() { _sel = new LoteMessage { TenantId = State.ActiveTenantId }; _msg = ""; }
+    private void Sel(LoteMessage l) { _sel = new LoteMessage { Id = l.Id, Name = l.Name, FieldId = l.FieldId, FieldName = l.FieldName, TenantId = l.TenantId }; _sel.ActivityIds.AddRange(l.ActivityIds); _msg = ""; }
+    private void ToggleAct(string id, object? val) { if (_sel == null) return; if (val is bool b && b) { if (!_sel.ActivityIds.Contains(id)) _sel.ActivityIds.Add(id); } else _sel.ActivityIds.Remove(id); }
+    private async Task Save() {
+        if (_sel == null || string.IsNullOrWhiteSpace(_sel.Name)) return;
+        _saving = true; _msg = ""; StateHasChanged();
+        try { var r = string.IsNullOrEmpty(_sel.Id) ? await GrpcClient.CreateLoteAsync(_sel) : await GrpcClient.UpdateLoteAsync(_sel); if (r.Success) { _ok = true; _msg = "Guardado."; await Load(); } else { _ok = false; _msg = r.Message; } }
+        catch (Exception ex) { _ok = false; _msg = $"Error: {ex.Message}"; }
+        finally { _saving = false; StateHasChanged(); }
     }
-
-    private void NewLote()
-    {
-        selectedLote = new LoteMessage { TenantId = State.ActiveTenantId };
-        message = "";
-    }
-
-    private void SelectLote(LoteMessage lote)
-    {
-        selectedLote = new LoteMessage
-        {
-            Id = lote.Id,
-            Name = lote.Name,
-            FieldId = lote.FieldId,
-            FieldName = lote.FieldName,
-            TenantId = lote.TenantId
-        };
-        selectedLote.ActivityIds.AddRange(lote.ActivityIds);
-        message = "";
-    }
-
-    private void ToggleActivity(string activityId, object? isChecked)
-    {
-        if (selectedLote == null) return;
-        if (isChecked is bool val && val)
-        {
-            if (!selectedLote.ActivityIds.Contains(activityId))
-                selectedLote.ActivityIds.Add(activityId);
-        }
-        else
-        {
-            selectedLote.ActivityIds.Remove(activityId);
-        }
-    }
-
-    private async Task SaveLote()
-    {
-        if (selectedLote == null || string.IsNullOrWhiteSpace(selectedLote.Name)) return;
-
-        isSaving = true;
-        message = "";
-        StateHasChanged();
-
-        try
-        {
-            ActionResponse response;
-            if (string.IsNullOrEmpty(selectedLote.Id))
-                response = await GrpcClient.CreateLoteAsync(selectedLote);
-            else
-                response = await GrpcClient.UpdateLoteAsync(selectedLote);
-
-            if (response.Success)
-            {
-                success = true;
-                message = "Guardado con éxito.";
-                await LoadData();
-                selectedLote = lotes?.FirstOrDefault(l => l.Id == (string.IsNullOrEmpty(selectedLote.Id) ? response.ObjectId : selectedLote.Id));
-            }
-            else
-            {
-                success = false;
-                message = response.Message;
-            }
-        }
-        catch (Exception ex)
-        {
-            success = false;
-            message = $"Error: {ex.Message}";
-        }
-        finally
-        {
-            isSaving = false;
-            StateHasChanged();
-        }
-    }
-
-    private async Task DeleteLote()
-    {
-        if (selectedLote == null || string.IsNullOrEmpty(selectedLote.Id)) return;
-
-        var confirmed = await JS.InvokeAsync<bool>("confirm", "¿Eliminar lote?");
-        if (!confirmed) return;
-
-        try
-        {
-            var response = await GrpcClient.DeleteLoteAsync(new DeleteEntityRequest { Id = selectedLote.Id, TenantId = State.ActiveTenantId });
-            if (response.Success)
-            {
-                selectedLote = null;
-                await LoadData();
-            }
-            else
-            {
-                success = false;
-                message = response.Message;
-            }
-        }
-        catch (Exception ex)
-        {
-            success = false;
-            message = $"Error: {ex.Message}";
-        }
+    private async Task Del() {
+        if (_sel == null || string.IsNullOrEmpty(_sel.Id)) return;
+        if (!await JS.InvokeAsync<bool>("confirm", $"Eliminar lote '{_sel.Name}'?")) return;
+        try { var r = await GrpcClient.DeleteLoteAsync(new DeleteEntityRequest { Id = _sel.Id, TenantId = State.ActiveTenantId }); if (r.Success) { _sel = null; await Load(); } } catch (Exception ex) { _ok = false; _msg = $"Error: {ex.Message}"; }
     }
 }
-

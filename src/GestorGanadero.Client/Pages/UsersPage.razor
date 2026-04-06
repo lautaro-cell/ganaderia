@@ -1,0 +1,83 @@
+@page "/usuarios"
+@using GestorGanadero.Client.Identity
+@using GestorGanadero.Services.Identity.Contracts
+@using GestorGanadero.Client.Shared
+@using GestorGanadero.Client.Services
+@using System.Linq
+@inject IdentityClientService IdentityClientService
+@inject TenantState TenantState
+
+<PageHeader Title="Usuarios" />
+
+<div class="toolbar" style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
+  <button class="btn" style="background:#C0392B; color:#fff; border:none; padding:8px 12px; border-radius:6px;" @onclick="() => IsInviteOpen = true">Invitar Usuario</button>
+</div>
+
+@if (HasError) { <p style="color:#C0392B">Error al cargar los usuarios.</p> }
+else if (Users == null) { <p>Cargando...</p> }
+else
+{
+  <table class="table" style="width:100%; border-collapse: collapse;">
+    <thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <tbody>
+      @foreach (var u in Users)
+      {
+        <tr>
+          <td>@u.Name</td>
+          <td>@u.Email</td>
+          <td><span class="badge" style="background:#C0392B; padding:4px 8px; border-radius:12px;">@u.RoleName</span></td>
+          <td><span class="chip" style="padding:4px 8px; border-radius:999px; background:@(u.IsActive ? "#1e7e34" : "#6c757d"); color:white;">@(u.IsActive ? "Activo" : "Inactivo")</span></td>
+          <td>
+            <button class="btn" style="background:#C0392B; color:#fff; padding:6px 10px; border-radius:6px;" @onclick="() => Delete(u.Id, u.TenantId)">Eliminar</button>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}
+
+@if (IsInviteOpen)
+{
+  <div class="drawer" style="position:fixed; right:0; top:0; bottom:0; width:420px; background:#111; border-left:1px solid #333; padding:16px;">
+    <h3>Invitar Usuario</h3>
+    <input @bind="InviteReq.Email" placeholder="Email" style="width:100%; padding:6px; margin-bottom:8px;" />
+    <input @bind="InviteReq.Name" placeholder="Nombre" style="width:100%; padding:6px; margin-bottom:8px;" />
+    <input @bind="InviteReq.RoleName" placeholder="Rol" style="width:100%; padding:6px; margin-bottom:8px;" />
+    <button class="btn" style="background:#C0392B; color:#fff; padding:8px 12px; border-radius:6px;" @onclick="Invite">Invitar</button>
+    <button class="btn" style="margin-left:8px;" @onclick="() => IsInviteOpen = false">Cerrar</button>
+  </div>
+}
+
+@code {
+  private System.Collections.Generic.List<UserMessage>? Users;
+  private bool IsInviteOpen = false;
+  private bool HasError = false;
+  private InviteUserRequest InviteReq = new InviteUserRequest();
+
+  protected override async Task OnInitializedAsync() => await LoadUsers();
+
+  private async Task LoadUsers()
+  {
+    var r = await IdentityClientService.GetUsersAsync();
+    if (r.Success && r.Data != null) Users = r.Data.Users.ToList();
+    else HasError = true;
+  }
+
+  private async Task Invite()
+  {
+    InviteReq.TenantId = TenantState.ActiveTenantId;
+    var r = await IdentityClientService.InviteUserAsync(InviteReq);
+    if (r.Success)
+    {
+      IsInviteOpen = false;
+      InviteReq = new InviteUserRequest();
+      await LoadUsers();
+    }
+  }
+
+  private async Task Delete(string id, string tenantId)
+  {
+    await IdentityClientService.DeleteUserAsync(id, tenantId);
+    await LoadUsers();
+  }
+}

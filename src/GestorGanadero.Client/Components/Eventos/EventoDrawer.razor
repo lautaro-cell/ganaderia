@@ -1,175 +1,160 @@
 @using GestorGanadero.Client.Services
-@using GestorGanadero.Services.Common.Contracts
-@using GestorGanadero.Services.Identity.Contracts
-@using GestorGanadero.Services.Catalog.Contracts
 @using GestorGanadero.Services.Operations.Contracts
-@using GestorGanadero.Services.Reporting.Contracts
-@using GestorGanadero.Services.Sync.Contracts
+@using GestorGanadero.Services.Common.Contracts
+@using GestorGanadero.Services.Catalog.Contracts
 @using Google.Protobuf.WellKnownTypes
 @inject AppStateContainer State
 @inject OperationsService.OperationsServiceClient GrpcClient
+@inject GestorGanadero.Client.Catalog.CatalogClientService CatalogSvc
 
-<div class="drawer-overlay @(isVisible ? "visible" : "")" @onclick="Close">
-    <div class="drawer-content" @onclick:stopPropagation>
-        <div class="drawer-header">
-            <h2>Registrar @SelectedTemplate?.Name</h2>
-            <button class="close-btn" @onclick="Close">✕</button>
-        </div>
+@if (SelectedTemplate != null)
+{
+    <div class="drawer-overlay" @onclick="HandleClose">
+        <div class="drawer" @onclick:stopPropagation>
+            <div class="drawer-header">
+                <h2>Registrar @SelectedTemplate.Name</h2>
+                <button class="btn-icon" @onclick="HandleClose">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
 
-        <div class="drawer-body">
-            @if (SelectedTemplate != null)
-            {
-                <EditForm Model="@request" OnValidSubmit="HandleSave">
-                    @foreach (var field in SelectedTemplate.Fields)
-                    {
-                        <div class="form-group">
-                            <label>@FormatFieldName(field)</label>
-                            @switch (field)
-                            {
-                                case "head_count":
-                                    <InputNumber @bind-Value="request.HeadCount" />
-                                    break;
-                                case "weight_per_head":
-                                    <InputText @bind-Value="request.WeightPerHead" placeholder="0.00" />
-                                    break;
-                                case "field_id":
-                                    <select @bind="request.FieldId">
-                                        <option value="">Seleccione Campo...</option>
-                                        @foreach (var f in fields) { <option value="@f.Id">@f.Name</option> }
-                                    </select>
-                                    break;
-                                case "category_id":
-                                    <select @bind="request.CategoryId">
-                                        <option value="">Seleccione Categoría...</option>
-                                        @foreach (var c in categories) { <option value="@c.Id">@c.Name</option> }
-                                    </select>
-                                    break;
-                                case "activity_id":
-                                    <select @bind="request.ActivityId">
-                                        <option value="">Seleccione Actividad...</option>
-                                        @foreach (var a in activities) { <option value="@a.Id">@a.Name</option> }
-                                    </select>
-                                    break;
-                                case "observations":
-                                    <InputTextArea @bind-Value="request.Observations" />
-                                    break;
-                            }
-                        </div>
-                    }
+            <div class="drawer-body">
+                <div class="form-group">
+                    <label>Fecha del Evento</label>
+                    <input type="date" @bind="_eventDate" class="form-control" />
+                </div>
 
-                    <div class="drawer-actions">
-                        <button type="button" class="btn-cancel" @onclick="Close">Cancelar</button>
-                        <button type="submit" class="btn-save" disabled="@isSaving">
-                            @(isSaving ? "Guardando..." : "Confirmar Registro")
-                        </button>
+                @if (SelectedTemplate.Fields.Contains("head_count"))
+                {
+                    <div class="form-group">
+                        <label>Cantidad de Cabezas</label>
+                        <input type="number" min="0" @bind="_request.HeadCount" class="form-control" placeholder="0" />
                     </div>
-                </EditForm>
-            }
+                }
+
+                @if (SelectedTemplate.Fields.Contains("weight_per_head"))
+                {
+                    <div class="form-group">
+                        <label>Peso Promedio (kg)</label>
+                        <input type="number" step="0.01" min="0" @bind="_weightPerHead" class="form-control" placeholder="0.00" />
+                    </div>
+                }
+
+                @if (SelectedTemplate.Fields.Contains("field_id"))
+                {
+                    <div class="form-group">
+                        <label>Campo</label>
+                        <select @bind="_request.FieldId" class="form-control">
+                            <option value="">Seleccione...</option>
+                            @if (_fields != null)
+                            {
+                                @foreach (var f in _fields)
+                                {
+                                    <option value="@f.Id">@f.Name</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                }
+
+                @if (SelectedTemplate.Fields.Contains("category_id"))
+                {
+                    <div class="form-group">
+                        <label>Categoria</label>
+                        <select @bind="_request.CategoryId" class="form-control">
+                            <option value="">Seleccione...</option>
+                            @if (_categories != null)
+                            {
+                                @foreach (var c in _categories)
+                                {
+                                    <option value="@c.Id">@c.Name</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                }
+
+                @if (SelectedTemplate.Fields.Contains("activity_id"))
+                {
+                    <div class="form-group">
+                        <label>Actividad</label>
+                        <select @bind="_request.ActivityId" class="form-control">
+                            <option value="">Seleccione...</option>
+                            @if (_activities != null)
+                            {
+                                @foreach (var a in _activities)
+                                {
+                                    <option value="@a.Id">@a.Name</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                }
+
+                @if (SelectedTemplate.Fields.Contains("observations"))
+                {
+                    <div class="form-group">
+                        <label>Observaciones</label>
+                        <textarea @bind="_request.Observations" class="form-control" rows="3" placeholder="Detalles adicionales..."></textarea>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <div class="alert alert-danger mt-md">
+                        <span class="material-icons" style="font-size:18px;">error</span>
+                        @_error
+                    </div>
+                }
+            </div>
+
+            <div class="drawer-footer">
+                <button class="btn btn-secondary" @onclick="HandleClose">Cancelar</button>
+                <button class="btn btn-primary" @onclick="HandleSave" disabled="@_saving">
+                    @if (_saving)
+                    {
+                        <span class="spinner"></span>
+                        <span>Guardando...</span>
+                    }
+                    else
+                    {
+                        <span class="material-icons" style="font-size:18px;">check</span>
+                        <span>Registrar Evento</span>
+                    }
+                </button>
+            </div>
         </div>
     </div>
-</div>
-
-<style>
-    .drawer-overlay {
-        position: fixed;
-        inset: 0;
-        background-color: rgba(0,0,0,0.5);
-        z-index: 1000;
-        display: flex;
-        justify-content: flex-end;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 300ms ease;
-        backdrop-filter: blur(2px);
-    }
-
-    .drawer-overlay.visible {
-        opacity: 1;
-        pointer-events: auto;
-    }
-
-    .drawer-content {
-        width: 420px;
-        height: 100%;
-        background-color: var(--surface);
-        box-shadow: var(--shadow-lg);
-        transform: translateX(100%);
-        transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
-        display: flex;
-        flex-direction: column;
-    }
-
-    .drawer-overlay.visible .drawer-content {
-        transform: translateX(0);
-    }
-
-    .drawer-header {
-        padding: 20px 24px;
-        border-bottom: 1px solid var(--border);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .drawer-body {
-        flex: 1;
-        overflow-y: auto;
-        padding: 24px;
-    }
-
-    .form-group {
-        margin-bottom: 16px;
-    }
-
-    .drawer-actions {
-        margin-top: 32px;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-    }
-
-    .btn-save {
-        background-color: var(--accent);
-        color: white;
-    }
-
-    .btn-cancel {
-        background-color: var(--surface-2);
-        color: var(--text-secondary);
-    }
-
-    .close-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-secondary); }
-</style>
+}
 
 @code {
     [Parameter] public EventTemplate? SelectedTemplate { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public EventCallback OnSaved { get; set; }
 
-    private bool isVisible = false;
-    private bool isSaving = false;
-    private RegisterEventRequest request = new();
-    
-    // Catalogs
-    private List<FieldMessage> fields = new();
-    private List<AnimalCategoryMessage> categories = new();
-    private List<ActivityMessage> activities = new();
+    private RegisterEventRequest _request = new();
+    private DateTime _eventDate = DateTime.Today;
+    private double _weightPerHead;
+    private bool _saving;
+    private string _error = "";
+
+    private List<FieldMessage>? _fields;
+    private List<AnimalCategoryMessage>? _categories;
+    private List<ActivityMessage>? _activities;
 
     protected override async Task OnParametersSetAsync()
     {
         if (SelectedTemplate != null)
         {
-            isVisible = true;
-            request = new RegisterEventRequest 
-            { 
+            _error = "";
+            _weightPerHead = 0;
+            _eventDate = DateTime.Today;
+            _request = new RegisterEventRequest
+            {
                 TemplateId = SelectedTemplate.Id,
                 OccurredOn = Timestamp.FromDateTime(DateTime.UtcNow)
             };
             await LoadCatalogs();
-        }
-        else
-        {
-            isVisible = false;
         }
     }
 
@@ -177,44 +162,37 @@
     {
         try
         {
-            var f = await GrpcClient.GetFieldsAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
-            fields = f.Fields.ToList();
-
-            var c = await GrpcClient.GetAnimalCategoriesAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
-            categories = c.Categories.ToList();
-
-            var a = await GrpcClient.GetActivitiesAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
-            activities = a.Activities.ToList();
+            if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
+            var f = await CatalogSvc.GetFieldsAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
+            _fields = f.Data?.Fields.ToList() ?? new();
+            var c = await CatalogSvc.GetAnimalCategoriesAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
+            _categories = c.Data?.Categories.ToList() ?? new();
+            var a = await CatalogSvc.GetActivitiesAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
+            _activities = a.Data?.Activities.ToList() ?? new();
         }
-        catch(Exception ex) { Console.WriteLine(ex.Message); }
+        catch { }
     }
 
     private async Task HandleSave()
     {
-        isSaving = true;
+        _saving = true;
+        _error = "";
         try
         {
-            var res = await GrpcClient.RegisterEventAsync(request);
+            _request.OccurredOn = Timestamp.FromDateTime(_eventDate.ToUniversalTime());
+            _request.WeightPerHead = _weightPerHead.ToString("F2");
+            var res = await GrpcClient.RegisterEventAsync(_request);
             if (res.Success)
-            {
                 await OnSaved.InvokeAsync();
-            }
+            else
+                _error = res.Message;
         }
-        catch(Exception ex) { Console.WriteLine(ex.Message); }
-        finally { isSaving = false; }
+        catch (Exception ex)
+        {
+            _error = $"Error: {ex.Message}";
+        }
+        finally { _saving = false; }
     }
 
-    private async Task Close() => await OnClose.InvokeAsync();
-
-    private string FormatFieldName(string field) => field switch
-    {
-        "head_count" => "Cabezas",
-        "weight_per_head" => "Peso Promedio (kg)",
-        "field_id" => "Campo",
-        "category_id" => "Categoría",
-        "activity_id" => "Actividad",
-        "observations" => "Observaciones",
-        _ => field
-    };
+    private async Task HandleClose() => await OnClose.InvokeAsync();
 }
-

@@ -1,0 +1,90 @@
+@using GestorGanadero.Services.Catalog.Contracts
+@inject GestorGanadero.Client.Catalog.CatalogClientService CatalogClientService
+
+@if (IsOpen)
+{
+  <div class="drawer" style="position:fixed; right:0; top:0; bottom:0; width:420px; background:#111; border-left:1px solid #333; padding:16px; overflow:auto;">
+    <h3>Categoría</h3>
+    <div>
+      <label>Nombre</label>
+      <input @bind="Name" style="width:100%; padding:6px;" />
+    </div>
+    <div>
+      <label>Actividad</label>
+      <select @bind="SelectedActivityId" style="width:100%; padding:6px; border-radius:6px; background:#111; color:#fff; border:1px solid #333;">
+        @foreach (var a in Activities)
+        {
+          <option value="@a.Id">@a.Name</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label>Peso Estándar (kg)</label>
+      <input type="number" step="0.1" @bind="Weight" style="width:100%; padding:6px;" />
+    </div>
+    <div>
+      <label>Tipo</label>
+      <input @bind="CategoryType" style="width:100%; padding:6px;" />
+    </div>
+    <div>
+      <label>ID Externo</label>
+      <input @bind="ExternalId" style="width:100%; padding:6px;" />
+    </div>
+    <div>
+      <label>Activo</label>
+      <input type="checkbox" @bind="IsActive" />
+    </div>
+    <button class="btn" style="margin-top:12px; background:#C0392B; color:#fff; padding:8px 12px; border-radius:6px;" @onclick="Save">Guardar</button>
+    <button class="btn" style="margin-left:8px; margin-top:12px;" @onclick="Close">Cerrar</button>
+  </div>
+}
+
+@code {
+  [Parameter] public bool IsOpen { get; set; }
+  [Parameter] public AnimalCategoryMessage? Category { get; set; }
+  [Parameter] public EventCallback OnClose { get; set; }
+  [Parameter] public EventCallback<AnimalCategoryMessage> OnSave { get; set; }
+  private string Name { get; set; } = string.Empty;
+  private string SelectedActivityId { get; set; } = string.Empty;
+  private string Weight { get; set; } = string.Empty;
+  private string CategoryType { get; set; } = string.Empty;
+  private string ExternalId { get; set; } = string.Empty;
+  private bool IsActive { get; set; }
+  private List<ActivityMessage> Activities = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    var r = await CatalogClientService.GetActivitiesAsync(new GetCatalogRequest { TenantId = "TenantA" });
+    if (r.Success && r.Data != null) Activities = r.Data.Activities.ToList();
+  }
+
+  protected override void OnParametersSet()
+  {
+    if (Category != null)
+    {
+      Name = Category.Name;
+      SelectedActivityId = Category.ActivityId;
+      Weight = Category.StandardWeightKg;
+      CategoryType = Category.CategoryType;
+      ExternalId = Category.ExternalId;
+      IsActive = Category.IsActive;
+    }
+  }
+
+  private async Task Save()
+  {
+    var c = Category ?? new AnimalCategoryMessage();
+    c.Name = Name;
+    c.ActivityId = SelectedActivityId;
+    c.StandardWeightKg = Weight;
+    c.CategoryType = CategoryType;
+    c.ExternalId = ExternalId;
+    c.IsActive = IsActive;
+    await OnSave.InvokeAsync(c);
+  }
+
+  private async Task Close()
+  {
+    if (OnClose.HasDelegate) await OnClose.InvokeAsync();
+  }
+}

@@ -1,0 +1,41 @@
+@using System.Timers
+
+@if (Visible && !string.IsNullOrWhiteSpace(Message))
+{
+  <div class="error-toast" style="position: fixed; bottom: 20px; right: 20px; background: #1E1E1E; color: #fff; padding: 12px 16px; border-radius: 6px; border:1px solid #333; box-shadow:0 4px 14px rgba(0,0,0,.4); animation: slideIn .3s ease-out;">
+    @Message
+  </div>
+}
+
+@code {
+  [Parameter] public string Message { get; set; } = string.Empty;
+  [Parameter] public bool Visible { get; set; }
+  [Parameter] public EventCallback<bool> VisibleChanged { get; set; }
+
+  private Timer? _hideTimer;
+  protected override void OnParametersSet()
+  {
+    if (Visible)
+    {
+      _hideTimer?.Dispose();
+      _hideTimer = new Timer(4000);
+      _hideTimer.Elapsed += (s, e) => InvokeAsync(() => HandleVisibleChanged(false));
+      _hideTimer.AutoReset = false;
+      _hideTimer.Start();
+    }
+  }
+
+  private void HandleVisibleChanged(bool v) 
+  { 
+      Visible = v; 
+      if (VisibleChanged.HasDelegate) 
+      {
+          VisibleChanged.InvokeAsync(v);
+      }
+      StateHasChanged(); 
+  }
+}
+
+<style>
+  @@keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+</style>

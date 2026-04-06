@@ -1,233 +1,209 @@
 @page "/"
 @page "/eventos"
 @using GestorGanadero.Client.Services
-@using GestorGanadero.Services.Common.Contracts
-@using GestorGanadero.Services.Identity.Contracts
-@using GestorGanadero.Services.Catalog.Contracts
 @using GestorGanadero.Services.Operations.Contracts
-@using GestorGanadero.Services.Reporting.Contracts
-@using GestorGanadero.Services.Sync.Contracts
 @using Google.Protobuf.WellKnownTypes
 @inject AppStateContainer State
 @inject OperationsService.OperationsServiceClient GrpcClient
-@inject IJSRuntime JsRuntime
 @implements IDisposable
 
-<div class="module-header">
-    <h1>Centro Operativo</h1>
-    <span class="text-secondary">@DateTime.Today.ToLongDateString()</span>
+<div class="page-header">
+    <div class="page-header-row">
+        <div>
+            <h1>Dashboard</h1>
+            <span class="subtitle">Resumen de operaciones del dia</span>
+        </div>
+        <div class="flex items-center gap-sm">
+            <input type="date" @bind="_startDate" class="form-control" style="width:auto;" />
+            <span style="color:var(--text-muted);">—</span>
+            <input type="date" @bind="_endDate" class="form-control" style="width:auto;" />
+            <button class="btn btn-secondary btn-sm" @onclick="LoadData">
+                <span class="material-icons" style="font-size:16px;">refresh</span>
+            </button>
+        </div>
+    </div>
 </div>
 
-<div class="templates-section">
-    <h3>Registrar nuevo evento</h3>
+<!-- KPI Cards -->
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <div class="kpi-label">Eventos Hoy</div>
+        <div class="kpi-value">@(_events?.Count(e => e.OccurredOn.ToDateTime().Date == DateTime.Today) ?? 0)</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-label">Total Cabezas</div>
+        <div class="kpi-value">@(_events?.Sum(e => e.HeadCount) ?? 0)</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-label">Peso Total (kg)</div>
+        <div class="kpi-value">@((_events?.Sum(e => e.TotalWeight) ?? 0).ToString("N0"))</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-label">Eventos Periodo</div>
+        <div class="kpi-value">@(_events?.Count ?? 0)</div>
+    </div>
+</div>
+
+<!-- Template Grid -->
+<div class="card mb-lg">
+    <div class="card-header">
+        <h3><span class="material-icons" style="font-size:20px; vertical-align:middle; margin-right:8px;">add_circle</span>Registrar Nuevo Evento</h3>
+    </div>
     <div class="template-grid">
-        @if (templates != null)
+        @if (_templates == null)
         {
-            @foreach (var t in templates)
+            <div class="loading-container"><div class="spinner spinner-lg"></div></div>
+        }
+        else
+        {
+            @foreach (var t in _templates)
             {
-                <div class="template-card" @onclick="() => OpenDrawer(t)" style="border-left: 4px solid @t.ColorCode">
-                    <div class="icon-wrap">@t.Icon</div>
-                    <div class="name">@t.Name</div>
+                <div class="template-card" @onclick="() => OpenDrawer(t)">
+                    <div class="icon" style="background:@(t.ColorCode + "18"); color:@t.ColorCode;">
+                        <span class="material-icons">@t.Icon</span>
+                    </div>
+                    <span class="name">@t.Name</span>
                 </div>
             }
         }
     </div>
 </div>
 
-<div class="events-section mt-4">
-    <h3>Eventos de hoy</h3>
-    <div class="table-container card">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Tipo</th>
-                    <th>Campo</th>
-                    <th class="text-end">Cabezas</th>
-                    <th class="text-end">KG/Cab</th>
-                    <th>Hora</th>
-                    <th class="text-center">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (todayEvents != null && todayEvents.Any())
-                {
-                    @foreach (var ev in todayEvents)
+<!-- Events Table -->
+<div class="card">
+    <div class="card-header">
+        <h3><span class="material-icons" style="font-size:20px; vertical-align:middle; margin-right:8px;">history</span>Registro de Eventos</h3>
+        <span class="badge badge-neutral">@(_events?.Count ?? 0) eventos</span>
+    </div>
+
+    @if (_events == null)
+    {
+        <div class="loading-container"><div class="spinner spinner-lg"></div><span>Cargando eventos...</span></div>
+    }
+    else if (!_events.Any())
+    {
+        <div class="empty-state">
+            <span class="material-icons">inbox</span>
+            <p>No hay eventos registrados en el periodo seleccionado.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Campo</th>
+                        <th class="text-end">Cabezas</th>
+                        <th class="text-end">Peso Prom.</th>
+                        <th class="text-end">Total KG</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var ev in _events)
                     {
                         <tr>
+                            <td>@ev.OccurredOn.ToDateTime().ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
                             <td>
-                                <span class="badge-type" style="background-color: var(--surface-2); border-left: 3px solid var(--accent)">
+                                <span class="badge" style="background:@GetColor(ev.TypeName)18; color:@GetColor(ev.TypeName);">
                                     @ev.TypeName
                                 </span>
                             </td>
                             <td>@ev.FieldName</td>
                             <td class="text-end">@ev.HeadCount</td>
-                            <td class="text-end">@ev.WeightPerHead</td>
-                            <td>@ev.OccurredOn.ToDateTime().ToShortTimeString()</td>
+                            <td class="text-end">@ev.WeightPerHead.ToString("N2") kg</td>
+                            <td class="text-end">@ev.TotalWeight.ToString("N1") kg</td>
                             <td class="text-center">
-                                <button class="btn-icon" title="Editar" @onclick="() => EditEvent(ev)">✏️</button>
-                                <button class="btn-icon" title="Eliminar" @onclick="() => DeleteEvent(ev)">🗑️</button>
+                                <button class="btn-icon" title="Eliminar" @onclick="() => DeleteEvent(ev)">
+                                    <span class="material-icons">delete_outline</span>
+                                </button>
                             </td>
                         </tr>
                     }
-                }
-                else
-                {
-                    <tr>
-                        <td colspan="6" class="text-center text-secondary py-4">No hay eventos registrados hoy.</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+                </tbody>
+            </table>
+        </div>
+    }
 </div>
 
-@if (selectedTemplate != null)
+@if (_selectedTemplate != null)
 {
     <GestorGanadero.Client.Components.Eventos.EventoDrawer 
-        SelectedTemplate="@selectedTemplate" 
-        OnClose="CloseDrawer" 
+        SelectedTemplate="@_selectedTemplate" 
+        OnClose="() => _selectedTemplate = null" 
         OnSaved="OnEventSaved" />
 }
 
-<style>
-    .template-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        gap: 16px;
-        margin-top: 12px;
-    }
-
-    .template-card {
-        background-color: var(--surface);
-        height: 100px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        border-radius: var(--radius-md);
-        cursor: pointer;
-        transition: transform var(--transition), background-color var(--transition);
-        border: 1px solid var(--border);
-    }
-
-    .template-card:hover {
-        background-color: var(--surface-2);
-        transform: translateY(-2px);
-    }
-
-    .template-card .icon-wrap {
-        font-size: 1.5rem;
-    }
-
-    .template-card .name {
-        font-size: 0.85rem;
-        font-weight: 600;
-        text-align: center;
-    }
-
-    .badge-type {
-        padding: 4px 10px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        border-radius: 4px;
-    }
-
-    .btn-icon {
-        background: none;
-        border: none;
-        cursor: pointer;
-        font-size: 1rem;
-        padding: 4px;
-        transition: opacity var(--transition);
-    }
-
-    .btn-icon:hover {
-        opacity: 0.7;
-    }
-
-    .table-container {
-        padding: 0;
-        overflow: hidden;
-    }
-
-    .py-4 { padding-top: 2rem; padding-bottom: 2rem; }
-    .text-center { text-align: center !important; }
-</style>
-
 @code {
-    private List<EventTemplate>? templates;
-    private List<EventDetail>? todayEvents;
-    private EventTemplate? selectedTemplate;
+    private List<EventTemplate>? _templates;
+    private List<EventDetail>? _events;
+    private EventTemplate? _selectedTemplate;
+    private DateTime _startDate = DateTime.Today.AddDays(-7);
+    private DateTime _endDate = DateTime.Today.AddDays(1);
+    private Action? _stateChangedAction;
+
+    private string GetColor(string typeName) => typeName?.ToLower() switch
+    {
+        var t when t.Contains("nac") => "#22c55e",
+        var t when t.Contains("comp") => "#3b82f6",
+        var t when t.Contains("vent") => "#8b5cf6",
+        var t when t.Contains("mort") => "#ef4444",
+        var t when t.Contains("san") => "#f97316",
+        var t when t.Contains("alim") => "#eab308",
+        var t when t.Contains("pese") => "#06b6d4",
+        var t when t.Contains("mov") => "#14b8a6",
+        _ => "#71717a"
+    };
 
     protected override async Task OnInitializedAsync()
     {
-        State.OnChange += StateHasChanged;
+        _stateChangedAction = () => InvokeAsync(StateHasChanged);
+        State.OnChange += _stateChangedAction;
         await LoadData();
     }
 
     private async Task LoadData()
     {
         if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
-
         try
         {
-            var templateResponse = await GrpcClient.GetEventTemplatesAsync(new GetTemplatesRequest { TenantId = State.ActiveTenantId });
-            templates = templateResponse.Templates.ToList();
+            var tRes = await GrpcClient.GetEventTemplatesAsync(new GetTemplatesRequest { TenantId = State.ActiveTenantId });
+            _templates = tRes.Templates.ToList();
 
-            var startOfDay = DateTime.Today.ToUniversalTime();
-            var endOfDay = DateTime.Today.AddDays(1).ToUniversalTime();
-
-            var eventsResponse = await GrpcClient.GetEventsAsync(new GetEventsRequest 
-            { 
+            var eRes = await GrpcClient.GetEventsAsync(new GetEventsRequest
+            {
                 TenantId = State.ActiveTenantId,
-                StartDate = Timestamp.FromDateTime(startOfDay),
-                EndDate = Timestamp.FromDateTime(endOfDay)
+                StartDate = Timestamp.FromDateTime(_startDate.ToUniversalTime()),
+                EndDate = Timestamp.FromDateTime(_endDate.ToUniversalTime())
             });
-            todayEvents = eventsResponse.Events.OrderByDescending(e => e.OccurredOn).ToList();
+            _events = eRes.Events.OrderByDescending(e => e.OccurredOn).ToList();
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading events data: {ex.Message}");
-        }
+        catch (Exception ex) { Console.WriteLine(ex.Message); }
     }
 
-    private void OpenDrawer(EventTemplate template)
-    {
-        selectedTemplate = template;
-    }
-
-    private void CloseDrawer()
-    {
-        selectedTemplate = null;
-    }
+    private void OpenDrawer(EventTemplate t) => _selectedTemplate = t;
 
     private async Task OnEventSaved()
     {
-        CloseDrawer();
+        _selectedTemplate = null;
         await LoadData();
-    }
-
-    private async Task EditEvent(EventDetail ev)
-    {
-        // For simplicity in Phase 3, we focus on Creation first. 
-        // Edit could reuse the drawer or a separate modal as per Prompt 3.3.
     }
 
     private async Task DeleteEvent(EventDetail ev)
     {
-        // Confirmation would be better, but implementing direct call for now
-        try 
+        try
         {
-            var res = await GrpcClient.DeleteEventAsync(new DeleteEventRequest { Id = ev.Id });
+            var res = await GrpcClient.DeleteEventAsync(new DeleteEventRequest { Id = ev.Id, TenantId = State.ActiveTenantId });
             if (res.Success) await LoadData();
         }
-        catch(Exception ex) { Console.WriteLine(ex.Message); }
+        catch (Exception ex) { Console.WriteLine(ex.Message); }
     }
 
     public void Dispose()
     {
-        State.OnChange -= StateHasChanged;
+        if (_stateChangedAction != null) State.OnChange -= _stateChangedAction;
     }
 }
-

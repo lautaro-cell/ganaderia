@@ -1,0 +1,61 @@
+@using GestorGanadero.Client.Catalog
+@inherits Microsoft.AspNetCore.Components.ComponentBase
+
+@if (IsOpen)
+{
+  <div class="drawer" style="position:fixed; right:0; top:0; bottom:0; width:420px; background:#111; border-left:1px solid #333; padding:16px; overflow:auto;">
+    <h3>Lote</h3>
+    <div>
+      <label>Nombre</label>
+      <input @bind="LoteName" style="width:100%; padding:6px;" />
+    </div>
+    <div>
+      <label>Campo</label>
+      <select @bind="SelectedFieldId" style="width:100%; padding:6px; border-radius:6px; background:#111; color:#fff; border:1px solid #333;">
+        @foreach (var f in Fields)
+        {
+          <option value="@f.Id">@f.Name</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label>Actividades</label>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        @foreach (var a in Activities)
+        {
+          <span class="chip" style="padding:6px; background:#333; border-radius:999px; cursor:pointer;" @onclick="() => ToggleActivity(a.Id)">@a.Name</span>
+        }
+      </div>
+    </div>
+    <div>
+      <div>Geometría</div>
+      <textarea @bind="GeometryGeoJson" style="width:100%; height:120px; margin-top:6px;" placeholder="GeoJSON"></textarea>
+      <button class="btn" style="margin-top:8px; background:#C0392B; color:#fff; padding:8px 12px; border-radius:6px;" @onclick="SaveGeometry">Guardar Geometría</button>
+    </div>
+    <button class="btn" style="margin-top:12px;" @onclick="Close">Cerrar</button>
+  </div>
+}
+
+@code {
+  [Parameter] public bool IsOpen { get; set; }
+  [Parameter] public string FieldId { get; set; } = string.Empty;
+  [Parameter] public List<FieldModel> Fields { get; set; } = new();
+  [Parameter] public List<ActivityModel> Activities { get; set; } = new();
+  [Parameter] public EventCallback<LoteModel> OnSave { get; set; }
+  [Parameter] public EventCallback OnClose { get; set; }
+  private string LoteName { get; set; } = string.Empty;
+  private string SelectedFieldId { get; set; } = string.Empty;
+  private List<string> SelectedActivityIds { get; set; } = new();
+  private string GeometryGeoJson { get; set; } = string.Empty;
+
+  private void ToggleActivity(string id) { if (SelectedActivityIds.Contains(id)) SelectedActivityIds.Remove(id); else SelectedActivityIds.Add(id); }
+  private async Task SaveGeometry()
+  {
+    var lote = new LoteModel { Id = System.Guid.NewGuid().ToString(), Name = LoteName, FieldId = SelectedFieldId, FieldName = Fields.FirstOrDefault(f => f.Id == SelectedFieldId)?.Name ?? string.Empty, ActivityIds = SelectedActivityIds, GeoJsonPolygon = GeometryGeoJson };
+    await OnSave.InvokeAsync(lote);
+  }
+  private async Task Close()
+  {
+    if (OnClose.HasDelegate) await OnClose.InvokeAsync();
+  }
+}

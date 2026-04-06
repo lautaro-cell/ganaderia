@@ -1,0 +1,257 @@
+project:
+  name: GestorGanadero
+  description: Livestock/ranch management application
+  framework: .NET 10.0
+  architecture: Blazor WebAssembly + ASP.NET Core + gRPC-Web
+  database: PostgreSQL (Npgsql.EntityFrameworkCore.PostgreSQL 10.0.0)
+  communication:
+    - gRPC (Grpc.AspNetCore 2.76.0) with gRPC-Web for browser compatibility
+    - REST OpenAPI endpoint (GET /health)
+
+projects:
+  - name: GestorGanadero.Server
+    type: ASP.NET Core Web API + gRPC server + EF Core
+    port: 5073 (HTTP)
+  - name: GestorGanadero.Client
+    type: Blazor WebAssembly SPA
+    port: 5000
+  - name: GestorGanadero.Shared
+    type: Protobuf contract definitions
+  - name: GestorGanadero.Client.Tests
+    type: xUnit test project (targets net7.0 - version mismatch)
+
+grpc_services:
+  - name: IdentityService
+    namespace: identity.v1
+    methods:
+      - GetMyProfile(Empty) -> UserProfile
+      - GetAvailableTenants(Empty) -> TenantList
+      - GetUsers(Empty) -> UserList
+      - InviteUser(InviteUserRequest) -> ActionResponse
+      - UpdateUser(UserMessage) -> ActionResponse
+      - DeleteUser(DeleteEntityRequest) -> ActionResponse
+  - name: CatalogService
+    namespace: catalog.v1
+    methods:
+      - GetFields(GetCatalogRequest) -> FieldList
+      - CreateField(FieldMessage) -> ActionResponse
+      - UpdateField(FieldMessage) -> ActionResponse
+      - DeleteField(DeleteEntityRequest) -> ActionResponse
+      - GetActivities(GetCatalogRequest) -> ActivityList
+      - CreateActivity(ActivityMessage) -> ActionResponse
+      - UpdateActivity(ActivityMessage) -> ActionResponse
+      - DeleteActivity(DeleteEntityRequest) -> ActionResponse
+      - GetAnimalCategories(GetCatalogRequest) -> AnimalCategoryList
+      - CreateAnimalCategory(AnimalCategoryMessage) -> ActionResponse
+      - UpdateAnimalCategory(AnimalCategoryMessage) -> ActionResponse
+      - DeleteAnimalCategory(DeleteEntityRequest) -> ActionResponse
+      - GetLotes(GetLotesRequest) -> LoteList
+      - CreateLote(LoteMessage) -> ActionResponse
+      - UpdateLote(LoteMessage) -> ActionResponse
+      - DeleteLote(DeleteEntityRequest) -> ActionResponse
+      - SaveLoteGeometria(LoteGeoRequest) -> ActionResponse
+  - name: OperationsService
+    namespace: operations.v1
+    methods:
+      - GetEventTemplates(GetTemplatesRequest) -> EventTemplateList
+      - RegisterEvent(RegisterEventRequest) -> ActionResponse
+      - UpdateEvent(UpdateEventRequest) -> ActionResponse
+      - DeleteEvent(DeleteEventRequest) -> ActionResponse
+      - GetEvents(GetEventsRequest) -> EventList
+      - GetEventDetails(GetEventDetailsRequest) -> EventDetail
+  - name: ReportingService
+    namespace: reporting.v1
+    methods:
+      - GetLedger(LedgerFilter) -> stream LedgerEntry (server-streaming)
+      - GetBalance(GetBalanceRequest) -> BalanceReport
+  - name: SyncService
+    namespace: sync.v1
+    methods:
+      - GetPendingSyncEvents(PendingSyncFilter) -> PendingSyncList
+      - SyncToERP(SyncRequest) -> SyncResult
+
+rest_endpoints:
+  - method: GET
+    path: /health
+    description: Health check
+  - method: GET
+    path: /openapi
+    description: OpenAPI spec (development only)
+
+entities:
+  - name: Tenant
+    fields: Id, Name, ErpTenantId, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy
+  - name: User
+    fields: Id, Email, TenantId, Role, CreatedAt, CreatedBy, UpdatedAt, UpdatedBy
+  - name: Field
+    fields: Id, Name, Description, IsActive, TenantId
+  - name: Lote
+    fields: Id, Name, TenantId, FieldId
+  - name: Activity
+    fields: Id, Name, TenantId (nullable=global), IsGlobal
+  - name: AnimalCategory
+    fields: Id, Name, ActivityId, TenantId (nullable=global), StandardWeightKg, Type, ExternalId, LastSyncedAt
+  - name: EventTemplate
+    fields: Id, TenantId, Name, EventType, DebitAccountCode, CreditAccountCode, IsActive
+  - name: LivestockEvent
+    fields: Id, TenantId, EventTemplateId, CostCenterCode, FieldId, LoteId, ActivityId, CategoryId, HeadCount, EstimatedWeightKg, WeightPerHead, TotalAmount, EventDate, Status, ErpTransactionId, Observations
+  - name: AccountingDraft
+    fields: Id, TenantId, LivestockEventId, AccountCode, Concept, DebitAmount, CreditAmount, EntryType, HeadCount, WeightKg, WeightPerHead, FieldId
+  - name: ExternalCatalog
+    fields: Id, TenantId, CatalogType, Data (JSONB), LastSyncedAt
+  - name: GestorMaxConfig
+    fields: Id, TenantId, GestorDatabaseId, ApiKeyEncrypted, ApiKeyLast4, BaseUrl, IsEnabled, LastTestedAt, LastTestOk, LastTestError
+
+enums:
+  - name: UserRole
+    values: Operator, Admin, Administrator, Auditor, Client, Guest
+  - name: LivestockEventStatus
+    values: Draft, Validated, Synced, Audited
+  - name: EventType
+    values: Nacimiento, Compra, Venta, Muerte, Sanidad, Alimentacion, Pesaje, Movimiento
+  - name: CategoryType
+    values: Client (1), Gestor (2)
+  - name: CatalogType
+    values: PlanCuentas, CentrosCosto, CategoriasAnimales
+
+pages:
+  - route: /
+    file: Eventos.razor
+    description: Home page - Template grid for quick event registration
+  - route: /centro-operativo
+    file: CentroOperativo.razor
+    description: Operations Center - Event templates, date-range filtering, recent events audit table
+  - route: /operaciones
+    file: Operations/EventsPage.razor
+    description: Operations List - Date-filtered events table
+  - route: /operaciones/nuevo
+    file: Operations/RegisterEventPage.razor
+    description: Register Event Wizard
+  - route: /ledger
+    file: Mayor.razor
+    description: General Ledger - Pending ERP sync table, paginated ledger entries via gRPC streaming
+  - route: /balance
+    file: Balance.razor
+    description: Livestock Balance - Date range, field filter, category view filters
+  - route: /maps
+    file: Mapas.razor
+    description: Maps & Cadastre - Leaflet dark-mode map, GeoJSON polygon drawing
+  - route: /gis
+    file: GIS.razor
+    description: GIS Infrastructure - Map with lot list sidebar, drawing mode
+  - route: /admin
+    file: Administracion.razor
+    description: Administration - Sidebar nav switching between 5 admin sub-sections
+  - route: /usuarios
+    file: UsersPage.razor
+    description: Users Management - User table, invite drawer, delete
+  - route: /perfil
+    file: ProfilePage.razor
+    description: User Profile - Avatar, email, name, role, tenant selector
+  - route: /catalogo
+    file: Catalog/CatalogPage.razor
+    description: Catalog - Placeholder/stub
+  - route: /welcome
+    file: Welcome.razor
+    description: Welcome page
+  - route: /not-found
+    file: NotFound.razor
+    description: 404 page
+
+components:
+  - name: EventoDrawer.razor
+    description: Dynamic event registration drawer based on template fields
+  - name: BalanceTreeTable.razor
+    description: Expandable tree table grouped by Field
+  - name: FieldsAdmin.razor
+    description: Master-detail CRUD for Fields
+  - name: ActivitiesAdmin.razor
+    description: Master-detail CRUD for Activities
+  - name: CategoriesAdmin.razor
+    description: Master-detail CRUD for Animal Categories
+  - name: LotesAdmin.razor
+    description: Master-detail CRUD for Lotes
+  - name: UsersAdmin.razor
+    description: User table with invite/edit modal
+  - name: TenantSelector.razor
+    description: Tenant switching component
+  - name: UserProfileDisplay.razor
+    description: User profile display
+  - name: DataTable.razor
+    description: Reusable data table
+  - name: SearchInput.razor
+    description: Search input with debounce
+  - name: RoleSelect.razor
+    description: Role selection dropdown
+  - name: ConfirmDialog.razor
+    description: Confirmation dialog
+  - name: ErrorToast.razor
+    description: Error toast notification
+
+services:
+  server:
+    - name: LivestockEventService
+      description: CRUD for livestock events, validation, ERP commit
+    - name: CatalogService
+      description: Full CRUD for Fields, Activities, AnimalCategories
+    - name: LoteService
+      description: CRUD for Lotes with Activity M:N management
+    - name: TranslationService
+      description: Core accounting logic - converts Draft events to AccountingDraft records
+    - name: ReportService
+      description: Balance and reporting queries
+    - name: SyncCatalogService
+      description: Syncs catalogs from ERP provider
+    - name: UserService
+      description: Profile, tenant listing, user CRUD
+    - name: AccountingEntryGenerator
+      description: Rule-based double-entry accounting engine
+    - name: GestorMaxProvider
+      description: Mock ERP provider implementation
+    - name: HttpContextTenantProvider
+      description: Reads tenant from X-Tenant-Id HTTP header
+  client:
+    - name: AuthService
+      description: Mock authentication with localStorage JWT
+    - name: JwtDelegatingHandler
+      description: Adds Authorization header to HTTP requests
+    - name: IdentityClientService
+      description: Wrapper for IdentityService gRPC client
+    - name: CatalogClientService
+      description: Wrapper for CatalogService gRPC client
+    - name: OperationsClientService
+      description: Wrapper for OperationsService gRPC client
+    - name: ReportingClientService
+      description: Wrapper for ReportingService gRPC client with IAsyncEnumerable streaming
+    - name: SyncClientService
+      description: Wrapper for SyncService gRPC client
+    - name: AppStateContainer
+      description: Scoped state holding tenant, user, date range
+
+multi_tenancy:
+  mechanism: ITenantProvider reads X-Tenant-Id HTTP header
+  fallback: Default tenant 11111111-1111-1111-1111-111111111111
+  query_filters: EF Core global query filters on all tenant-scoped entities
+  global_records: Activity and AnimalCategory with TenantId=null visible to all tenants
+
+accounting_flow:
+  - LivestockEvent created with Draft status
+  - TranslationService validates and generates double-entry AccountingDraft records
+  - Event status changed to Validated
+  - SyncService syncs to ERP (mock implementation)
+
+authentication:
+  type: Mock (localStorage-based JWT)
+  credentials: admin@ganaderia.com / admin123
+  note: No real auth provider configured
+
+database_seeding:
+  behavior: TRUNCATEs all tables on every startup (development mode)
+  source: data.sql files from various search paths
+
+known_issues:
+  - Test project targets net7.0 while main projects target net10.0
+  - Authentication is mock only
+  - ERP integration is mocked
+  - Database seeding truncates all tables on startup
+  - Balance report does not account for sales/deaths in weight calculation

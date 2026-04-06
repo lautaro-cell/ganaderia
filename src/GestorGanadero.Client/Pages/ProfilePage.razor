@@ -1,0 +1,76 @@
+@page "/perfil"
+@using GestorGanadero.Client.Identity
+@using GestorGanadero.Services.Identity.Contracts
+@using GestorGanadero.Client.Shared
+@using GestorGanadero.Client.Services
+@inject IdentityClientService IdentityClientService
+@inject TenantState TenantState
+@inject IJSRuntime JSRuntime
+
+<PageHeader Title="Mi Perfil" />
+
+<div style="display:flex; gap:16px; align-items:flex-start;">
+  <div style="width:240px; text-align:center;">
+    <div style="width:120px; height:120px; border-radius:50%; border:2px solid #C0392B; display:inline-flex; align-items:center; justify-content:center; font-size:40px; background:#222;">
+      @((Profile?.Name?.Length > 0) ? Profile.Name.Substring(0, 1).ToUpper() : "MD")
+    </div>
+  </div>
+  <div style="flex:1;">
+    @if (Profile != null)
+    {
+      <div class="card" style="background:#111; border:1px solid #333; padding:16px; border-radius:8px;">
+        <div><strong>Email</strong>: @Profile.Email</div>
+        <div><strong>Nombre</strong>: @Profile.Name</div>
+        <div><strong>Rol</strong>: <span class="badge" style="background:#C0392B; padding:4px 8px; border-radius:12px;">@Profile.Role</span></div>
+        <div><strong>Tenant activo</strong>: @Profile.ActiveTenantId</div>
+        <div style="margin-top:8px;">
+          <select @onchange="OnTenantChange" value="@SelectedTenantId" style="background:#1a1a1a; color:#fff; border:1px solid #333; padding:6px; border-radius:6px;">
+            @if (Tenants != null)
+            {
+              @foreach (var t in Tenants.Tenants)
+              {
+                <option value="@t.Id">@t.Name</option>
+              }
+            }
+          </select>
+        </div>
+      </div>
+    }
+    else if (HasError)
+    {
+      <p style="color:#C0392B">Error al cargar el perfil.</p>
+    }
+    else
+    {
+      <p>Cargando perfil...</p>
+    }
+  </div>
+</div>
+
+@code {
+  private UserProfile? Profile;
+  private TenantList? Tenants;
+  private string SelectedTenantId = string.Empty;
+  private bool HasError = false;
+
+  protected override async Task OnInitializedAsync()
+  {
+    var profRes = await IdentityClientService.GetMyProfileAsync();
+    if (profRes.Success) Profile = profRes.Data; else HasError = true;
+
+    var tenRes = await IdentityClientService.GetAvailableTenantsAsync();
+    if (tenRes.Success) Tenants = tenRes.Data;
+
+    SelectedTenantId = Profile?.ActiveTenantId ?? string.Empty;
+  }
+
+  private async Task OnTenantChange(ChangeEventArgs e)
+  {
+    var t = e.Value?.ToString();
+    if (!string.IsNullOrEmpty(t))
+    {
+      TenantState.SetTenant(t);
+      await JSRuntime.InvokeVoidAsync("location.reload");
+    }
+  }
+}

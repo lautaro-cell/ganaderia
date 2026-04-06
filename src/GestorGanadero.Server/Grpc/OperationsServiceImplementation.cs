@@ -22,19 +22,52 @@ public class OperationsServiceImplementation : OperationsService.OperationsServi
         _logger = logger;
     }
 
-    public override Task<EventTemplateList> GetEventTemplates(GetTemplatesRequest request, ServerCallContext context)
+    public override async Task<EventTemplateList> GetEventTemplates(GetTemplatesRequest request, ServerCallContext context)
     {
-        var templates = new EventTemplateList();
-        templates.Templates.AddRange(new[]
+        var tenantId = string.IsNullOrEmpty(request.TenantId) ? Guid.Empty : Guid.Parse(request.TenantId);
+        if (tenantId == Guid.Empty)
         {
-            new EventTemplate { Id = "template-nacimiento", Name = "Nacimiento",        Icon = "child_care",                  ColorCode = "#27ae60", Fields = { "head_count", "weight_per_head" } },
-            new EventTemplate { Id = "template-destete",    Name = "Destete",           Icon = "transfer_within_a_station",    ColorCode = "#2980b9", Fields = { "head_count", "weight_per_head" } },
-            new EventTemplate { Id = "template-mortandad",  Name = "Mortandad",         Icon = "crisis_alert",                ColorCode = "#c0392b", Fields = { "head_count" } },
-            new EventTemplate { Id = "template-pesaje",     Name = "Pesaje de Control", Icon = "monitor_weight",              ColorCode = "#e67e22", Fields = { "head_count", "weight_per_head" } },
-            new EventTemplate { Id = "template-venta",      Name = "Venta",             Icon = "sell",                        ColorCode = "#8e44ad", Fields = { "head_count", "weight_per_head" } }
-        });
-        return Task.FromResult(templates);
+            return new EventTemplateList();
+        }
+
+        var templates = await _livestockEventService.GetEventTemplatesAsync(tenantId);
+        var response = new EventTemplateList();
+        response.Templates.AddRange(templates.Select(t => new EventTemplate
+        {
+            Id = t.Id.ToString(),
+            Name = t.Name,
+            Icon = GetIconForEventType(t.EventType.ToString()),
+            ColorCode = GetColorForEventType(t.EventType.ToString()),
+            Fields = { "head_count", "weight_per_head" }
+        }));
+        return response;
     }
+
+    private static string GetIconForEventType(string eventType) => eventType switch
+    {
+        "Nacimiento" => "child_care",
+        "Compra" => "add_shopping_cart",
+        "Venta" => "sell",
+        "Muerte" => "crisis_alert",
+        "Sanidad" => "medical_services",
+        "Alimentacion" => "restaurant",
+        "Pesaje" => "monitor_weight",
+        "Movimiento" => "transfer_within_a_station",
+        _ => "event"
+    };
+
+    private static string GetColorForEventType(string eventType) => eventType switch
+    {
+        "Nacimiento" => "#27ae60",
+        "Compra" => "#2980b9",
+        "Venta" => "#8e44ad",
+        "Muerte" => "#c0392b",
+        "Sanidad" => "#e74c3c",
+        "Alimentacion" => "#f39c12",
+        "Pesaje" => "#e67e22",
+        "Movimiento" => "#16a085",
+        _ => "#95a5a6"
+    };
 
     public override async Task<ActionResponse> RegisterEvent(RegisterEventRequest request, ServerCallContext context)
     {
@@ -42,7 +75,7 @@ public class OperationsServiceImplementation : OperationsService.OperationsServi
         {
             var appRequest = new CreateLivestockEventRequest(
                 Guid.Parse(request.TemplateId),
-                string.IsNullOrEmpty(request.FieldId) ? Guid.Empty : Guid.Parse(request.FieldId),
+                string.IsNullOrEmpty(request.FieldId) ? "" : request.FieldId,
                 request.HeadCount,
                 (decimal)request.PrimaryValue,
                 0,
@@ -62,7 +95,7 @@ public class OperationsServiceImplementation : OperationsService.OperationsServi
     {
         await _livestockEventService.UpdateEventAsync(new UpdateEventRequestDto(
             Guid.Parse(request.Id), request.OccurredOn.ToDateTimeOffset(), request.HeadCount, 
-            string.IsNullOrEmpty(request.WeightPerHead) ? 0 : decimal.Parse(request.WeightPerHead), (decimal)request.PrimaryValue, request.Observations));
+            (decimal)request.WeightPerHead, (decimal)request.PrimaryValue, request.Observations));
         return new ActionResponse { Success = true, Message = "Evento actualizado." };
     }
 
@@ -74,7 +107,8 @@ public class OperationsServiceImplementation : OperationsService.OperationsServi
 
     public override async Task<EventList> GetEvents(GetEventsRequest request, ServerCallContext context)
     {
-        var events = await _livestockEventService.GetEventsAsync(null, request.StartDate?.ToDateTimeOffset(), request.EndDate?.ToDateTimeOffset());
+        var tenantId = string.IsNullOrEmpty(request.TenantId) ? (Guid?)null : Guid.Parse(request.TenantId);
+        var events = await _livestockEventService.GetEventsAsync(tenantId, request.StartDate?.ToDateTimeOffset(), request.EndDate?.ToDateTimeOffset());
         var response = new EventList();
         response.Events.AddRange(events.Select(e => new EventDetail
         {
@@ -84,7 +118,7 @@ public class OperationsServiceImplementation : OperationsService.OperationsServi
             TotalWeight   = (double)e.EstimatedWeightKg,
             TypeName      = e.TypeName,
             FieldName     = e.FieldName,
-            WeightPerHead = e.WeightPerHead.ToString()
+            WeightPerHead = (double)e.WeightPerHead
         }));
         return response;
     }
@@ -99,7 +133,7 @@ public class OperationsServiceImplementation : OperationsService.OperationsServi
             OccurredOn = Timestamp.FromDateTimeOffset(e.OccurredOn),
             FieldName = e.FieldName,
             HeadCount = e.HeadCount,
-            WeightPerHead = e.WeightPerHead.ToString(),
+            WeightPerHead = (double)e.WeightPerHead,
             TotalWeight = (double)e.TotalWeight,
             Observations = e.Observations ?? "",
             TypeCode = e.TypeCode

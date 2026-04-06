@@ -1,97 +1,107 @@
 @page "/ledger"
 @using GestorGanadero.Client.Services
-@using GestorGanadero.Services.Common.Contracts
-@using GestorGanadero.Services.Identity.Contracts
-@using GestorGanadero.Services.Catalog.Contracts
-@using GestorGanadero.Services.Operations.Contracts
 @using GestorGanadero.Services.Reporting.Contracts
 @using GestorGanadero.Services.Sync.Contracts
+@using GestorGanadero.Client.Sync
 @using Google.Protobuf.WellKnownTypes
 @using global::Grpc.Core
 @inject AppStateContainer State
 @inject ReportingService.ReportingServiceClient GrpcClient
+@inject SyncClientService SyncSvc
 @implements IDisposable
 
-<div class="module-header">
+<div class="page-header">
     <h1>Libro Mayor</h1>
+    <span class="subtitle">Movimientos contables y sincronizacion ERP</span>
 </div>
 
-<div class="ledger-layout">
-    <!-- Sección Sincronización (Prompt 4.2) -->
-    <section class="sync-console card mb-4">
-        <div class="card-header">
-            <h3>Pendiente de Sincronización ERP</h3>
-            <button class="btn-sync" @onclick="SyncSelected" disabled="@(!selectedPendingIds.Any() || isSyncing)">
-                @if (isSyncing)
-                {
-                    <span class="spinner"></span>
-                }
-                Sincronizar seleccionados (@selectedPendingIds.Count)
-            </button>
+<!-- Pending Sync -->
+<div class="card mb-lg">
+    <div class="card-header">
+        <h3><span class="material-icons" style="font-size:20px; vertical-align:middle; margin-right:8px;">sync_problem</span>Pendientes de Sincronizacion</h3>
+        <button class="btn btn-primary btn-sm" @onclick="SyncSelected" disabled="@(!_pendingIds.Any() || _syncing)">
+            @if (_syncing) { <span class="spinner"></span> }
+            Sincronizar (@_pendingIds.Count)
+        </button>
+    </div>
+
+    @if (_pendingEntries == null)
+    {
+        <div class="loading-container"><div class="spinner spinner-lg"></div></div>
+    }
+    else if (!_pendingEntries.Any())
+    {
+        <div class="alert alert-success">
+            <span class="material-icons" style="font-size:18px;">check_circle</span>
+            No hay asientos pendientes. Todo esta sincronizado.
         </div>
-        
-        <div class="table-scroll">
-            <table class="data-table">
+    }
+    else
+    {
+        <div class="table-wrapper">
+            <table>
                 <thead>
                     <tr>
-                        <th width="40"><input type="checkbox" @onchange="ToggleSelectAllPending" /></th>
+                        <th width="40"><input type="checkbox" @onchange="ToggleAll" /></th>
                         <th>Fecha</th>
-                        <th>Descripción</th>
+                        <th>Descripcion</th>
                         <th class="text-end">Importe</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if (pendingEntries != null && pendingEntries.Any())
-                    {
-                        foreach (var entry in pendingEntries)
-                        {
-                            <tr>
-                                <td>
-                                    <input type="checkbox" 
-                                           checked="@selectedPendingIds.Contains(entry.Id)" 
-                                           @onchange="@(e => TogglePendingSelection(entry.Id, e.Value))" />
-                                </td>
-                                <td>@entry.Date.ToDateTime().ToShortDateString()</td>
-                                <td>@entry.Description</td>
-                                <td class="text-end">@entry.Amount.ToString("C2")</td>
-                            </tr>
-                        }
-                    }
-                    else
+                    @foreach (var e in _pendingEntries)
                     {
                         <tr>
-                            <td colspan="4" class="text-center text-secondary py-3">No hay asientos pendientes.</td>
+                            <td><input type="checkbox" checked="@_pendingIds.Contains(e.Id)" @onchange="ev => ToggleId(e.Id, ev.Value)" /></td>
+                            <td>@e.Date.ToDateTime().ToString("dd/MM/yyyy")</td>
+                            <td>@e.Description</td>
+                            <td class="text-end">@e.Amount.ToString("C2")</td>
                         </tr>
                     }
                 </tbody>
             </table>
         </div>
-        
-        @if (!string.IsNullOrEmpty(syncMessage))
-        {
-            <div class="toast-inline @(syncSuccess ? "success" : "error")">
-                @(syncSuccess ? "✓ " : "✕ ") @syncMessage
-            </div>
-        }
-    </section>
+    }
 
-    <!-- Sección Listado Mayor (Prompt 4.1) -->
-    <section class="ledger-list card">
-        <div class="card-header">
-            <h3>Movimientos del Mayor</h3>
-            <div class="pagination-controls">
-                <button class="btn-secondary" @onclick="PrevPage" disabled="@(pageIndex <= 0 || isLoadingLedger)">Anterior</button>
-                <span class="page-info">Página @(pageIndex + 1)</span>
-                <button class="btn-secondary" @onclick="NextPage" disabled="@(ledgerEntries.Count < pageSize || isLoadingLedger)">Siguiente</button>
-            </div>
+    @if (!string.IsNullOrEmpty(_syncMsg))
+    {
+        <div class="alert @(_syncOk ? "alert-success" : "alert-danger") mt-md">
+            @(_syncOk ? "check_circle" : "error")
+            @_syncMsg
         </div>
+    }
+</div>
 
-        <div class="table-container">
-            <table class="data-table">
+<!-- Ledger -->
+<div class="card">
+    <div class="card-header">
+        <h3><span class="material-icons" style="font-size:20px; vertical-align:middle; margin-right:8px;">menu_book</span>Movimientos del Mayor</h3>
+        <div class="pagination">
+            <button class="btn btn-secondary btn-sm" @onclick="PrevPage" disabled="@(_page <= 0 || _loadingLedger)">Anterior</button>
+            <span class="page-info">Pagina @(_page + 1)</span>
+            <button class="btn btn-secondary btn-sm" @onclick="NextPage" disabled="@(_ledger.Count < _pageSize || _loadingLedger)">Siguiente</button>
+        </div>
+    </div>
+
+    @if (_loadingLedger)
+    {
+        <div class="loading-container"><div class="spinner spinner-lg"></div><span>Cargando movimientos...</span></div>
+    }
+    else if (!_ledger.Any())
+    {
+        <div class="empty-state">
+            <span class="material-icons">inbox</span>
+            <p>No se encontraron movimientos.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrapper">
+            <table>
                 <thead>
                     <tr>
                         <th>Fecha</th>
-                        <th>Descripción</th>
+                        <th>Descripcion</th>
                         <th>Tipo</th>
                         <th class="text-end">Cabezas</th>
                         <th class="text-end">KG</th>
@@ -100,150 +110,37 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @if (isLoadingLedger)
+                    @foreach (var e in _ledger)
                     {
                         <tr>
-                            <td colspan="7" class="text-center py-5">
-                                <div class="spinner-large"></div>
-                                <p class="mt-2 text-secondary">Cargando movimientos...</p>
+                            <td>@e.Date.ToDateTime().ToString("dd/MM/yyyy")</td>
+                            <td>@e.Description</td>
+                            <td><span class="badge badge-info">@e.EntryType</span></td>
+                            <td class="text-end">@e.HeadCount</td>
+                            <td class="text-end">@e.WeightKg</td>
+                            <td class="text-end">@e.Amount.ToString("C2")</td>
+                            <td>
+                                <span class="badge @(e.Status.ToLower() == "synced" ? "badge-success" : "badge-neutral")">@e.Status</span>
                             </td>
-                        </tr>
-                    }
-                    else if (ledgerEntries.Any())
-                    {
-                        foreach (var entry in ledgerEntries)
-                        {
-                            <tr>
-                                <td>@entry.Date.ToDateTime().ToShortDateString()</td>
-                                <td>@entry.Description</td>
-                                <td>@entry.EntryType</td>
-                                <td class="text-end">@entry.HeadCount</td>
-                                <td class="text-end">@entry.WeightKg</td>
-                                <td class="text-end">@entry.Amount.ToString("C2")</td>
-                                <td>
-                                    <span class="status-badge @entry.Status.ToLower()">@entry.Status</span>
-                                </td>
-                            </tr>
-                        }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="7" class="text-center text-secondary py-4">No se encontraron movimientos.</td>
                         </tr>
                     }
                 </tbody>
             </table>
         </div>
-    </section>
+    }
 </div>
 
-<style>
-    .ledger-layout {
-        display: flex;
-        flex-direction: column;
-        gap: 24px;
-    }
-
-    .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-bottom: 16px;
-        margin-bottom: 16px;
-        border-bottom: 1px solid var(--border);
-    }
-
-    .btn-sync {
-        background-color: var(--accent);
-        color: white;
-        padding: 8px 16px;
-        border-radius: var(--radius-sm);
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .pagination-controls {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .page-info {
-        font-size: 0.85rem;
-        color: var(--text-secondary);
-        font-weight: 500;
-    }
-
-    .table-scroll {
-        max-height: 300px;
-        overflow-y: auto;
-    }
-
-    .status-badge {
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 0.7rem;
-        font-weight: 700;
-        text-transform: uppercase;
-    }
-    .status-badge.synced { background: rgba(0, 255, 0, 0.1); color: #00ff00; }
-    .status-badge.draft { background: rgba(255, 255, 255, 0.05); color: var(--text-secondary); }
-
-    .toast-inline {
-        margin-top: 16px;
-        padding: 10px 16px;
-        border-radius: var(--radius-sm);
-        font-size: 0.85rem;
-        font-weight: 600;
-    }
-    .toast-inline.success { background: rgba(0, 255, 0, 0.1); color: #00ff00; border: 1px solid rgba(0, 255, 0, 0.2); }
-    .toast-inline.error { background: rgba(255, 0, 0, 0.1); color: var(--accent); border: 1px solid rgba(255, 0, 0, 0.2); }
-
-    .spinner {
-        width: 14px;
-        height: 14px;
-        border: 2px solid rgba(255,255,255,0.3);
-        border-top-color: #fff;
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-    }
-
-    .spinner-large {
-        width: 32px;
-        height: 32px;
-        border: 3px solid var(--surface-2);
-        border-top-color: var(--accent);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin: 0 auto;
-    }
-
-    @@keyframes spin { to { transform: rotate(360deg); } }
-    
-    .text-end { text-align: right !important; }
-    .text-center { text-align: center !important; }
-    .mb-4 { margin-bottom: 2rem; }
-    .mt-2 { margin-top: 0.5rem; }
-    .py-3 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
-    .py-4 { padding-top: 2rem; padding-bottom: 2rem; }
-    .py-5 { padding-top: 3rem; padding-bottom: 3rem; }
-</style>
-
 @code {
-    private List<LedgerEntry> ledgerEntries = new();
-    private List<LedgerEntry> pendingEntries = new();
-    private HashSet<string> selectedPendingIds = new();
-    
-    private int pageIndex = 0;
-    private int pageSize = 50;
-    private bool isLoadingLedger = false;
-    private bool isSyncing = false;
-    
-    private string syncMessage = "";
-    private bool syncSuccess = false;
+    private List<LedgerEntry> _ledger = new();
+    private List<SyncEntry> _pendingEntries = new();
+    private HashSet<string> _pendingIds = new();
+
+    private int _page = 0;
+    private int _pageSize = 50;
+    private bool _loadingLedger;
+    private bool _syncing;
+    private string _syncMsg = "";
+    private bool _syncOk;
 
     protected override async Task OnInitializedAsync()
     {
@@ -253,131 +150,63 @@
 
     private async Task LoadAll()
     {
-        await LoadPendingSync();
+        if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
+        try
+        {
+            var r = await SyncSvc.GetPendingAsync(new PendingSyncFilter { TenantId = State.ActiveTenantId });
+            _pendingEntries = r.Data?.Entries.ToList() ?? new();
+            _pendingIds.Clear();
+        }
+        catch { }
         await LoadLedger();
     }
 
     private async Task LoadLedger()
     {
         if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
-        
-        isLoadingLedger = true;
-        ledgerEntries.Clear();
+        _loadingLedger = true;
+        _ledger.Clear();
         StateHasChanged();
 
         try
         {
-            var filter = new LedgerFilter 
-            { 
-                TenantId = State.ActiveTenantId, 
-                PageIndex = pageIndex, 
-                PageSize = pageSize 
-            };
-
+            var filter = new LedgerFilter { TenantId = State.ActiveTenantId, PageIndex = _page, PageSize = _pageSize };
             using var call = GrpcClient.GetLedger(filter);
-            
-            // Requerimiento Prompt 4.1: await foreach del stream
-            // ReadAllAsync ya viene en el namespace Grpc.Core con la mayoría de clientes.
             while (await call.ResponseStream.MoveNext(default))
             {
-                var entry = call.ResponseStream.Current;
-                ledgerEntries.Add(entry);
+                _ledger.Add(call.ResponseStream.Current);
                 StateHasChanged();
             }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading ledger: {ex.Message}");
-        }
-        finally
-        {
-            isLoadingLedger = false;
-            StateHasChanged();
-        }
-    }
-
-    private async Task LoadPendingSync()
-    {
-        if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
-        try
-        {
-            var response = await SyncClient.GetPendingSyncEventsAsync(new PendingSyncFilter { TenantId = State.ActiveTenantId });
-            pendingEntries = response.Entries.ToList();
-            selectedPendingIds.Clear();
-        }
         catch (Exception ex) { Console.WriteLine(ex.Message); }
+        finally { _loadingLedger = false; StateHasChanged(); }
     }
 
-    private async Task PrevPage()
-    {
-        if (pageIndex > 0)
-        {
-            pageIndex--;
-            await LoadLedger();
-        }
-    }
+    private async Task PrevPage() { if (_page > 0) { _page--; await LoadLedger(); } }
+    private async Task NextPage() { _page++; await LoadLedger(); }
 
-    private async Task NextPage()
-    {
-        pageIndex++;
-        await LoadLedger();
-    }
-
-    private void TogglePendingSelection(string id, object? isChecked)
-    {
-        if (isChecked is bool val && val)
-            selectedPendingIds.Add(id);
-        else
-            selectedPendingIds.Remove(id);
-    }
-
-    private void ToggleSelectAllPending(ChangeEventArgs e)
-    {
-        bool selectAll = (bool)(e.Value ?? false);
-        if (selectAll)
-            selectedPendingIds = new HashSet<string>(pendingEntries.Select(x => x.Id));
-        else
-            selectedPendingIds.Clear();
-    }
+    private void ToggleId(string id, object? val) { if (val is bool b && b) _pendingIds.Add(id); else _pendingIds.Remove(id); }
+    private void ToggleAll(ChangeEventArgs e) { if (e.Value is bool b && b) _pendingIds = new(_pendingEntries.Select(x => x.Id)); else _pendingIds.Clear(); }
 
     private async Task SyncSelected()
     {
-        if (!selectedPendingIds.Any()) return;
-        
-        isSyncing = true;
-        syncMessage = "";
-        StateHasChanged();
-
+        if (!_pendingIds.Any()) return;
+        _syncing = true; _syncMsg = ""; StateHasChanged();
         try
         {
-            var count = selectedPendingIds.Count;
-            var request = new SyncRequest();
-            request.EntryIds.AddRange(selectedPendingIds);
-
-            var response = await SyncClient.SyncToERPAsync(request);
-
-            if (response.Count >= 0) // Si respondió, lo consideramos éxito
+            var req = new SyncRequest();
+            req.EntryIds.AddRange(_pendingIds);
+            var r = await SyncSvc.SyncToERPAsync(req);
+            if (r.Success && r.Data != null)
             {
-                syncSuccess = true;
-                syncMessage = $"{response.Count} asientos sincronizados correctamente.";
+                _syncOk = true;
+                _syncMsg = $"{r.Data.Count} asientos sincronizados correctamente.";
                 await LoadAll();
             }
         }
-        catch (Exception ex)
-        {
-            syncSuccess = false;
-            syncMessage = $"Error: {ex.Message}";
-        }
-        finally
-        {
-            isSyncing = false;
-            StateHasChanged();
-        }
+        catch (Exception ex) { _syncOk = false; _syncMsg = $"Error: {ex.Message}"; }
+        finally { _syncing = false; StateHasChanged(); }
     }
 
-    public void Dispose()
-    {
-        State.OnChange -= StateHasChanged;
-    }
+    public void Dispose() => State.OnChange -= StateHasChanged;
 }
-

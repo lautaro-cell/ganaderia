@@ -1,17 +1,7 @@
-using System;
-using System.Net.Http;
 using System.Net.Http.Json;
-using System.Threading.Tasks;
+using System.Text.Json;
 using Microsoft.JSInterop;
-using Grpc.Core;
-using Google.Protobuf.WellKnownTypes;
-using GestorGanadero.Services.Common.Contracts;
 using GestorGanadero.Services.Identity.Contracts;
-using GestorGanadero.Services.Catalog.Contracts;
-using GestorGanadero.Services.Operations.Contracts;
-using GestorGanadero.Services.Reporting.Contracts;
-using GestorGanadero.Services.Sync.Contracts;
-using System.Linq;
 
 namespace GestorGanadero.Client.Services
 {
@@ -23,9 +13,9 @@ namespace GestorGanadero.Client.Services
         private readonly IdentityService.IdentityServiceClient _grpcClient;
 
         public AuthService(
-            HttpClient http, 
-            IJSRuntime js, 
-            AppStateContainer state, 
+            HttpClient http,
+            IJSRuntime js,
+            AppStateContainer state,
             IdentityService.IdentityServiceClient grpcClient)
         {
             _http = http;
@@ -36,27 +26,38 @@ namespace GestorGanadero.Client.Services
 
         public async Task<bool> LoginAsync(string email, string password)
         {
-            // Prompt 1.2: Llama al endpoint de autenticación REST y guarda el JWT
-            // Simulamos por ahora o usamos un endpoint real si existe
-            try 
+            try
             {
-                // En un escenario real: var response = await _http.PostAsJsonAsync("api/auth/login", new { email, password });
-                // Si el backend es puro gRPC, tendríamos un rpc Login. Pero el prompt pide REST para login.
-                
-                // Simulación para propósitos de desarrollo (Mock)
-                if (email == "admin@ganaderia.com" && password == "admin123")
-                {
-                    var token = "mock-jwt-token";
-                    await _js.InvokeVoidAsync("localStorage.setItem", "authToken", token);
-                    return true;
-                }
-                return false;
+                var response = await _http.PostAsJsonAsync("api/auth/login", new { email, password });
+
+                if (!response.IsSuccessStatusCode)
+                    return false;
+
+                var result = await response.Content.ReadFromJsonAsync<LoginResult>();
+                if (result == null || string.IsNullOrEmpty(result.Token))
+                    return false;
+
+                await _js.InvokeVoidAsync("localStorage.setItem", "authToken", result.Token);
+
+                _state.ActiveTenantId = result.TenantId;
+                _state.ActiveTenantName = result.TenantName;
+
+                return true;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Login Error: {ex.Message}");
                 return false;
             }
+        }
+
+        public async Task LogoutAsync()
+        {
+            await _js.InvokeVoidAsync("localStorage.removeItem", "authToken");
+            _state.CurrentUser = null;
+            _state.ActiveTenantId = string.Empty;
+            _state.ActiveTenantName = string.Empty;
+            _state.AvailableTenants.Clear();
         }
 
         public async Task LoadUserContextAsync()
@@ -66,30 +67,27 @@ namespace GestorGanadero.Client.Services
 
             try
             {
-                // Prompt 1.2: Llama GetMyProfile() y GetAvailableTenants() via LivestockServiceClient
-                var profile = await _grpcClient.GetMyProfileAsync(new Empty());
-                var tenantList = await _grpcClient.GetAvailableTenantsAsync(new Empty());
+                var profile = await _grpcClient.GetMyProfileAsync(new Google.Protobuf.WellKnownTypes.Empty());
+                var tenantList = await _grpcClient.GetAvailableTenantsAsync(new Google.Protobuf.WellKnownTypes.Empty());
 
                 _state.CurrentUser = profile;
                 _state.AvailableTenants = tenantList.Tenants.ToList();
 
-                // Si hay tenants, seleccionamos el primero o el activo del perfil
                 if (_state.AvailableTenants.Any())
                 {
-                    var active = _state.AvailableTenants.FirstOrDefault(t => t.Id == profile.ActiveTenantId) 
+                    var active = _state.AvailableTenants.FirstOrDefault(t => t.Id == profile.ActiveTenantId)
                                  ?? _state.AvailableTenants.First();
-                    
+
                     _state.ActiveTenantId = active.Id;
                     _state.ActiveTenantName = active.Name;
                 }
             }
-            catch (RpcException ex)
+            catch (Grpc.Core.RpcException ex)
             {
                 Console.WriteLine($"gRPC Context Load Error: {ex.Status.Detail}");
-                // Si el token es inválido (Unauthenticated), podríamos limpiar el localStorage
-                if (ex.StatusCode == StatusCode.Unauthenticated)
+                if (ex.StatusCode == Grpc.Core.StatusCode.Unauthenticated)
                 {
-                    await _js.InvokeVoidAsync("localStorage.removeItem", "authToken");
+                    await LogoutAsync();
                 }
             }
             catch (Exception ex)
@@ -97,6 +95,12 @@ namespace GestorGanadero.Client.Services
                 Console.WriteLine($"General Context Load Error: {ex.Message}");
             }
         }
+
+        private class LoginResult
+        {
+            public string Token { get; set; } = string.Empty;
+            public string TenantId { get; set; } = string.Empty;
+            public string TenantName { get; set; } = string.Empty;
+        }
     }
 }
-

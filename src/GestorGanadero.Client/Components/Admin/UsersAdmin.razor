@@ -1,231 +1,133 @@
 @using GestorGanadero.Services.Common.Contracts
 @using GestorGanadero.Services.Identity.Contracts
-@using GestorGanadero.Services.Catalog.Contracts
-@using GestorGanadero.Services.Operations.Contracts
-@using GestorGanadero.Services.Reporting.Contracts
-@using GestorGanadero.Services.Sync.Contracts
 @using GestorGanadero.Client.Services
+@using Google.Protobuf.WellKnownTypes
 @inject AppStateContainer State
 @inject IdentityService.IdentityServiceClient GrpcClient
 @inject IJSRuntime JS
 
-<div class="users-admin">
-    <div class="admin-header">
+<div style="padding:0;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
         <h3>Gestión de Usuarios</h3>
-        <button class="btn-primary" @onclick="OpenInviteModal">
-            <span class="material-icons">person_add</span> Invitar Usuario
+        <button class="btn btn-primary btn-sm" @onclick="OpenInvite">
+            <span class="material-icons" style="font-size:16px;">person_add</span> Invitar Usuario
         </button>
     </div>
 
-    <div class="table-container card">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Nombre</th>
-                    <th>Email</th>
-                    <th>Rol</th>
-                    <th>Estado</th>
-                    <th width="100">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (users == null)
-                {
-                    <tr><td colspan="5" class="text-center py-4"><div class="spinner-sm"></div></td></tr>
-                }
-                else if (!users.Any())
-                {
-                    <tr><td colspan="5" class="text-center py-4 text-secondary">No hay otros usuarios en este tenant.</td></tr>
-                }
-                else
-                {
-                    @foreach (var user in users)
+    @if (_users == null)
+    {
+        <div class="loading-container"><div class="spinner spinner-lg"></div></div>
+    }
+    else if (!_users.Any())
+    {
+        <div class="empty-state"><span class="material-icons">people</span><p>No hay usuarios registrados.</p></div>
+    }
+    else
+    {
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Rol</th>
+                        <th>Estado</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var u in _users)
                     {
                         <tr>
-                            <td>@user.Name</td>
-                            <td>@user.Email</td>
-                            <td><span class="role-badge">@user.RoleName</span></td>
-                            <td>
-                                <span class="status-badge @(user.IsActive ? "active" : "inactive")">
-                                    @(user.IsActive ? "Activo" : "Inactivo")
-                                </span>
-                            </td>
-                            <td>
-                                <div class="action-buttons">
-                                    <button class="btn-icon" @onclick="() => EditUser(user)"><span class="material-icons">edit</span></button>
-                                    <button class="btn-icon btn-delete" @onclick="() => DeleteUser(user)"><span class="material-icons">delete</span></button>
-                                </div>
+                            <td style="font-weight:500;">@u.Name</td>
+                            <td style="color:var(--text-secondary);">@u.Email</td>
+                            <td><span class="badge badge-info">@u.RoleName</span></td>
+                            <td><span class="badge @(u.IsActive ? "badge-success" : "badge-neutral")">@(u.IsActive ? "Activo" : "Inactivo")</span></td>
+                            <td class="text-center">
+                                <button class="btn-icon" title="Editar" @onclick="() => Edit(u)"><span class="material-icons">edit</span></button>
+                                <button class="btn-icon" title="Eliminar" @onclick="() => Delete(u)"><span class="material-icons">delete_outline</span></button>
                             </td>
                         </tr>
                     }
-                }
-            </tbody>
-        </table>
-    </div>
+                </tbody>
+            </table>
+        </div>
+    }
 </div>
 
-@if (showInviteModal)
+@if (_showModal)
 {
-    <div class="modal-backdrop">
-        <div class="modal-content card">
-            <h4>@(isEditing ? "Editar Usuario" : "Invitar Nuevo Usuario")</h4>
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" @bind="inviteModel.Email" disabled="@isEditing" placeholder="ejemplo@correo.com" />
+    <div class="modal-backdrop" @onclick="() => _showModal = false">
+        <div class="modal" @onclick:stopPropagation>
+            <div class="modal-header">
+                <h3>@(_editing ? "Editar Usuario" : "Invitar Usuario")</h3>
+                <button class="btn-icon" @onclick="() => _showModal = false"><span class="material-icons">close</span></button>
             </div>
             <div class="form-group">
-                <label>Nombre Completo</label>
-                <input type="text" @bind="inviteModel.Name" placeholder="Nombre y Apellido" />
+                <label>Email</label>
+                <input type="email" @bind="_model.Email" class="form-control" disabled="@_editing" />
+            </div>
+            <div class="form-group">
+                <label>Nombre</label>
+                <input type="text" @bind="_model.Name" class="form-control" />
             </div>
             <div class="form-group">
                 <label>Rol</label>
-                <select @bind="inviteModel.RoleName">
+                <select @bind="_model.RoleName" class="form-control">
                     <option value="Visor">Visor</option>
                     <option value="Operador">Operador</option>
                     <option value="Admin">Administrador</option>
                 </select>
             </div>
-            @if (isEditing)
+            @if (_editing)
             {
-                <div class="form-group row-toggle">
-                    <label>Usuario Activo</label>
-                    <input type="checkbox" @bind="inviteModel.IsActive" />
-                </div>
+                <div class="checkbox-group"><input type="checkbox" @bind="_model.IsActive" id="usrAct" /><label for="usrAct">Usuario Activo</label></div>
             }
-
             <div class="modal-actions">
-                <button class="btn-secondary" @onclick="CloseModal">Cancelar</button>
-                <button class="btn-primary" @onclick="SubmitUser" disabled="@isSaving">
-                    @if (isSaving) { <span class="spinner-inline"></span> }
-                    @(isEditing ? "Guardar" : "Enviar Invitación")
+                <button class="btn btn-secondary" @onclick="() => _showModal = false">Cancelar</button>
+                <button class="btn btn-primary" @onclick="Submit" disabled="@_saving">
+                    @if (_saving) { <span class="spinner"></span> }
+                    @(_editing ? "Guardar" : "Enviar Invitación")
                 </button>
             </div>
         </div>
     </div>
 }
 
-<style>
-    .users-admin { padding: 24px; }
-    .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-    
-    .role-badge { background: var(--surface-2); padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; border: 1px solid var(--border); }
-    .status-badge { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
-    .status-badge.active { color: #00ff00; }
-    .status-badge.inactive { color: var(--text-secondary); }
-
-    .action-buttons { display: flex; gap: 8px; }
-    .btn-icon { background: transparent; border: none; color: var(--text-secondary); cursor: pointer; padding: 4px; border-radius: 4px; }
-    .btn-icon:hover { background: var(--surface-2); color: var(--text-primary); }
-    .btn-icon.btn-delete:hover { color: var(--accent); }
-
-    .modal-backdrop { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 2000; }
-    .modal-content { width: 400px; padding: 24px; }
-    .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
-
-    .form-group { margin-bottom: 16px; display: flex; flex-direction: column; gap: 6px; }
-    .form-group label { font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; }
-    .form-group input, .form-group select { background: var(--surface-2); border: 1px solid var(--border); color: var(--text-primary); padding: 10px; border-radius: 6px; }
-    .row-toggle { flex-direction: row; justify-content: space-between; align-items: center; }
-
-    .spinner-inline { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; margin-right: 8px; }
-    @@keyframes spin { to { transform: rotate(360deg); } }
-</style>
-
 @code {
-    private List<UserMessage>? users;
-    private bool showInviteModal = false;
-    private bool isEditing = false;
-    private bool isSaving = false;
-    
-    // Modelo temporal para invitación/edición
-    private UserMessage inviteModel = new() { RoleName = "Visor" };
+    private List<UserMessage>? _users;
+    private bool _showModal;
+    private bool _editing;
+    private bool _saving;
+    private UserMessage _model = new() { RoleName = "Visor" };
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
     {
-        await LoadUsers();
+        try { var r = await GrpcClient.GetUsersAsync(new Empty()); _users = r.Users.ToList(); } catch { }
     }
 
-    private async Task LoadUsers()
+    private void OpenInvite() { _editing = false; _model = new UserMessage { RoleName = "Visor", IsActive = true, TenantId = State.ActiveTenantId }; _showModal = true; }
+    private void Edit(UserMessage u) { _editing = true; _model = new UserMessage { Id = u.Id, Name = u.Name, Email = u.Email, RoleName = u.RoleName, IsActive = u.IsActive, TenantId = u.TenantId }; _showModal = true; }
+
+    private async Task Submit()
     {
+        if (string.IsNullOrWhiteSpace(_model.Email) || string.IsNullOrWhiteSpace(_model.Name)) return;
+        _saving = true; StateHasChanged();
         try
         {
-            var response = await GrpcClient.GetUsersAsync(new Google.Protobuf.WellKnownTypes.Empty());
-            users = response.Users.ToList();
+            if (_editing) { var r = await GrpcClient.UpdateUserAsync(_model); if (r.Success) await Load(); }
+            else { var r = await GrpcClient.InviteUserAsync(new InviteUserRequest { Email = _model.Email, Name = _model.Name, RoleName = _model.RoleName, TenantId = State.ActiveTenantId }); if (r.Success) await Load(); }
+            _showModal = false;
         }
-        catch (Exception ex) { Console.WriteLine(ex.Message); }
+        catch { }
+        finally { _saving = false; StateHasChanged(); }
     }
 
-    private void OpenInviteModal()
+    private async Task Delete(UserMessage u)
     {
-        isEditing = false;
-        inviteModel = new UserMessage { RoleName = "Visor", IsActive = true, TenantId = State.ActiveTenantId };
-        showInviteModal = true;
-    }
-
-    private void EditUser(UserMessage user)
-    {
-        isEditing = true;
-        inviteModel = new UserMessage
-        {
-            Id = user.Id,
-            Name = user.Name,
-            Email = user.Email,
-            RoleName = user.RoleName,
-            IsActive = user.IsActive,
-            TenantId = user.TenantId
-        };
-        showInviteModal = true;
-    }
-
-    private void CloseModal() => showInviteModal = false;
-
-    private async Task SubmitUser()
-    {
-        if (string.IsNullOrWhiteSpace(inviteModel.Email) || string.IsNullOrWhiteSpace(inviteModel.Name)) return;
-
-        isSaving = true;
-        StateHasChanged();
-
-        try
-        {
-            if (isEditing)
-            {
-                var response = await GrpcClient.UpdateUserAsync(inviteModel);
-                if (response.Success) await LoadUsers();
-            }
-            else
-            {
-                var request = new InviteUserRequest
-                {
-                    Email = inviteModel.Email,
-                    Name = inviteModel.Name,
-                    RoleName = inviteModel.RoleName,
-                    TenantId = State.ActiveTenantId
-                };
-                var response = await GrpcClient.InviteUserAsync(request);
-                if (response.Success) await LoadUsers();
-            }
-            showInviteModal = false;
-        }
-        catch (Exception ex) { Console.WriteLine(ex.Message); }
-        finally
-        {
-            isSaving = false;
-            StateHasChanged();
-        }
-    }
-
-    private async Task DeleteUser(UserMessage user)
-    {
-        var confirmed = await JS.InvokeAsync<bool>("confirm", $"¿Eliminar acceso de {user.Name}?");
-        if (!confirmed) return;
-
-        try
-        {
-            await GrpcClient.DeleteUserAsync(new DeleteEntityRequest { Id = user.Id, TenantId = State.ActiveTenantId });
-            await LoadUsers();
-        }
-        catch (Exception ex) { Console.WriteLine(ex.Message); }
+        if (!await JS.InvokeAsync<bool>("confirm", $"Eliminar acceso de {u.Name}?")) return;
+        try { await GrpcClient.DeleteUserAsync(new DeleteEntityRequest { Id = u.Id, TenantId = State.ActiveTenantId }); await Load(); } catch { }
     }
 }
-

@@ -1,0 +1,171 @@
+@inherits LayoutComponentBase
+@using GestorGanadero.Client.Services
+@using GestorGanadero.Services.Identity.Contracts
+@using Google.Protobuf.WellKnownTypes
+@inject AppStateContainer State
+@inject IdentityService.IdentityServiceClient GrpcClient
+@inject IAuthService AuthService
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@implements IDisposable
+
+<div class="app-shell">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-icon">GG</div>
+            <div>
+                <div class="brand-text">Gestor Ganadero</div>
+                <div class="brand-sub">Sistema de Gestión</div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section-label">Operaciones</div>
+            <a href="/" class="nav-link @IsActive("/")">
+                <span class="material-icons">dashboard</span>
+                <span>Dashboard</span>
+            </a>
+            <a href="/centro-operativo" class="nav-link @IsActive("/centro-operativo")">
+                <span class="material-icons">agriculture</span>
+                <span>Centro Operativo</span>
+            </a>
+            <a href="/ledger" class="nav-link @IsActive("/ledger")">
+                <span class="material-icons">menu_book</span>
+                <span>Libro Mayor</span>
+            </a>
+            <a href="/balance" class="nav-link @IsActive("/balance")">
+                <span class="material-icons">analytics</span>
+                <span>Balance</span>
+            </a>
+
+            <div class="nav-section-label">Herramientas</div>
+            <a href="/maps" class="nav-link @IsActive("/maps")">
+                <span class="material-icons">map</span>
+                <span>Mapas y Catastro</span>
+            </a>
+            <a href="/sync" class="nav-link @IsActive("/sync")">
+                <span class="material-icons">sync</span>
+                <span>Sincronización ERP</span>
+            </a>
+
+            <div class="nav-section-label">Sistema</div>
+            <a href="/admin" class="nav-link @IsActive("/admin")">
+                <span class="material-icons">settings</span>
+                <span>Administración</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            @if (_profile != null)
+            {
+                <div class="flex items-center gap-sm" style="padding: 8px;">
+                    <div class="user-avatar">@(_profile.Name.Length > 0 ? _profile.Name[0].ToString() : "?")</div>
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-size:0.8rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">@_profile.Name</div>
+                        <div style="font-size:0.7rem; color:var(--text-muted);">@_profile.Role</div>
+                    </div>
+                    <button class="btn-icon" title="Cerrar sesión" @onclick="HandleLogout">
+                        <span class="material-icons">logout</span>
+                    </button>
+                </div>
+            }
+        </div>
+    </aside>
+
+    <!-- Main Area -->
+    <div class="main-area">
+        <!-- Top Bar -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <span class="topbar-title">@GetPageTitle()</span>
+            </div>
+            <div class="topbar-right">
+                @if (State.AvailableTenants != null && State.AvailableTenants.Count > 1)
+                {
+                    <select class="tenant-selector" @onchange="OnTenantChanged" value="@State.ActiveTenantId">
+                        @foreach (var t in State.AvailableTenants)
+                        {
+                            <option value="@t.Id">@t.Name</option>
+                        }
+                    </select>
+                }
+                else if (!string.IsNullOrEmpty(State.ActiveTenantName))
+                {
+                    <span class="badge badge-neutral">@State.ActiveTenantName</span>
+                }
+                <span style="font-size:0.75rem; color:var(--text-muted);">@DateTime.Now.ToString("dd MMM yyyy")</span>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <main class="main-content">
+            @Body
+        </main>
+    </div>
+</div>
+
+@code {
+    private UserProfile? _profile;
+    private Action? _stateChangedAction;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _stateChangedAction = () => InvokeAsync(StateHasChanged);
+        State.OnChange += _stateChangedAction;
+
+        try
+        {
+            _profile = await GrpcClient.GetMyProfileAsync(new Empty());
+        }
+        catch { }
+    }
+
+    private string IsActive(string href)
+    {
+        var uri = new Uri(Nav.Uri).AbsolutePath;
+        if (href == "/" && (uri == "/" || uri == "/eventos")) return "active";
+        if (href != "/" && uri.StartsWith(href)) return "active";
+        return "";
+    }
+
+    private string GetPageTitle()
+    {
+        var uri = new Uri(Nav.Uri).AbsolutePath;
+        return uri switch
+        {
+            "/" or "/eventos" => "Dashboard",
+            "/centro-operativo" => "Centro Operativo",
+            "/ledger" => "Libro Mayor",
+            "/balance" => "Balance de Existencias",
+            "/maps" => "Mapas y Catastro",
+            "/sync" => "Sincronización ERP",
+            "/admin" => "Administración",
+            "/login" => "Iniciar Sesión",
+            _ => "Gestor Ganadero"
+        };
+    }
+
+    private void OnTenantChanged(ChangeEventArgs e)
+    {
+        var tenantId = e.Value?.ToString();
+        if (!string.IsNullOrEmpty(tenantId))
+        {
+            State.ActiveTenantId = tenantId;
+            var tenant = State.AvailableTenants?.FirstOrDefault(t => t.Id == tenantId);
+            if (tenant != null) State.ActiveTenantName = tenant.Name;
+        }
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthService.LogoutAsync();
+        Nav.NavigateTo("/login", forceLoad: true);
+    }
+
+    public void Dispose()
+    {
+        if (_stateChangedAction != null)
+            State.OnChange -= _stateChangedAction;
+    }
+}

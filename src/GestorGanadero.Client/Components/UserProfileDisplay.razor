@@ -1,12 +1,8 @@
 @using GestorGanadero.Client.Services
-@using GestorGanadero.Services.Common.Contracts
 @using GestorGanadero.Services.Identity.Contracts
-@using GestorGanadero.Services.Catalog.Contracts
-@using GestorGanadero.Services.Operations.Contracts
-@using GestorGanadero.Services.Reporting.Contracts
-@using GestorGanadero.Services.Sync.Contracts
+@using Google.Protobuf.WellKnownTypes
 @inject IdentityService.IdentityServiceClient Client
-@inject AppState State
+@inject AppStateContainer State
 @implements IDisposable
 
 <div class="user-profile">
@@ -23,7 +19,7 @@
             }
             else
             {
-                <div class="avatar-placeholder">@_profile.Name[0]</div>
+                <div class="avatar-placeholder">@(_profile.Name.Length > 0 ? _profile.Name[0].ToString() : "?")</div>
             }
         </div>
     }
@@ -34,14 +30,14 @@
 </div>
 
 @code {
-    private GestorGanadero.Services.Identity.Contracts.UserProfile? _profile;
+    private UserProfile? _profile;
 
     protected override async Task OnInitializedAsync()
     {
         State.OnChange += StateHasChanged;
         try
         {
-            _profile = await Client.GetMyProfileAsync(new Google.Protobuf.WellKnownTypes.Empty());
+            _profile = await Client.GetMyProfileAsync(new Empty());
         }
         catch (Exception ex)
         {
@@ -54,4 +50,3 @@
         State.OnChange -= StateHasChanged;
     }
 }
-

@@ -1,179 +1,181 @@
 @page "/balance"
 @using GestorGanadero.Client.Services
 @using GestorGanadero.Services.Common.Contracts
-@using GestorGanadero.Services.Identity.Contracts
 @using GestorGanadero.Services.Catalog.Contracts
-@using GestorGanadero.Services.Operations.Contracts
+@using GestorGanadero.Client.Catalog
 @using GestorGanadero.Services.Reporting.Contracts
-@using GestorGanadero.Services.Sync.Contracts
 @using Google.Protobuf.WellKnownTypes
-@using Microsoft.AspNetCore.Components.Web
 @inject AppStateContainer State
 @inject ReportingService.ReportingServiceClient GrpcClient
+@inject CatalogClientService CatalogSvc
 @implements IDisposable
 
-<div class="module-header">
+<div class="page-header">
     <h1>Balance de Existencias</h1>
+    <span class="subtitle">Stock por campo y categoria</span>
 </div>
 
-<div class="filters-bar card">
-    <div class="filter-group">
-        <label>Desde</label>
-        <input type="date" @bind="StartDate" />
-    </div>
-    <div class="filter-group">
-        <label>Hasta</label>
-        <input type="date" @bind="EndDate" />
-    </div>
-    
-    <div class="filter-group">
-        <label>Campo</label>
-        <select @bind="selectedFieldId">
-            <option value="">Todos los campos</option>
-            @if (fields != null)
-            {
-                foreach (var f in fields)
+<div class="card mb-lg">
+    <div class="filters-bar">
+        <div class="filter-group">
+            <label>Desde</label>
+            <input type="date" @bind="_startDate" class="form-control" />
+        </div>
+        <div class="filter-group">
+            <label>Hasta</label>
+            <input type="date" @bind="_endDate" class="form-control" />
+        </div>
+        <div class="filter-group">
+            <label>Campo</label>
+            <select @bind="_fieldId" class="form-control">
+                <option value="">Todos los campos</option>
+                @if (_fields != null)
                 {
-                    <option value="@f.Id">@f.Name</option>
+                    @foreach (var f in _fields)
+                    {
+                        <option value="@f.Id">@f.Name</option>
+                    }
                 }
-            }
-        </select>
-    </div>
-
-    <div class="filter-group">
-        <label>Modalidad</label>
-        <select @bind="categoryView">
-            <option value="cliente">Vista Cliente</option>
-            <option value="gestor">Vista Gestor</option>
-        </select>
-    </div>
-
-    <div class="filter-actions">
-        <button class="btn-consultar" @onclick="FetchBalance" disabled="@isLoading">
-            @if (isLoading)
-            {
-                <span class="spinner"></span>
-            }
-            Consultar
-        </button>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Vista</label>
+            <select @bind="_view" class="form-control">
+                <option value="cliente">Cliente</option>
+                <option value="gestor">Gestor</option>
+            </select>
+        </div>
+        <div class="filter-group" style="justify-content:flex-end;">
+            <button class="btn btn-primary" @onclick="FetchBalance" disabled="@_loading">
+                @if (_loading) { <span class="spinner"></span> }
+                Consultar
+            </button>
+        </div>
     </div>
 </div>
 
-@if (isLoading)
+@if (_loading)
 {
-    <div class="loader-container">
-        <div class="spinner-large"></div>
-        <p>Cargando balance...</p>
-    </div>
+    <div class="loading-container"><div class="spinner spinner-lg"></div><span>Cargando balance...</span></div>
 }
-else if (balanceReport != null)
+else if (_report != null)
 {
-    @* Prompt 2.2 will implement the table here *@
-    <div class="mt-4">
-        <GestorGanadero.Client.Components.Balance.BalanceTreeTable Items="@balanceReport.Items.ToList()" />
+    <div class="kpi-grid mb-lg">
+        <div class="kpi-card">
+            <div class="kpi-label">Total Cabezas</div>
+            <div class="kpi-value">@_report.Items.Sum(i => i.HeadCount)</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Total KG</div>
+            <div class="kpi-value">@_report.Items.Sum(i => i.TotalWeight).ToString("N0")</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Campos</div>
+            <div class="kpi-value">@_report.Items.Select(i => i.FieldName).Distinct().Count()</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-label">Categorias</div>
+            <div class="kpi-value">@_report.Items.Select(i => i.CategoryName).Distinct().Count()</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3>Detalle por Campo y Categoria</h3>
+        </div>
+        @if (_report.Items.Count == 0)
+        {
+            <div class="empty-state">
+                <span class="material-icons">analytics</span>
+                <p>No hay datos para los filtros seleccionados.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Campo</th>
+                            <th>Categoria</th>
+                            <th>Actividad</th>
+                            <th class="text-end">Cabezas</th>
+                            <th class="text-end">Total KG</th>
+                            <th class="text-end">KG/Cab</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in _report.Items)
+                        {
+                            <tr>
+                                <td><strong>@item.FieldName</strong></td>
+                                <td>@item.CategoryName</td>
+                                <td><span class="badge badge-info">@item.ActivityName</span></td>
+                                <td class="text-end">@item.HeadCount</td>
+                                <td class="text-end">@item.TotalWeight.ToString("N1")</td>
+                                <td class="text-end">@((item.HeadCount > 0 ? item.TotalWeight / item.HeadCount : 0).ToString("N2"))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
     </div>
 }
 else
 {
     <div class="empty-state">
-        <p class="text-secondary">Seleccione los filtros y presione "Consultar" para ver los datos.</p>
+        <span class="material-icons">analytics</span>
+        <p>Selecciona los filtros y presiona "Consultar".</p>
     </div>
 }
 
-@* Styles moved to Balance.razor.css *@
-
 @code {
-    private List<FieldMessage>? fields;
-    private string selectedFieldId = "";
-    private string categoryView = "cliente";
-    private bool isLoading = false;
-    private BalanceReport? balanceReport;
+    private List<FieldMessage>? _fields;
+    private string _fieldId = "";
+    private string _view = "cliente";
+    private bool _loading;
+    private BalanceReport? _report;
 
-    private DateTime StartDate
-    {
-        get => State.ActiveDateRange?.Start ?? DateTime.Today.AddMonths(-1);
-        set 
-        {
-            if (State.ActiveDateRange == null) State.ActiveDateRange = new DateRange();
-            State.ActiveDateRange.Start = value;
-        }
-    }
-
-    private DateTime EndDate
-    {
-        get => State.ActiveDateRange?.End ?? DateTime.Today;
-        set 
-        {
-            if (State.ActiveDateRange == null) State.ActiveDateRange = new DateRange();
-            State.ActiveDateRange.End = value;
-        }
-    }
+    private DateTime _startDate = DateTime.Today.AddMonths(-1);
+    private DateTime _endDate = DateTime.Today;
 
     protected override async Task OnInitializedAsync()
     {
         State.OnChange += StateHasChanged;
-        
-        if (State.ActiveDateRange == null)
-        {
-            State.ActiveDateRange = new DateRange 
-            { 
-                Start = DateTime.Today.AddMonths(-1), 
-                End = DateTime.Today 
-            };
-        }
-
         await LoadFields();
     }
 
     private async Task LoadFields()
     {
+        if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
         try
         {
-            if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
-
-            var response = await CatalogClient.GetFieldsAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
-            fields = response.Fields.ToList();
+            var r = await CatalogSvc.GetFieldsAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
+            _fields = r.Data?.Fields.ToList() ?? new();
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading fields: {ex.Message}");
-        }
+        catch { }
     }
 
     private async Task FetchBalance()
     {
         if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
-
-        isLoading = true;
-        balanceReport = null;
+        _loading = true;
+        _report = null;
         StateHasChanged();
-
         try
         {
-            var request = new GetBalanceRequest
+            _report = await GrpcClient.GetBalanceAsync(new GetBalanceRequest
             {
                 TenantId = State.ActiveTenantId,
-                Date = Timestamp.FromDateTime(EndDate.ToUniversalTime()),
-                FieldId = selectedFieldId,
-                CategoryView = categoryView
-            };
-
-            balanceReport = await GrpcClient.GetBalanceAsync(request);
+                Date = Timestamp.FromDateTime(_endDate.ToUniversalTime()),
+                FieldId = _fieldId,
+                CategoryView = _view
+            });
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error fetching balance: {ex.Message}");
-        }
-        finally
-        {
-            isLoading = false;
-            StateHasChanged();
-        }
+        catch (Exception ex) { Console.WriteLine(ex.Message); }
+        finally { _loading = false; StateHasChanged(); }
     }
 
-    public void Dispose()
-    {
-        State.OnChange -= StateHasChanged;
-    }
+    public void Dispose() => State.OnChange -= StateHasChanged;
 }
-

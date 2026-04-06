@@ -1,248 +1,129 @@
 @using GestorGanadero.Services.Common.Contracts
-@using GestorGanadero.Services.Identity.Contracts
 @using GestorGanadero.Services.Catalog.Contracts
-@using GestorGanadero.Services.Operations.Contracts
-@using GestorGanadero.Services.Reporting.Contracts
-@using GestorGanadero.Services.Sync.Contracts
 @using GestorGanadero.Client.Services
 @inject AppStateContainer State
 @inject CatalogService.CatalogServiceClient GrpcClient
 @inject IJSRuntime JS
 
 <div class="split-view">
-    <!-- Listado Maestro (Izquierda) -->
-    <div class="master-list">
-        <div class="list-header">
-            <h3>Campos</h3>
-            <button class="btn-icon-add" @onclick="NewField">
-                <span class="material-icons">add</span>
+    <div class="master-panel">
+        <div style="padding:16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border);">
+            <h3 style="font-size:1rem; font-weight:600;">Campos</h3>
+            <button class="btn btn-primary btn-sm" @onclick="NewField">
+                <span class="material-icons" style="font-size:16px;">add</span> Nuevo
             </button>
         </div>
-        
-        <div class="list-items">
-            @if (fields == null)
+        <div style="flex:1; overflow-y:auto;">
+            @if (_fields == null)
             {
-                <div class="spinner-sm"></div>
-            }
-            else if (!fields.Any())
-            {
-                <p class="empty-msg">No hay campos registrados.</p>
+                <div class="loading-container"><div class="spinner"></div></div>
             }
             else
             {
-                @foreach (var field in fields)
+                @foreach (var f in _fields)
                 {
-                    <div class="list-row @(selectedField?.Id == field.Id ? "selected" : "")" 
-                         @onclick="() => SelectField(field)">
-                        <div class="row-info">
-                            <span class="name">@field.Name</span>
-                            <span class="status-dot @(field.IsActive ? "active" : "inactive")"></span>
+                    <div class="master-item @(_selected?.Id == f.Id ? "selected" : "")" @onclick="() => Select(f)">
+                        <div>
+                            <div style="font-size:0.875rem; font-weight:500;">@f.Name</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted);">@f.Description</div>
                         </div>
-                        <span class="material-icons">chevron_right</span>
+                        <span class="badge @(f.IsActive ? "badge-success" : "badge-neutral")">@(f.IsActive ? "Activo" : "Inactivo")</span>
                     </div>
                 }
             }
         </div>
     </div>
 
-    <!-- Formulario Detalle (Derecha) -->
-    <div class="detail-form">
-        @if (selectedField == null)
+    <div class="detail-panel">
+        @if (_selected == null)
         {
             <div class="empty-state">
                 <span class="material-icons">terrain</span>
-                <p>Seleccione un campo o cree uno nuevo para editar.</p>
+                <p>Selecciona un campo o crea uno nuevo.</p>
             </div>
         }
         else
         {
-            <div class="form-scroll">
-                <h4>@(string.IsNullOrEmpty(selectedField.Id) ? "Nuevo Campo" : "Editar Campo")</h4>
-                
-                <div class="form-group">
-                    <label>Nombre del Campo</label>
-                    <input type="text" @bind="selectedField.Name" placeholder="Ej: La Estancia" />
-                </div>
+            <h3 style="margin-bottom:24px;">@(string.IsNullOrEmpty(_selected.Id) ? "Nuevo Campo" : "Editar Campo")</h3>
+            <div class="form-group">
+                <label>Nombre</label>
+                <input type="text" @bind="_selected.Name" class="form-control" placeholder="Ej: La Estancia" />
+            </div>
+            <div class="form-group">
+                <label>Descripción</label>
+                <textarea @bind="_selected.Description" class="form-control" rows="3" placeholder="Ubicación, descripción..."></textarea>
+            </div>
+            <div class="checkbox-group" style="margin-bottom:24px;">
+                <input type="checkbox" @bind="_selected.IsActive" id="fieldActive" />
+                <label for="fieldActive">Activo</label>
+            </div>
 
-                <div class="form-group">
-                    <label>Descripción / Ubicación</label>
-                    <textarea @bind="selectedField.Description" rows="3"></textarea>
-                </div>
+            @if (!string.IsNullOrEmpty(_msg))
+            {
+                <div class="alert @(_ok ? "alert-success" : "alert-danger") mb-md" style="margin-bottom:16px;">@_msg</div>
+            }
 
-                <div class="form-group row-toggle">
-                    <label>Estado Activo</label>
-                    <input type="checkbox" @bind="selectedField.IsActive" class="toggle-input" />
-                </div>
-
-                <div class="form-actions">
-                    @if (!string.IsNullOrEmpty(selectedField.Id))
-                    {
-                        <button class="btn-danger-outline" @onclick="DeleteField">Eliminar</button>
-                    }
-                    <div class="spacer"></div>
-                    <button class="btn-primary" @onclick="SaveField" disabled="@isSaving">
-                        @if (isSaving) { <span class="spinner-inline"></span> }
-                        Guardar
-                    </button>
-                </div>
-
-                @if (!string.IsNullOrEmpty(message))
+            <div class="flex gap-sm">
+                @if (!string.IsNullOrEmpty(_selected.Id))
                 {
-                    <p class="form-message @(success ? "success" : "error")">@message</p>
+                    <button class="btn btn-danger-outline" @onclick="DeleteField">Eliminar</button>
                 }
+                <div style="flex:1;"></div>
+                <button class="btn btn-primary" @onclick="SaveField" disabled="@_saving">
+                    @if (_saving) { <span class="spinner"></span> }
+                    Guardar
+                </button>
             </div>
         }
     </div>
 </div>
 
-<style>
-    .split-view { display: flex; height: 100%; }
-    .master-list { width: 320px; border-right: 1px solid var(--border); display: flex; flex-direction: column; }
-    .detail-form { flex: 1; background: var(--surface); padding: 24px; }
-    
-    .list-header { padding: 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
-    .list-items { flex: 1; overflow-y: auto; }
-    
-    .list-row { padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s; }
-    .list-row:hover { background: var(--surface-2); }
-    .list-row.selected { background: rgba(230, 0, 0, 0.05); border-left: 3px solid var(--accent); }
-    
-    .row-info { display: flex; align-items: center; gap: 12px; }
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; }
-    .status-dot.active { background: #00ff00; box-shadow: 0 0 5px #00ff00; }
-    .status-dot.inactive { background: #666; }
-
-    .form-group { margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; }
-    .form-group label { font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; }
-    .form-group input, .form-group textarea { background: var(--surface-2); border: 1px solid var(--border); color: var(--text-primary); padding: 10px; border-radius: 6px; }
-    
-    .row-toggle { flex-direction: row; align-items: center; justify-content: space-between; }
-    .form-actions { margin-top: 32px; display: flex; gap: 12px; }
-    .spacer { flex: 1; }
-    
-    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-secondary); opacity: 0.5; }
-    .empty-state .material-icons { font-size: 64px; margin-bottom: 16px; }
-
-    .btn-icon-add { background: var(--accent); color: white; border: none; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-    .btn-danger-outline { background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 8px 16px; border-radius: 6px; }
-    
-    .form-message { margin-top: 16px; font-size: 0.85rem; font-weight: 600; }
-    .form-message.success { color: #00ff00; }
-    .form-message.error { color: var(--accent); }
-
-    .spinner-inline { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; margin-right: 8px; }
-    @@keyframes spin { to { transform: rotate(360deg); } }
-</style>
-
 @code {
-    private List<FieldMessage>? fields;
-    private FieldMessage? selectedField;
-    private bool isSaving = false;
-    private string message = "";
-    private bool success = false;
+    private List<FieldMessage>? _fields;
+    private FieldMessage? _selected;
+    private bool _saving;
+    private string _msg = "";
+    private bool _ok;
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadFields();
-    }
+    protected override async Task OnInitializedAsync() => await Load();
 
-    private async Task LoadFields()
+    private async Task Load()
     {
+        if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
         try
         {
-            var response = await GrpcClient.GetFieldsAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
-            fields = response.Fields.ToList();
+            var r = await GrpcClient.GetFieldsAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
+            _fields = r.Fields.ToList();
         }
-        catch (Exception ex) { Console.WriteLine(ex.Message); }
+        catch { }
     }
 
-    private void NewField()
-    {
-        selectedField = new FieldMessage { IsActive = true, TenantId = State.ActiveTenantId };
-        message = "";
-    }
-
-    private void SelectField(FieldMessage field)
-    {
-        // Clonamos para no editar directamente en la lista antes de guardar
-        selectedField = new FieldMessage
-        {
-            Id = field.Id,
-            Name = field.Name,
-            Description = field.Description,
-            IsActive = field.IsActive,
-            TenantId = field.TenantId
-        };
-        message = "";
-    }
+    private void NewField() { _selected = new FieldMessage { IsActive = true, TenantId = State.ActiveTenantId }; _msg = ""; }
+    private void Select(FieldMessage f) { _selected = new FieldMessage { Id = f.Id, Name = f.Name, Description = f.Description, IsActive = f.IsActive, TenantId = f.TenantId }; _msg = ""; }
 
     private async Task SaveField()
     {
-        if (selectedField == null || string.IsNullOrWhiteSpace(selectedField.Name)) return;
-
-        isSaving = true;
-        message = "";
-        StateHasChanged();
-
+        if (_selected == null || string.IsNullOrWhiteSpace(_selected.Name)) return;
+        _saving = true; _msg = ""; StateHasChanged();
         try
         {
-            ActionResponse response;
-            if (string.IsNullOrEmpty(selectedField.Id))
-                response = await GrpcClient.CreateFieldAsync(selectedField);
-            else
-                response = await GrpcClient.UpdateFieldAsync(selectedField);
-
-            if (response.Success)
-            {
-                success = true;
-                message = "Guardado con éxito.";
-                await LoadFields();
-                selectedField = fields?.FirstOrDefault(f => f.Id == (string.IsNullOrEmpty(selectedField.Id) ? response.ObjectId : selectedField.Id));
-            }
-            else
-            {
-                success = false;
-                message = response.Message;
-            }
+            var r = string.IsNullOrEmpty(_selected.Id) ? await GrpcClient.CreateFieldAsync(_selected) : await GrpcClient.UpdateFieldAsync(_selected);
+            if (r.Success) { _ok = true; _msg = "Guardado correctamente."; await Load(); }
+            else { _ok = false; _msg = r.Message; }
         }
-        catch (Exception ex)
-        {
-            success = false;
-            message = $"Error: {ex.Message}";
-        }
-        finally
-        {
-            isSaving = false;
-            StateHasChanged();
-        }
+        catch (Exception ex) { _ok = false; _msg = $"Error: {ex.Message}"; }
+        finally { _saving = false; StateHasChanged(); }
     }
 
     private async Task DeleteField()
     {
-        if (selectedField == null || string.IsNullOrEmpty(selectedField.Id)) return;
-
-        var confirmed = await JS.InvokeAsync<bool>("confirm", $"¿Está seguro de eliminar el campo '{selectedField.Name}'?");
-        if (!confirmed) return;
-
+        if (_selected == null || string.IsNullOrEmpty(_selected.Id)) return;
+        if (!await JS.InvokeAsync<bool>("confirm", $"Eliminar campo '{_selected.Name}'?")) return;
         try
         {
-            var response = await GrpcClient.DeleteFieldAsync(new DeleteEntityRequest { Id = selectedField.Id, TenantId = State.ActiveTenantId });
-            if (response.Success)
-            {
-                selectedField = null;
-                await LoadFields();
-            }
-            else
-            {
-                success = false;
-                message = response.Message;
-            }
+            var r = await GrpcClient.DeleteFieldAsync(new DeleteEntityRequest { Id = _selected.Id, TenantId = State.ActiveTenantId });
+            if (r.Success) { _selected = null; await Load(); }
         }
-        catch (Exception ex)
-        {
-            success = false;
-            message = $"Error: {ex.Message}";
-        }
+        catch (Exception ex) { _ok = false; _msg = $"Error: {ex.Message}"; }
     }
 }
-

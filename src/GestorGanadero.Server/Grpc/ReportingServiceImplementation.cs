@@ -41,6 +41,32 @@ public class ReportingServiceImplementation : ReportingService.ReportingServiceB
 
     public override async Task GetLedger(LedgerFilter request, IServerStreamWriter<LedgerEntry> responseStream, ServerCallContext context)
     {
-        await responseStream.WriteAsync(new LedgerEntry { Id = Guid.NewGuid().ToString(), Description = "Mock Ledger Entry", Amount = 100 });
+        var tenantId = string.IsNullOrEmpty(request.TenantId) ? Guid.Empty : Guid.Parse(request.TenantId);
+        var entries = await _reportService.GetLedgerAsync(
+            request.StartDate?.ToDateTime(),
+            request.EndDate?.ToDateTime(),
+            request.PageIndex,
+            request.PageSize,
+            request.SearchTerm,
+            tenantId);
+
+        foreach (var entry in entries)
+        {
+            if (context.CancellationToken.IsCancellationRequested)
+                break;
+
+            await responseStream.WriteAsync(new LedgerEntry
+            {
+                Id = entry.Id.ToString(),
+                Date = Timestamp.FromDateTime(entry.Date),
+                Description = entry.Description,
+                Amount = (double)entry.Amount,
+                AccountCode = entry.AccountCode,
+                Status = entry.Status,
+                EntryType = entry.EntryType,
+                HeadCount = entry.HeadCount,
+                WeightKg = entry.WeightKg.ToString()
+            });
+        }
     }
 }

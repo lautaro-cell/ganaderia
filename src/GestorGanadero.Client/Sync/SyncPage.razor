@@ -1,0 +1,105 @@
+@page "/sync"
+@using GestorGanadero.Client.Services
+@using GestorGanadero.Services.Sync.Contracts
+@inject SyncClientService SyncSvc
+@inject AppStateContainer State
+
+<div class="page-header">
+    <h1>Sincronización ERP</h1>
+    <span class="subtitle">Gestiona la sincronización de datos con tu sistema ERP</span>
+</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:var(--space-lg);">
+    <!-- Pending -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Pendientes</h3>
+            <span class="badge badge-warning">@_entries.Count</span>
+        </div>
+
+        @if (!_entries.Any())
+        {
+            <div class="alert alert-success">
+                <span class="material-icons" style="font-size:18px;">check_circle</span>
+                No hay registros pendientes.
+            </div>
+        }
+        else
+        {
+            <div style="max-height:400px; overflow-y:auto;">
+                @foreach (var e in _entries)
+                {
+                    <div style="display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border);">
+                        <input type="checkbox" checked="@_selectedIds.Contains(e.Id)" @onchange="ev => Toggle(e.Id, ev.Value)" />
+                        <div style="flex:1; min-width:0;">
+                            <div style="font-size:0.85rem; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">@e.Description</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted);">@e.Date.ToDateTime().ToString("dd/MM/yyyy")</div>
+                        </div>
+                        <div style="font-size:0.85rem; font-weight:600;">@e.Amount.ToString("C2")</div>
+                    </div>
+                }
+            </div>
+        }
+
+        <div style="display:flex; justify-content:flex-end; margin-top:16px;">
+            <button class="btn btn-primary" @onclick="SyncSelected" disabled="@(!_selectedIds.Any() || _syncing)">
+                @if (_syncing) { <span class="spinner"></span> }
+                Sincronizar seleccionados (@_selectedIds.Count)
+            </button>
+        </div>
+    </div>
+
+    <!-- Log -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Log de Sincronización</h3>
+        </div>
+        <textarea readonly style="width:100%; height:400px; background:var(--bg-primary); color:var(--success); font-family:var(--font-mono); font-size:0.8rem; border:1px solid var(--border); border-radius:var(--radius-md); padding:16px; resize:none;">@_log</textarea>
+    </div>
+</div>
+
+@code {
+    private List<SyncEntry> _entries = new();
+    private HashSet<string> _selectedIds = new();
+    private string _log = "";
+    private bool _syncing;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
+        try
+        {
+            var r = await SyncSvc.GetPendingAsync(new PendingSyncFilter { TenantId = State.ActiveTenantId });
+            _entries = r.Data?.Entries.ToList() ?? new();
+        }
+        catch { }
+    }
+
+    private void Toggle(string id, object? val)
+    {
+        if (val is bool b && b) _selectedIds.Add(id);
+        else _selectedIds.Remove(id);
+    }
+
+    private async Task SyncSelected()
+    {
+        if (!_selectedIds.Any()) return;
+        _syncing = true;
+        try
+        {
+            var req = new SyncRequest();
+            req.EntryIds.AddRange(_selectedIds);
+            var r = await SyncSvc.SyncToERPAsync(req);
+            if (r.Success && r.Data != null)
+            {
+                _log += $"[{DateTime.Now:HH:mm:ss}] Sincronizados {r.Data.Count}. {r.Data.Log}\n";
+                _selectedIds.Clear();
+            }
+        }
+        catch (Exception ex)
+        {
+            _log += $"[{DateTime.Now:HH:mm:ss}] ERROR: {ex.Message}\n";
+        }
+        finally { _syncing = false; }
+    }
+}

@@ -4,6 +4,7 @@ using GestorGanadero.Server.Application.Interfaces;
 using GestorGanadero.Server.Domain.Entities;
 using GestorGanadero.Server.Domain.Enums;
 using GestorGanadero.Server.Infrastructure.Persistence;
+using BCrypt.Net;
 
 namespace GestorGanadero.Server.Application.Services;
 
@@ -48,9 +49,14 @@ public class UserService : IUserService
     {
         var role = Enum.TryParse<UserRole>(request.RoleName, true, out var r) ? r : UserRole.Guest;
         
+        // TODO: Enviar correo de invitación para que el usuario establezca su contraseña
+        var defaultPassword = "password123"; // Contraseña temporal, el usuario deberá cambiarla.
+        var hashedPassword = BCrypt.Net.BCrypt.HashPassword(defaultPassword);
+
         var user = new User
         {
             Email = request.Email,
+            PasswordHash = hashedPassword,
             TenantId = request.TenantId,
             Role = role
         };
@@ -67,7 +73,8 @@ public class UserService : IUserService
         
         user.Email = dto.Email;
         user.Role = dto.Role;
-        
+        // TODO: Manejar actualización de contraseña si es necesario
+
         await _context.SaveChangesAsync();
     }
 

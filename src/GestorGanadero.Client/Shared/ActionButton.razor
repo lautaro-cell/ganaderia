@@ -1,0 +1,17 @@
+@using Microsoft.AspNetCore.Components
+
+<button class="action-button" disabled="@IsLoading" style="position:relative; padding:8px 12px; border-radius:6px; border:none; background:@(IsLoading ? "#555" : "#C0392B"); color:#fff;">
+  @if (IsLoading)
+  {
+    <span class="spinner" style="width:14px; height:14px; border:2px solid #fff; border-top-color: transparent; border-radius:50%; display:inline-block; margin-right:6px; animation: spin 1s linear infinite;"></span>
+  }
+  @Text
+</button>
+
+@code {
+  [Parameter] public string Text { get; set; } = "Acción";
+  [Parameter] public bool IsLoading { get; set; }
+  [Parameter] public bool IsSuccess { get; set; }
+  [Parameter] public bool IsError { get; set; }
+  [Parameter] public EventCallback OnClick { get; set; }
+}

@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using GestorGanadero.Server.Application.Interfaces;
 using GestorGanadero.Server.Application.Services;
 using GestorGanadero.Server.Infrastructure.Persistence;
@@ -8,13 +10,11 @@ using GestorGanadero.Server.Grpc;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.WebHost.ConfigureKestrel(options =>
-{
-    // Permitir HTTP/1 y HTTP/2 en el puerto 5073 para navegación y gRPC
-    options.ListenLocalhost(5073, o => o.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2);
-    // Puerto HTTPS normal
-    options.ListenLocalhost(7240, o => o.UseHttps());
-});
+// Kestrel usa configuración por defecto (http://localhost:5000 / https://localhost:5001)
+// builder.WebHost.ConfigureKestrel(options =>
+// {
+//     options.ListenLocalhost(5073, o => o.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2);
+// });
 
 builder.Services.AddCors(options => {
     options.AddPolicy("BlazorPolicy", policy => {
@@ -25,25 +25,39 @@ builder.Services.AddCors(options => {
     });
 });
 
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false;
+    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+    {
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
+            System.Text.Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "GestorGanaderoSecretKey2024!MustBeLongEnough"))
+    };
+});
+
+builder.Services.AddAuthorization();
+
 builder.Services.AddDbContext<GestorGanaderoDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddHttpContextAccessor();
-
 builder.Services.AddScoped<ITenantProvider, HttpContextTenantProvider>();
-
 builder.Services.AddScoped<ITranslationService, TranslationService>();
 builder.Services.AddScoped<ILivestockEventService, LivestockEventService>();
 builder.Services.AddScoped<ICatalogService, CatalogService>();
 builder.Services.AddScoped<ILoteService, LoteService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IReportService, ReportService>();
-
-// 4.1. Registrar servicios de sincronización
 builder.Services.AddScoped<ISyncCatalogService, SyncCatalogService>();
 builder.Services.AddHttpClient<IERPProvider, GestorMaxProvider>();
-
-// 4.2. Motor de reglas contables (Domain Service)
 builder.Services.AddTransient<GestorGanadero.Server.Domain.Services.AccountingEntryGenerator>();
 
 builder.Services.AddControllersWithViews();
@@ -51,7 +65,6 @@ builder.Services.AddRazorPages();
 builder.Services.AddGrpc();
 builder.Services.AddGrpcReflection();
 builder.Services.AddAntiforgery();
-
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
@@ -62,33 +75,29 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
     app.MapGrpcReflectionService();
 }
-
-if (!app.Environment.IsDevelopment())
+else
 {
-    app.UseHttpsRedirection();
+    // app.UseHttpsRedirection(); // Deshabilitado: se usa HTTP para desarrollo
 }
 
 app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
-
 app.UseRouting();
 app.UseAntiforgery();
-
 app.UseCors("BlazorPolicy");
 app.UseGrpcWeb();
-
+app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
-app.MapGrpcService<GestorGanadero.Server.Grpc.IdentityServiceImplementation>().EnableGrpcWeb().RequireCors("BlazorPolicy");
-app.MapGrpcService<GestorGanadero.Server.Grpc.CatalogServiceImplementation>().EnableGrpcWeb().RequireCors("BlazorPolicy");
-app.MapGrpcService<GestorGanadero.Server.Grpc.OperationsServiceImplementation>().EnableGrpcWeb().RequireCors("BlazorPolicy");
-app.MapGrpcService<GestorGanadero.Server.Grpc.ReportingServiceImplementation>().EnableGrpcWeb().RequireCors("BlazorPolicy");
-app.MapGrpcService<GestorGanadero.Server.Grpc.SyncServiceImplementation>().EnableGrpcWeb().RequireCors("BlazorPolicy");
+app.MapGrpcService<IdentityServiceImplementation>().RequireAuthorization().EnableGrpcWeb();
+app.MapGrpcService<CatalogServiceImplementation>().RequireAuthorization().EnableGrpcWeb();
+app.MapGrpcService<OperationsServiceImplementation>().RequireAuthorization().EnableGrpcWeb();
+app.MapGrpcService<ReportingServiceImplementation>().RequireAuthorization().EnableGrpcWeb();
+app.MapGrpcService<SyncServiceImplementation>().RequireAuthorization().EnableGrpcWeb();
 
+app.MapGet("/health", () => new { status = "ok" });
 app.MapFallbackToFile("index.html");
 
 await app.Services.SeedAsync();
-
 app.Run();

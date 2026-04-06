@@ -6,6 +6,7 @@ public interface ILivestockEventService
 {
     Task<Guid> CreateEventAsync(CreateLivestockEventRequest request);
     Task<IEnumerable<LivestockEventResponse>> GetPendingEventsAsync();
+    Task<IEnumerable<EventTemplateDto>> GetEventTemplatesAsync(Guid tenantId);
     
     // Previous methods from earlier requirements (MVP)
     Task<string> CommitToErpAsync(IEnumerable<Guid> livestockEventIds);

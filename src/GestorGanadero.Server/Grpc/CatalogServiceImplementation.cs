@@ -33,13 +33,13 @@ public class CatalogServiceImplementation : CatalogService.CatalogServiceBase
 
     public override async Task<ActionResponse> CreateField(FieldMessage request, ServerCallContext context)
     {
-        var id = await _catalogService.CreateFieldAsync(new FieldDto(Guid.Empty, request.Name, request.Description, request.IsActive, Guid.Empty));
+        var id = await _catalogService.CreateFieldAsync(new FieldDto(Guid.Empty, request.Name, request.Description, request.IsActive, Guid.TryParse(request.TenantId, out var ftid) ? ftid : Guid.Empty));
         return new ActionResponse { Success = true, ObjectId = id.ToString() };
     }
 
     public override async Task<ActionResponse> UpdateField(FieldMessage request, ServerCallContext context)
     {
-        await _catalogService.UpdateFieldAsync(new FieldDto(Guid.Parse(request.Id), request.Name, request.Description, request.IsActive, Guid.Empty));
+        await _catalogService.UpdateFieldAsync(new FieldDto(Guid.Parse(request.Id), request.Name, request.Description, request.IsActive, Guid.TryParse(request.TenantId, out var utid) ? utid : Guid.Empty));
         return new ActionResponse { Success = true, Message = "Campo actualizado." };
     }
 
@@ -59,13 +59,15 @@ public class CatalogServiceImplementation : CatalogService.CatalogServiceBase
 
     public override async Task<ActionResponse> CreateActivity(ActivityMessage request, ServerCallContext context)
     {
-        var id = await _catalogService.CreateActivityAsync(new ActivityDto(Guid.Empty, request.Name, request.IsGlobal, Guid.Empty));
+        var tid = string.IsNullOrEmpty(request.TenantId) ? (Guid?)null : Guid.Parse(request.TenantId);
+        var id = await _catalogService.CreateActivityAsync(new ActivityDto(Guid.Empty, request.Name, request.IsGlobal, tid));
         return new ActionResponse { Success = true, ObjectId = id.ToString() };
     }
 
     public override async Task<ActionResponse> UpdateActivity(ActivityMessage request, ServerCallContext context)
     {
-        await _catalogService.UpdateActivityAsync(new ActivityDto(Guid.Parse(request.Id), request.Name, request.IsGlobal, Guid.Empty));
+        var tid = string.IsNullOrEmpty(request.TenantId) ? (Guid?)null : Guid.Parse(request.TenantId);
+        await _catalogService.UpdateActivityAsync(new ActivityDto(Guid.Parse(request.Id), request.Name, request.IsGlobal, tid));
         return new ActionResponse { Success = true, Message = "Actividad actualizada." };
     }
 
@@ -90,17 +92,19 @@ public class CatalogServiceImplementation : CatalogService.CatalogServiceBase
 
     public override async Task<ActionResponse> CreateAnimalCategory(AnimalCategoryMessage request, ServerCallContext context)
     {
+        var tid = string.IsNullOrEmpty(request.TenantId) ? (Guid?)null : Guid.Parse(request.TenantId);
         var id = await _catalogService.CreateCategoryAsync(new AnimalCategoryDto(
             Guid.Empty, request.Name, Guid.Parse(request.ActivityId), decimal.Parse(request.StandardWeightKg), 
-            request.CategoryType, request.ExternalId, request.IsActive, null));
+            request.CategoryType, request.ExternalId, request.IsActive, tid));
         return new ActionResponse { Success = true, ObjectId = id.ToString() };
     }
 
     public override async Task<ActionResponse> UpdateAnimalCategory(AnimalCategoryMessage request, ServerCallContext context)
     {
+        var tid = string.IsNullOrEmpty(request.TenantId) ? (Guid?)null : Guid.Parse(request.TenantId);
         await _catalogService.UpdateCategoryAsync(new AnimalCategoryDto(
             Guid.Parse(request.Id), request.Name, Guid.Parse(request.ActivityId), decimal.Parse(request.StandardWeightKg), 
-            request.CategoryType, request.ExternalId, request.IsActive, null));
+            request.CategoryType, request.ExternalId, request.IsActive, tid));
         return new ActionResponse { Success = true, Message = "Categoría actualizada." };
     }
 

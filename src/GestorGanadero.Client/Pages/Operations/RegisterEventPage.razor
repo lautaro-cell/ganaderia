@@ -1,0 +1,68 @@
+@page "/operaciones/nuevo"
+@using GestorGanadero.Client.Operations
+@using GestorGanadero.Client.Shared
+@using GestorGanadero.Services.Operations.Contracts
+@using Google.Protobuf.WellKnownTypes
+@using System.Linq
+@inject OperationsClientService OperationsClientService
+@inject TenantState TenantState
+@inject Microsoft.AspNetCore.Components.NavigationManager Nav
+
+<PageHeader Title="Registrar Evento" />
+
+@if (IsLoading) { <p>Cargando plantillas...</p> }
+else if (HasError) { <p style="color:red">Error al registrar.</p> }
+else
+{
+    <div class="wizard" style="padding:16px; display:flex; flex-direction:column; gap:16px;">
+        @if (SelectedTemplate == null)
+        {
+            <div class="templates" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap:12px;">
+              @foreach (var t in Templates)
+              {
+                <div class="card" style="background:@t.ColorCode; padding:12px; border-radius:8px; cursor:pointer;" @onclick="() => SelectedTemplate = t">
+                  <div style="font-size:1.2em; font-weight:600; color:white;">@t.Name</div>
+                </div>
+              }
+            </div>
+        }
+        else
+        {
+            <div>
+                <h3>@SelectedTemplate.Name</h3>
+                <input type="date" @bind="OccurredOnDate" style="width:100%; padding:6px; margin-bottom:8px;" />
+                <input @bind="Req.FieldId" placeholder="ID Campo" style="width:100%; padding:6px; margin-bottom:8px;" />
+                <input @bind="Req.AnimalId" placeholder="ID Animal" style="width:100%; padding:6px; margin-bottom:8px;" />
+                <input @bind="Req.HeadCount" type="number" placeholder="Cabezas" style="width:100%; padding:6px; margin-bottom:8px;" />
+                <input @bind="Req.Observations" placeholder="Observaciones" style="width:100%; padding:6px; margin-bottom:8px;" />
+                <button class="btn" style="background:#C0392B; color:#fff; border:none; padding:8px 12px; border-radius:6px;" @onclick="Register">Registrar Evento</button>
+            </div>
+        }
+    </div>
+}
+
+@code {
+  private bool IsLoading = true;
+  private bool HasError = false;
+  private List<EventTemplate> Templates = new();
+  private EventTemplate? SelectedTemplate;
+  private DateTime OccurredOnDate = DateTime.Today;
+  private RegisterEventRequest Req = new RegisterEventRequest();
+
+  protected override async Task OnInitializedAsync()
+  {
+      var r = await OperationsClientService.GetTemplatesAsync(new GetTemplatesRequest { TenantId = TenantState.ActiveTenantId });
+      if (r.Success && r.Data != null) Templates = r.Data.Templates.ToList();
+      IsLoading = false;
+  }
+
+  private async Task Register()
+  {
+      Req.TemplateId = SelectedTemplate?.Id ?? string.Empty;
+      Req.OccurredOn = Timestamp.FromDateTime(OccurredOnDate.ToUniversalTime());
+      
+      var res = await OperationsClientService.RegisterEventAsync(Req);
+      if (res.Success) Nav.NavigateTo("/operaciones");
+      else HasError = true;
+  }
+}

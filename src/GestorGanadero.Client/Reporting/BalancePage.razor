@@ -1,0 +1,58 @@
+@page "/reportes/balance"
+@using GestorGanadero.Client.Shared
+@using GestorGanadero.Client.Reporting
+@using GestorGanadero.Services.Reporting.Contracts
+@using Google.Protobuf.WellKnownTypes
+@using System.Linq
+@inject ReportingClientService ReportingClientService
+
+<PageHeader Title="Balance" />
+
+<div class="filters" style="display:flex; gap:8px; align-items:center; background:#111; padding:12px; border-radius:8px; margin:8px 0;">
+  <input type="date" @bind="ReportDate" />
+  <button class="btn" style="background:#C0392B; color:#fff; border:none; padding:6px 12px; border-radius:6px;" @onclick="LoadBalance">Filtrar</button>
+</div>
+
+@if (Report == null || Report.Items.Count == 0)
+{
+  <div>No hay datos. Aplique filtro para cargar el balance.</div>
+}
+else
+{
+  foreach (var grp in Report.Items.GroupBy(b => b.FieldName))
+  {
+    <div class="group-header" style="background: #1e1e1e; border-left: 4px solid #e74c3c; padding: 8px; margin-top: 8px;">
+      <strong>@grp.Key</strong>
+    </div>
+    <table class="table" style="width:100%; border-collapse: collapse;">
+      <thead><tr><th>Actividad</th><th>Categoría</th><th>Cabezas</th><th>Total Peso</th></tr></thead>
+      <tbody>
+        @foreach (var item in grp)
+        {
+          <tr>
+            <td>@item.ActivityName</td>
+            <td>@item.CategoryName</td>
+            <td>@item.HeadCount</td>
+            <td>@item.TotalWeight</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+}
+
+@code {
+  private System.DateTime ReportDate = System.DateTime.UtcNow;
+  private BalanceReport? Report;
+
+  private async Task LoadBalance()
+  {
+    var req = new GetBalanceRequest { 
+        TenantId = "TenantA", // TODO get from tenant context
+        Date = Timestamp.FromDateTime(ReportDate.ToUniversalTime()), 
+        CategoryView = "cliente" 
+    };
+    var r = await ReportingClientService.GetBalanceAsync(req);
+    if (r.Success) Report = r.Data;
+  }
+}

@@ -1,0 +1,56 @@
+@using GestorGanadero.Client.Catalog
+@using System.Collections.Generic
+@using System.Linq
+@inject CatalogClientService Catalog
+
+<div>
+  <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+    <h3 style="margin:0;">Lotes</h3>
+    <select @bind="SelectedFieldId" style="background:#111; color:#fff; padding:6px; border-radius:6px; border:1px solid #333;">
+      @foreach (var f in Fields)
+      {
+        <option value="@f.Id">@f.Name</option>
+      }
+    </select>
+  </div>
+  <table class="table" style="width:100%; border-collapse: collapse;">
+    <thead><tr><th>Nombre</th><th>Campo</th><th>Actividades</th><th>Tiene Geometría</th></tr></thead>
+    <tbody>
+      @foreach (var l in Lotes)
+      {
+        <tr>
+          <td>@l.Name</td>
+          <td>@l.FieldName</td>
+          <td>
+            @foreach (var aid in l.ActivityIds)
+            {
+              <span class="chip" style="padding:4px 8px; margin-right:4px; background:#333; border-radius:999px;">@aid</span>
+            }
+          </td>
+          <td style="text-align:center;">@(string.IsNullOrEmpty(l.GeojsonPolygon) ? "✖" : "✔")</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+@code {
+  private List<GestorGanadero.Services.Catalog.Contracts.FieldMessage> Fields = new();
+  private string SelectedFieldId = string.Empty;
+  private List<GestorGanadero.Services.Catalog.Contracts.LoteMessage> Lotes = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    var fr = await Catalog.GetFieldsAsync(new GestorGanadero.Services.Catalog.Contracts.GetCatalogRequest { TenantId = "TenantA" });
+    if (fr.Success && fr.Data != null) Fields = fr.Data.Fields.ToList();
+    if (Fields.Count > 0) { SelectedFieldId = Fields[0].Id; await LoadLotes(); }
+  }
+
+  private async Task LoadLotes()
+  {
+    if (!string.IsNullOrEmpty(SelectedFieldId)) {
+      var lr = await Catalog.GetLotesAsync(new GestorGanadero.Services.Catalog.Contracts.GetLotesRequest { FieldId = SelectedFieldId, TenantId = "TenantA" });
+      Lotes = lr.Success ? (lr.Data?.Lotes.ToList() ?? new List<GestorGanadero.Services.Catalog.Contracts.LoteMessage>()) : new List<GestorGanadero.Services.Catalog.Contracts.LoteMessage>();
+    }
+  }
+}

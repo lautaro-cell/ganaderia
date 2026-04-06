@@ -1,0 +1,18 @@
+@using System.Collections.Generic
+@typeparam T
+<select @bind="Selected" style="padding:6px; border-radius:6px; background:#111; color:#fff; border:1px solid #333;">
+  @foreach (var r in Roles)
+  {
+    <option value="@r.Value">@r.Label</option>
+  }
+</select>
+
+@code {
+  [Parameter] public string Selected { get; set; }
+  [Parameter] public EventCallback<string> SelectedChanged { get; set; }
+  [Parameter] public List<RoleOption> Roles { get; set; } = new List<RoleOption> {
+    new RoleOption("Administrador", "🛡 Administrador"),
+    new RoleOption("Usuario", "👤 Usuario")
+  };
+  public class RoleOption { public string Value { get; } public string Label { get; } public RoleOption(string value, string label){ Value = value; Label = label; } }
+}

@@ -1,16 +1,12 @@
 @using GestorGanadero.Client.Services
-@using GestorGanadero.Services.Common.Contracts
 @using GestorGanadero.Services.Identity.Contracts
-@using GestorGanadero.Services.Catalog.Contracts
-@using GestorGanadero.Services.Operations.Contracts
-@using GestorGanadero.Services.Reporting.Contracts
-@using GestorGanadero.Services.Sync.Contracts
+@using Google.Protobuf.WellKnownTypes
 @inject IdentityService.IdentityServiceClient Client
-@inject AppState State
+@inject AppStateContainer State
 @implements IDisposable
 
 <div class="tenant-selector">
-    <select @onchange="OnTenantChanged" value="@State.SelectedTenantId">
+    <select @onchange="OnTenantChanged" value="@State.ActiveTenantId">
         <option value="">Seleccionar Empresa...</option>
         @foreach (var tenant in _tenants)
         {
@@ -27,12 +23,13 @@
         State.OnChange += StateHasChanged;
         try
         {
-            var response = await Client.GetAvailableTenantsAsync(new Google.Protobuf.WellKnownTypes.Empty());
+            var response = await Client.GetAvailableTenantsAsync(new Empty());
             _tenants = response.Tenants.ToList();
             
-            if (string.IsNullOrEmpty(State.SelectedTenantId) && _tenants.Any())
+            if (string.IsNullOrEmpty(State.ActiveTenantId) && _tenants.Any())
             {
-                State.SelectedTenantId = _tenants.First().Id;
+                State.ActiveTenantId = _tenants.First().Id;
+                State.ActiveTenantName = _tenants.First().Name;
             }
         }
         catch (Exception ex)
@@ -43,7 +40,11 @@
 
     private void OnTenantChanged(ChangeEventArgs e)
     {
-        State.SelectedTenantId = e.Value?.ToString();
+        var tenantId = e.Value?.ToString();
+        State.ActiveTenantId = tenantId ?? string.Empty;
+        var tenant = _tenants.FirstOrDefault(t => t.Id == tenantId);
+        if (tenant != null)
+            State.ActiveTenantName = tenant.Name;
     }
 
     public void Dispose()
@@ -51,4 +52,3 @@
         State.OnChange -= StateHasChanged;
     }
 }
-
