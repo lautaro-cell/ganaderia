@@ -26,3 +26,4 @@ namespace GestorGanadero.Client.Sync
         }
     }
 }
+

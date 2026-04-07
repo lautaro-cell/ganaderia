@@ -10,12 +10,13 @@ VALUES
 -- =====================================================
 -- USERS
 -- =====================================================
-INSERT INTO "Users" ("Id","Email","TenantId","Role","CreatedAt")
+INSERT INTO "Users" ("Id","Email","TenantId","Role","PasswordHash","CreatedAt")
 VALUES 
-(gen_random_uuid(),'admin@ombu.com','11111111-1111-1111-1111-111111111111',1,now()),
-(gen_random_uuid(),'oper@ombu.com','11111111-1111-1111-1111-111111111111',0,now()),
-(gen_random_uuid(),'admin@sanmarcos.com','22222222-2222-2222-2222-222222222222',1,now()),
-(gen_random_uuid(),'admin@laslilas.com','33333333-3333-3333-3333-333333333333',1,now());
+(gen_random_uuid(),'admin@ombu.com','11111111-1111-1111-1111-111111111111',1,'$2a$11$mH/hXlX2M/vN6vYc6uS2uevW.3rW9oH/6oR1.a8uK4XQ5pG3O6E6e',now()),
+(gen_random_uuid(),'admin@ganaderia.com','11111111-1111-1111-1111-111111111111',1,'$2a$11$mH/hXlX2M/vN6vYc6uS2uevW.3rW9oH/6oR1.a8uK4XQ5pG3O6E6e',now()), -- Agregado para coincidir con el login UI
+(gen_random_uuid(),'oper@ombu.com','11111111-1111-1111-1111-111111111111',0,'$2a$11$mH/hXlX2M/vN6vYc6uS2uevW.3rW9oH/6oR1.a8uK4XQ5pG3O6E6e',now()),
+(gen_random_uuid(),'admin@sanmarcos.com','22222222-2222-2222-2222-222222222222',1,'$2a$11$mH/hXlX2M/vN6vYc6uS2uevW.3rW9oH/6oR1.a8uK4XQ5pG3O6E6e',now()),
+(gen_random_uuid(),'admin@laslilas.com','33333333-3333-3333-3333-333333333333',1,'$2a$11$mH/hXlX2M/vN6vYc6uS2uevW.3rW9oH/6oR1.a8uK4XQ5pG3O6E6e',now());
 
 -- =====================================================
 -- ACTIVITIES

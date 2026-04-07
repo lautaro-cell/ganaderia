@@ -34,3 +34,4 @@ namespace GestorGanadero.Client.Operations
         }
     }
 }
+

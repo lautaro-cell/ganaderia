@@ -1,11 +1,11 @@
 using Grpc.Core;
 using Google.Protobuf.WellKnownTypes;
-using GestorGanadero.Server.Application.Interfaces;
-using GestorGanadero.Server.Application.DTOs;
+using App.Application.Interfaces;
+using App.Application.DTOs;
 using GestorGanadero.Services.Identity.Contracts;
 using GestorGanadero.Services.Common.Contracts;
 using Microsoft.Extensions.Logging;
-using GestorGanadero.Server.Domain.Enums;
+using App.Domain.Enums;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -54,7 +54,7 @@ public class IdentityServiceImplementation : IdentityService.IdentityServiceBase
 
     public override async Task<ActionResponse> InviteUser(Services.Identity.Contracts.InviteUserRequest request, ServerCallContext context)
     {
-        var id = await _userService.InviteUserAsync(new GestorGanadero.Server.Application.DTOs.InviteUserRequest(request.Email, request.Name, request.RoleName, System.Guid.Parse(request.TenantId)));
+        var id = await _userService.InviteUserAsync(new App.Application.DTOs.InviteUserRequest(request.Email, request.Name, request.RoleName, System.Guid.Parse(request.TenantId)));
         return new ActionResponse { Success = true, ObjectId = id.ToString() };
     }
 
@@ -70,3 +70,4 @@ public class IdentityServiceImplementation : IdentityService.IdentityServiceBase
         return new ActionResponse { Success = true, Message = "Usuario eliminado." };
     }
 }
+

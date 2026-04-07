@@ -39,3 +39,4 @@ public class AnimalCategoryModel
   public string ExternalId { get; set; } = string.Empty;
   public bool IsActive { get; set; }
 }
+

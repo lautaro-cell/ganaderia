@@ -23,11 +23,11 @@ public class GrpcClientBase
       var exists = false;
       foreach (var m in headers)
       {
-        if (string.Equals(m.Key, "tenant-id", StringComparison.OrdinalIgnoreCase)) { exists = true; break; }
+        if (string.Equals(m.Key, "X-Tenant-Id", StringComparison.OrdinalIgnoreCase)) { exists = true; break; }
       }
       if (!exists)
       {
-        headers.Add("tenant-id", TenantId);
+        headers.Add("X-Tenant-Id", TenantId);
       }
     }
     return new CallOptions(headers, options.Deadline, options.CancellationToken, options.WriteOptions);
@@ -51,3 +51,4 @@ public class GrpcClientBase
     }
   }
 }
+

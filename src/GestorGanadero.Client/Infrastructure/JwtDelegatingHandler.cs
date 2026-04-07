@@ -28,3 +28,4 @@ namespace GestorGanadero.Client.Infrastructure
         }
     }
 }
+

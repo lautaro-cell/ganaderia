@@ -1,11 +1,12 @@
 using Grpc.Core;
 using Google.Protobuf.WellKnownTypes;
-using GestorGanadero.Server.Application.Interfaces;
+using App.Application.Interfaces;
 using GestorGanadero.Services.Reporting.Contracts;
 using Microsoft.Extensions.Logging;
 using System.Linq;
 using System.Threading.Tasks;
 using System;
+using NodaTime;
 
 namespace GestorGanadero.Server.Grpc;
 
@@ -24,17 +25,17 @@ public class ReportingServiceImplementation : ReportingService.ReportingServiceB
     {
         var balance = await _reportService.GetBalanceAsync(
             string.IsNullOrEmpty(request.FieldId) ? null : Guid.Parse(request.FieldId),
-            request.Date?.ToDateTime(),
+            request.Date == null ? (Instant?)null : Instant.FromDateTimeUtc(request.Date.ToDateTime()),
             request.CategoryView);
 
         var response = new BalanceReport { ReportDate = request.Date ?? Timestamp.FromDateTime(DateTime.UtcNow) };
         response.Items.AddRange(balance.Select(b => new BalanceItem
         {
-            FieldName = b.FieldName,
-            CategoryName = b.CategoryName,
+            FieldName = b.FieldName ?? "",
+            CategoryName = b.CategoryName ?? "",
             HeadCount = b.HeadCount,
             TotalWeight = (double)b.TotalWeight,
-            ActivityName = b.ActivityName
+            ActivityName = b.ActivityName ?? ""
         }));
         return response;
     }
@@ -43,8 +44,8 @@ public class ReportingServiceImplementation : ReportingService.ReportingServiceB
     {
         var tenantId = string.IsNullOrEmpty(request.TenantId) ? Guid.Empty : Guid.Parse(request.TenantId);
         var entries = await _reportService.GetLedgerAsync(
-            request.StartDate?.ToDateTime(),
-            request.EndDate?.ToDateTime(),
+            request.StartDate == null ? (Instant?)null : Instant.FromDateTimeUtc(request.StartDate.ToDateTime()),
+            request.EndDate == null ? (Instant?)null : Instant.FromDateTimeUtc(request.EndDate.ToDateTime()),
             request.PageIndex,
             request.PageSize,
             request.SearchTerm,
@@ -58,10 +59,10 @@ public class ReportingServiceImplementation : ReportingService.ReportingServiceB
             await responseStream.WriteAsync(new LedgerEntry
             {
                 Id = entry.Id.ToString(),
-                Date = Timestamp.FromDateTime(entry.Date),
-                Description = entry.Description,
+                Date = Timestamp.FromDateTimeOffset(entry.Date.ToDateTimeOffset()),
+                Description = entry.Description ?? "",
                 Amount = (double)entry.Amount,
-                AccountCode = entry.AccountCode,
+                AccountCode = entry.AccountCode ?? "",
                 Status = entry.Status,
                 EntryType = entry.EntryType,
                 HeadCount = entry.HeadCount,
@@ -70,3 +71,4 @@ public class ReportingServiceImplementation : ReportingService.ReportingServiceB
         }
     }
 }
+

@@ -7,3 +7,4 @@ namespace GestorGanadero.Client.Services
         Task LoadUserContextAsync();
     }
 }
+

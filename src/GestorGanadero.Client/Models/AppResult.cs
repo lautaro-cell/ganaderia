@@ -15,3 +15,4 @@ public class AppResult<T>
     return new AppResult<T> { Success = false, Message = message };
   }
 }
+

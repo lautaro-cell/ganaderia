@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using GestorGanadero.Server.Infrastructure.Persistence;
+using App.Infrastructure.Persistence;
 
 #nullable disable
 
@@ -651,3 +651,4 @@ namespace GestorGanadero.Migrations
         }
     }
 }
+

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using GestorGanadero.Server.Application.DTOs;
-using GestorGanadero.Server.Application.Interfaces;
+using App.Application.DTOs;
+using App.Application.Interfaces;
 
 namespace GestorGanadero.Server.Controllers.V1;
 
@@ -63,3 +63,4 @@ public class LivestockEventsController : ControllerBase
         }
     }
 }
+

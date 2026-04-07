@@ -1,13 +1,17 @@
 using Grpc.Core;
 using Google.Protobuf.WellKnownTypes;
-using GestorGanadero.Server.Application.Interfaces;
-using GestorGanadero.Server.Application.DTOs;
+using App.Application.Interfaces;
+using Grpc.Core;
+using Google.Protobuf.WellKnownTypes;
+using App.Application.Interfaces;
+using App.Application.DTOs;
 using GestorGanadero.Services.Operations.Contracts;
 using GestorGanadero.Services.Common.Contracts;
 using Microsoft.Extensions.Logging;
 using System.Linq;
 using System.Threading.Tasks;
 using System;
+using NodaTime;
 
 namespace GestorGanadero.Server.Grpc;
 
@@ -79,7 +83,7 @@ public class OperationsServiceImplementation : OperationsService.OperationsServi
                 request.HeadCount,
                 (decimal)request.PrimaryValue,
                 0,
-                request.OccurredOn.ToDateTimeOffset()
+                Instant.FromDateTimeOffset(request.OccurredOn.ToDateTimeOffset())
             );
 
             var resultId = await _livestockEventService.CreateEventAsync(appRequest);
@@ -94,8 +98,9 @@ public class OperationsServiceImplementation : OperationsService.OperationsServi
     public override async Task<ActionResponse> UpdateEvent(UpdateEventRequest request, ServerCallContext context)
     {
         await _livestockEventService.UpdateEventAsync(new UpdateEventRequestDto(
-            Guid.Parse(request.Id), request.OccurredOn.ToDateTimeOffset(), request.HeadCount, 
+            Guid.Parse(request.Id), Instant.FromDateTimeOffset(request.OccurredOn.ToDateTimeOffset()), request.HeadCount, 
             (decimal)request.WeightPerHead, (decimal)request.PrimaryValue, request.Observations));
+
         return new ActionResponse { Success = true, Message = "Evento actualizado." };
     }
 
@@ -108,35 +113,21 @@ public class OperationsServiceImplementation : OperationsService.OperationsServi
     public override async Task<EventList> GetEvents(GetEventsRequest request, ServerCallContext context)
     {
         var tenantId = string.IsNullOrEmpty(request.TenantId) ? (Guid?)null : Guid.Parse(request.TenantId);
-        var events = await _livestockEventService.GetEventsAsync(tenantId, request.StartDate?.ToDateTimeOffset(), request.EndDate?.ToDateTimeOffset());
+        var events = await _livestockEventService.GetEventsAsync(tenantId, 
+            request.StartDate == null ? (Instant?)null : Instant.FromDateTimeOffset(request.StartDate.ToDateTimeOffset()), 
+            request.EndDate == null ? (Instant?)null : Instant.FromDateTimeOffset(request.EndDate.ToDateTimeOffset()));
+
         var response = new EventList();
         response.Events.AddRange(events.Select(e => new EventDetail
         {
             Id            = e.Id.ToString(),
-            OccurredOn    = Timestamp.FromDateTimeOffset(e.EventDate),
+            OccurredOn    = Timestamp.FromDateTimeOffset(e.EventDate.ToDateTimeOffset()),
             HeadCount     = e.HeadCount,
             TotalWeight   = (double)e.EstimatedWeightKg,
-            TypeName      = e.TypeName,
-            FieldName     = e.FieldName,
+            TypeName      = e.TypeName ?? "",
+            FieldName     = e.FieldName ?? "",
             WeightPerHead = (double)e.WeightPerHead
         }));
         return response;
-    }
-
-    public override async Task<EventDetail> GetEventDetails(GetEventDetailsRequest request, ServerCallContext context)
-    {
-        var e = await _livestockEventService.GetEventDetailsAsync(Guid.Parse(request.Id));
-        return new EventDetail
-        {
-            Id = e.Id.ToString(),
-            TypeName = e.TypeName,
-            OccurredOn = Timestamp.FromDateTimeOffset(e.OccurredOn),
-            FieldName = e.FieldName,
-            HeadCount = e.HeadCount,
-            WeightPerHead = (double)e.WeightPerHead,
-            TotalWeight = (double)e.TotalWeight,
-            Observations = e.Observations ?? "",
-            TypeCode = e.TypeCode
-        };
     }
 }

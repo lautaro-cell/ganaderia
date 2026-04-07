@@ -420,3 +420,4 @@ namespace GestorGanadero.Migrations
         }
     }
 }
+

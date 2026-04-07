@@ -30,3 +30,4 @@ namespace GestorGanadero.Client.Reporting
         }
     }
 }
+

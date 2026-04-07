@@ -1,6 +1,6 @@
 using Grpc.Core;
 using Google.Protobuf.WellKnownTypes;
-using GestorGanadero.Server.Application.Interfaces;
+using App.Application.Interfaces;
 using GestorGanadero.Services.Sync.Contracts;
 using Microsoft.Extensions.Logging;
 using System.Linq;
@@ -33,7 +33,7 @@ public class SyncServiceImplementation : SyncService.SyncServiceBase
         response.Entries.AddRange(pending.Select(e => new SyncEntry
         {
             Id = e.Id.ToString(),
-            Date = Timestamp.FromDateTimeOffset(e.EventDate),
+            Date = Timestamp.FromDateTimeOffset(e.EventDate.ToDateTimeOffset()),
             Description = "Evento Pendiente",
             Amount = (double)e.TotalAmount,
             Status = e.Status,
@@ -82,3 +82,4 @@ public class SyncServiceImplementation : SyncService.SyncServiceBase
         return new SyncResult { Count = syncedCount, Log = string.Join(" | ", logMessages) };
     }
 }
+

@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using GestorGanadero.Server.Application.Interfaces;
-using GestorGanadero.Server.Application.Services;
-using GestorGanadero.Server.Infrastructure.Persistence;
-using GestorGanadero.Server.Infrastructure.Services;
-using GestorGanadero.Server.Infrastructure.ExternalProviders;
+using App.Application.Interfaces;
+using App.Application.Services;
+using App.Infrastructure.Persistence;
+using App.Infrastructure.Services;
+using App.Infrastructure.ExternalProviders;
 using GestorGanadero.Server.Grpc;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -46,7 +46,9 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 builder.Services.AddDbContext<GestorGanaderoDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"), o => o.UseNodaTime()));
+
+builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<GestorGanaderoDbContext>());
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ITenantProvider, HttpContextTenantProvider>();
@@ -58,7 +60,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<ISyncCatalogService, SyncCatalogService>();
 builder.Services.AddHttpClient<IERPProvider, GestorMaxProvider>();
-builder.Services.AddTransient<GestorGanadero.Server.Domain.Services.AccountingEntryGenerator>();
+builder.Services.AddTransient<App.Domain.Services.AccountingEntryGenerator>();
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();

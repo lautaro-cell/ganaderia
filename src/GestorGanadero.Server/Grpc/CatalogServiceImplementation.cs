@@ -1,6 +1,6 @@
 using Grpc.Core;
-using GestorGanadero.Server.Application.Interfaces;
-using GestorGanadero.Server.Application.DTOs;
+using App.Application.Interfaces;
+using App.Application.DTOs;
 using GestorGanadero.Services.Catalog.Contracts;
 using GestorGanadero.Services.Common.Contracts;
 using Microsoft.Extensions.Logging;
@@ -27,7 +27,7 @@ public class CatalogServiceImplementation : CatalogService.CatalogServiceBase
     {
         var fields = await _catalogService.GetFieldsAsync();
         var response = new FieldList();
-        response.Fields.AddRange(fields.Select(f => new FieldMessage { Id = f.Id.ToString(), Name = f.Name, Description = f.Description, IsActive = f.IsActive, TenantId = f.TenantId.ToString() }));
+        response.Fields.AddRange(fields.Select(f => new FieldMessage { Id = f.Id.ToString(), Name = f.Name, Description = f.Description ?? "", IsActive = f.IsActive, TenantId = f.TenantId.ToString() }));
         return response;
     }
 
@@ -122,7 +122,7 @@ public class CatalogServiceImplementation : CatalogService.CatalogServiceBase
         }
         var lotes = await _loteService.GetLotesByFieldAsync(fieldId);
         var response = new LoteList();
-        response.Lotes.AddRange(lotes.Select(l => new LoteMessage { Id = l.Id.ToString(), Name = l.Name, FieldId = l.FieldId.ToString(), FieldName = l.FieldName, ActivityIds = { l.ActivityIds.Select(id => id.ToString()) } }));
+        response.Lotes.AddRange(lotes.Select(l => new LoteMessage { Id = l.Id.ToString(), Name = l.Name, FieldId = l.FieldId.ToString(), FieldName = l.FieldName ?? "", ActivityIds = { l.ActivityIds.Select(id => id.ToString()) } }));
         return response;
     }
 
@@ -150,3 +150,4 @@ public class CatalogServiceImplementation : CatalogService.CatalogServiceBase
         return new ActionResponse { Success = true, Message = "Geometría guardada." };
     }
 }
+
