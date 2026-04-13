@@ -33,7 +33,7 @@
                     {
                         <div class="form-group">
                             <label>Cantidad de Cabezas</label>
-                            <InputNumber @bind-Value="_request.HeadCount" class="form-control" placeholder="0" />
+                            <InputNumber @bind-Value="HeadCount" class="form-control" placeholder="0" />
                             <ValidationMessage For="@(() => _request.HeadCount)" />
                         </div>
                     }
@@ -42,7 +42,11 @@
                     {
                         <div class="form-group">
                             <label>Peso Promedio (kg)</label>
-                            <InputNumber @bind-Value="_weightPerHead" class="form-control" placeholder="0.00" />
+                            <InputNumber @bind-Value="WeightPerHead" class="form-control" placeholder="0.00" />
+                        </div>
+                        <div class="form-group">
+                            <label>Peso Total (Calculado: @(_request.PrimaryValue.ToString("N2")) kg)</label>
+                            <InputNumber @bind-Value="_request.PrimaryValue" class="form-control" placeholder="0.00" />
                         </div>
                     }
 
@@ -52,12 +56,9 @@
                             <label>Campo</label>
                             <InputSelect @bind-Value="_request.FieldId" class="form-control">
                                 <option value="">Seleccione...</option>
-                                @if (_fields != null)
+                                @foreach (var f in _fields)
                                 {
-                                    @foreach (var f in _fields)
-                                    {
-                                        <option value="@f.Id">@f.Name</option>
-                                    }
+                                    <option value="@f.Id">@f.Name</option>
                                 }
                             </InputSelect>
                             <ValidationMessage For="@(() => _request.FieldId)" />
@@ -70,12 +71,9 @@
                             <label>Categoria</label>
                             <InputSelect @bind-Value="_request.CategoryId" class="form-control">
                                 <option value="">Seleccione...</option>
-                                @if (_categories != null)
+                                @foreach (var c in _categories)
                                 {
-                                    @foreach (var c in _categories)
-                                    {
-                                        <option value="@c.Id">@c.Name</option>
-                                    }
+                                    <option value="@c.Id">@c.Name</option>
                                 }
                             </InputSelect>
                         </div>
@@ -87,12 +85,9 @@
                             <label>Actividad</label>
                             <InputSelect @bind-Value="_request.ActivityId" class="form-control">
                                 <option value="">Seleccione...</option>
-                                @if (_activities != null)
+                                @foreach (var a in _activities)
                                 {
-                                    @foreach (var a in _activities)
-                                    {
-                                        <option value="@a.Id">@a.Name</option>
-                                    }
+                                    <option value="@a.Id">@a.Name</option>
                                 }
                             </InputSelect>
                         </div>
@@ -140,16 +135,32 @@
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public EventCallback OnSaved { get; set; }
 
-    // .NET 10 Persistent State to avoid flickering during catalog loading
-    [PersistentState] private List<FieldMessage>? _fields { get; set; }
-    [PersistentState] private List<AnimalCategoryMessage>? _categories { get; set; }
-    [PersistentState] private List<ActivityMessage>? _activities { get; set; }
+    private List<FieldMessage> _fields = new();
+    private List<AnimalCategoryMessage> _categories = new();
+    private List<ActivityMessage> _activities = new();
 
     private RegisterEventRequest _request = new();
     private DateTime _eventDate = DateTime.Today;
     private double _weightPerHead;
     private bool _saving;
     private string _error = "";
+
+    private int HeadCount 
+    { 
+        get => _request.HeadCount; 
+        set { _request.HeadCount = value; CalculateTotal(); } 
+    }
+
+    private double WeightPerHead 
+    { 
+        get => _weightPerHead; 
+        set { _weightPerHead = value; CalculateTotal(); } 
+    }
+
+    private void CalculateTotal()
+    {
+        _request.PrimaryValue = _request.HeadCount * _weightPerHead;
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -173,16 +184,15 @@
         {
             if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
             
-            // Only fetch if not already persisted by .NET 10 PersistentState
-            if (_fields == null) {
+            if (!_fields.Any()) {
                 var f = await CatalogSvc.GetFieldsAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
                 _fields = f.Data?.Fields.ToList() ?? new();
             }
-            if (_categories == null) {
+            if (!_categories.Any()) {
                 var c = await CatalogSvc.GetAnimalCategoriesAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
                 _categories = c.Data?.Categories.ToList() ?? new();
             }
-            if (_activities == null) {
+            if (!_activities.Any()) {
                 var a = await CatalogSvc.GetActivitiesAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
                 _activities = a.Data?.Activities.ToList() ?? new();
             }
@@ -196,7 +206,7 @@
         _error = "";
         try
         {
-            _request.OccurredOn = Timestamp.FromDateTime(_eventDate.ToUniversalTime());
+            _request.OccurredOn = Timestamp.FromDateTime(DateTime.SpecifyKind(_eventDate, DateTimeKind.Utc));
             _request.WeightPerHead = _weightPerHead.ToString("F2");
             var res = await GrpcClient.RegisterEventAsync(_request);
             if (res.Success)

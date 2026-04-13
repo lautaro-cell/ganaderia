@@ -1,9 +1,6 @@
 using Grpc.Core;
 using Google.Protobuf.WellKnownTypes;
 using App.Application.Interfaces;
-using Grpc.Core;
-using Google.Protobuf.WellKnownTypes;
-using App.Application.Interfaces;
 using App.Application.DTOs;
 using GestorGanadero.Services.Operations.Contracts;
 using GestorGanadero.Services.Common.Contracts;

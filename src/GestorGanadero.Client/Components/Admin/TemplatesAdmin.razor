@@ -1,0 +1,84 @@
+@using GestorGanadero.Client.Services
+@using GestorGanadero.Services.Operations.Contracts
+@inject AppStateContainer State
+@inject OperationsService.OperationsServiceClient GrpcClient
+
+<div class="admin-section">
+    <div class="flex justify-between items-center mb-md">
+        <h3>Plantillas de Eventos</h3>
+        <button class="btn btn-primary btn-sm" disabled>
+            <span class="material-icons" style="font-size:18px;">add</span>
+            Nueva Plantilla
+        </button>
+    </div>
+
+    @if (_templates == null)
+    {
+        <div class="loading-container"><div class="spinner"></div></div>
+    }
+    else
+    {
+        <GestorGanadero.Client.Shared.DataTable TItem="EventTemplate" Items="_templates">
+            <HeaderTemplate>
+                <th>Icono</th>
+                <th>Nombre</th>
+                <th>Campos Requeridos</th>
+                <th>Cuentas Contables</th>
+                <th class="text-center">Acciones</th>
+            </HeaderTemplate>
+            <RowTemplate Context="t">
+                <td>
+                    <div class="icon-circle" style="background:@(t.ColorCode + "18"); color:@t.ColorCode;">
+                        <span class="material-icons">@t.Icon</span>
+                    </div>
+                </td>
+                <td><strong>@t.Name</strong></td>
+                <td>
+                    <div class="flex gap-xs flex-wrap">
+                        @foreach (var f in t.Fields)
+                        {
+                            <span class="badge badge-neutral">@f</span>
+                        }
+                    </div>
+                </td>
+                <td>
+                    <span class="text-secondary" style="font-size:0.8rem;">
+                        <span class="material-icons" style="font-size:14px; vertical-align:middle;">account_balance</span>
+                        Configuración por defecto
+                    </span>
+                </td>
+                <td class="text-center">
+                    <button class="btn-icon" title="Configurar Mapeo Contable">
+                        <span class="material-icons">settings_suggest</span>
+                    </button>
+                    <button class="btn-icon" title="Editar">
+                        <span class="material-icons">edit</span>
+                    </button>
+                </td>
+            </RowTemplate>
+        </GestorGanadero.Client.Shared.DataTable>
+    }
+</div>
+
+@code {
+    private List<EventTemplate>? _templates;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTemplates();
+    }
+
+    private async Task LoadTemplates()
+    {
+        if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
+        try
+        {
+            var res = await GrpcClient.GetEventTemplatesAsync(new GetTemplatesRequest { TenantId = State.ActiveTenantId });
+            _templates = res.Templates.ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error cargando plantillas: {ex.Message}");
+        }
+    }
+}

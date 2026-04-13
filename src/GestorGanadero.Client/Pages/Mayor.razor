@@ -11,8 +11,20 @@
 @implements IDisposable
 
 <div class="page-header">
-    <h1>Libro Mayor</h1>
-    <span class="subtitle">Movimientos contables y sincronizacion ERP</span>
+    <div class="page-header-row">
+        <div>
+            <h1>Libro Mayor</h1>
+            <span class="subtitle">Movimientos contables y sincronizacion ERP</span>
+        </div>
+        <div class="flex items-center gap-sm">
+            <input type="date" @bind="_startDate" class="form-control" style="width:auto;" />
+            <span style="color:var(--text-muted);">—</span>
+            <input type="date" @bind="_endDate" class="form-control" style="width:auto;" />
+            <button class="btn btn-secondary btn-sm" @onclick="LoadAll">
+                <span class="material-icons" style="font-size:16px;">refresh</span>
+            </button>
+        </div>
+    </div>
 </div>
 
 <!-- Pending Sync -->
@@ -135,6 +147,8 @@
     private List<SyncEntry> _pendingEntries = new();
     private HashSet<string> _pendingIds = new();
 
+    private DateTime _startDate = DateTime.Today.AddDays(-30);
+    private DateTime _endDate = DateTime.Today.AddDays(1);
     private int _page = 0;
     private int _pageSize = 50;
     private bool _loadingLedger;
@@ -170,7 +184,14 @@
 
         try
         {
-            var filter = new LedgerFilter { TenantId = State.ActiveTenantId, PageIndex = _page, PageSize = _pageSize };
+            var filter = new LedgerFilter 
+            { 
+                TenantId = State.ActiveTenantId, 
+                PageIndex = _page, 
+                PageSize = _pageSize,
+                StartDate = Timestamp.FromDateTime(DateTime.SpecifyKind(_startDate, DateTimeKind.Utc)),
+                EndDate = Timestamp.FromDateTime(DateTime.SpecifyKind(_endDate, DateTimeKind.Utc))
+            };
             using var call = GrpcClient.GetLedger(filter);
             while (await call.ResponseStream.MoveNext(default))
             {

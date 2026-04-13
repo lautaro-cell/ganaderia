@@ -19,32 +19,22 @@ using GestorGanadero.Client.Reporting;
 using GestorGanadero.Client.Sync;
 using System.Net.Http;
 using System;
+using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped<AppStateContainer>();
-builder.Services.AddSingleton<TenantState>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddTransient<JwtDelegatingHandler>();
 
-builder.Services.AddSingleton(sp =>
-{
-    var httpClientHandler = new HttpClientHandler();
-    var grpcHandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb, httpClientHandler);
-    
-    var jsRuntime = sp.GetRequiredService<IJSRuntime>();
-    var jwtHandler = new JwtDelegatingHandler(jsRuntime)
-    {
-        InnerHandler = grpcHandler
-    };
 
-    var grpcUrl = builder.Configuration["GrpcServer:Url"] ?? "https://localhost:7240";
-    return GrpcChannel.ForAddress(grpcUrl, new GrpcChannelOptions
-    {
-        HttpHandler = jwtHandler
-    });
+builder.Services.AddScoped(sp => {
+    var jwtHandler = sp.GetRequiredService<JwtDelegatingHandler>();
+    jwtHandler.InnerHandler = new HttpClientHandler();
+    GrpcWebHandler grpcWebHandler = new(GrpcWebMode.GrpcWeb, jwtHandler);
+    return GrpcChannel.ForAddress(builder.HostEnvironment.BaseAddress, new GrpcChannelOptions { HttpHandler = grpcWebHandler });
 });
 
 builder.Services.AddScoped(sp => new IdentityService.IdentityServiceClient(sp.GetRequiredService<GrpcChannel>()));
@@ -52,6 +42,7 @@ builder.Services.AddScoped(sp => new CatalogService.CatalogServiceClient(sp.GetR
 builder.Services.AddScoped(sp => new OperationsService.OperationsServiceClient(sp.GetRequiredService<GrpcChannel>()));
 builder.Services.AddScoped(sp => new ReportingService.ReportingServiceClient(sp.GetRequiredService<GrpcChannel>()));
 builder.Services.AddScoped(sp => new SyncService.SyncServiceClient(sp.GetRequiredService<GrpcChannel>()));
+//GRPC clientFactory //grpc.net.clientFactory
 
 builder.Services.AddScoped<IdentityClientService>();
 builder.Services.AddScoped<CatalogClientService>();

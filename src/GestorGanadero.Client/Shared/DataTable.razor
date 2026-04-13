@@ -1,16 +1,28 @@
 @typeparam TItem
 
-<div class="data-table" style="width:100%; overflow:auto;">
+<div class="table-wrapper">
   @if (Items == null)
   {
-    <div>Loading...</div>
+    <div class="loading-container">
+        <div class="spinner"></div>
+        <p>Cargando datos...</p>
+    </div>
+  }
+  else if (!Items.Any())
+  {
+    <div class="empty-state">
+        <span class="material-icons">search_off</span>
+        <p>No se encontraron resultados.</p>
+    </div>
   }
   else
   {
-    <table class="table" style="width:100%; border-collapse: collapse;">
+    <table class="table">
       @if (HeaderTemplate != null)
       {
-        <thead>@HeaderTemplate</thead>
+        <thead>
+            @HeaderTemplate
+        </thead>
       }
       <tbody>
         @foreach (var item in Items)
@@ -20,11 +32,10 @@
       </tbody>
     </table>
   }
-  
 </div>
 
 @code {
-  [Parameter] public IEnumerable<TItem> Items { get; set; }
-  [Parameter] public RenderFragment HeaderTemplate { get; set; }
-  [Parameter] public RenderFragment<TItem> RowTemplate { get; set; }
+  [Parameter, EditorRequired] public IEnumerable<TItem> Items { get; set; } = default!;
+  [Parameter] public RenderFragment? HeaderTemplate { get; set; }
+  [Parameter, EditorRequired] public RenderFragment<TItem> RowTemplate { get; set; } = default!;
 }

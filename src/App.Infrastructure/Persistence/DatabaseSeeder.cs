@@ -47,7 +47,7 @@ public static class DatabaseSeeder
                 @"c:\Users\HWLScuffi\Desktop\ganaderia\GestorGanadero.Server\sql\data.sql"                    // Absolute fallback
             };
 
-            string foundPath = null;
+            string? foundPath = null;
             foreach (var path in searchPaths)
             {
                 if (File.Exists(path))

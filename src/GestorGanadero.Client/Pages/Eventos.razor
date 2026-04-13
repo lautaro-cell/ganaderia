@@ -60,7 +60,7 @@
             {
                 <div class="template-card" @onclick="() => OpenDrawer(t)">
                     <div class="icon" style="background:@(t.ColorCode + "18"); color:@t.ColorCode;">
-                        <span class="material-icons">@t.Icon</span>
+                        <span class="material-icons">@(!string.IsNullOrEmpty(t.Icon) ? t.Icon : "event_note")</span>
                     </div>
                     <span class="name">@t.Name</span>
                 </div>
@@ -106,16 +106,16 @@
                     @foreach (var ev in _events)
                     {
                         <tr>
-                            <td>@ev.OccurredOn.ToDateTime().ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@ev.OccurredOn.ToDateTime().ToLocalTime().ToString("dd MMM, HH:mm")</td>
                             <td>
-                                <span class="badge" style="background:@GetColor(ev.TypeName)18; color:@GetColor(ev.TypeName);">
+                                <span class="badge" style="background:@(GetColor(ev.TypeName) + "18"); color:@GetColor(ev.TypeName);">
                                     @ev.TypeName
                                 </span>
                             </td>
                             <td>@ev.FieldName</td>
-                            <td class="text-end">@ev.HeadCount</td>
-                            <td class="text-end">@ev.WeightPerHead.ToString("N2") kg</td>
-                            <td class="text-end">@ev.TotalWeight.ToString("N1") kg</td>
+                            <td class="text-end font-mono">@ev.HeadCount</td>
+                            <td class="text-end font-mono">@ev.WeightPerHead.ToString("N1") kg</td>
+                            <td class="text-end font-mono">@ev.TotalWeight.ToString("N0") kg</td>
                             <td class="text-center">
                                 <button class="btn-icon" title="Eliminar" @onclick="() => DeleteEvent(ev)">
                                     <span class="material-icons">delete_outline</span>
@@ -145,7 +145,7 @@
     private DateTime _endDate = DateTime.Today.AddDays(1);
     private Action? _stateChangedAction;
 
-    private string GetColor(string typeName) => typeName?.ToLower() switch
+    private string GetColor(string? typeName) => (typeName ?? string.Empty).ToLower() switch
     {
         var t when t.Contains("nac") => "#22c55e",
         var t when t.Contains("comp") => "#3b82f6",

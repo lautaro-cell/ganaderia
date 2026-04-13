@@ -5,46 +5,61 @@
 @using GestorGanadero.Client.Services
 @using System.Linq
 @inject IdentityClientService IdentityClientService
-@inject TenantState TenantState
+@inject AppStateContainer State
 
 <PageHeader Title="Usuarios" />
 
-<div class="toolbar" style="display:flex; gap:8px; align-items:center; margin-bottom:12px;">
-  <button class="btn" style="background:#C0392B; color:#fff; border:none; padding:8px 12px; border-radius:6px;" @onclick="() => IsInviteOpen = true">Invitar Usuario</button>
+<div class="toolbar flex items-center gap-sm mb-lg">
+  <button class="btn btn-primary" @onclick="() => IsInviteOpen = true">
+    <span class="material-icons">person_add</span>
+    Invitar Usuario
+  </button>
 </div>
 
-@if (HasError) { <p style="color:#C0392B">Error al cargar los usuarios.</p> }
-else if (Users == null) { <p>Cargando...</p> }
+@if (HasError) { <div class="alert alert-danger">Error al cargar los usuarios.</div> }
+else if (Users == null) { <div class="loading-container"><div class="spinner"></div></div> }
 else
 {
-  <table class="table" style="width:100%; border-collapse: collapse;">
-    <thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
-    <tbody>
-      @foreach (var u in Users)
-      {
-        <tr>
-          <td>@u.Name</td>
-          <td>@u.Email</td>
-          <td><span class="badge" style="background:#C0392B; padding:4px 8px; border-radius:12px;">@u.RoleName</span></td>
-          <td><span class="chip" style="padding:4px 8px; border-radius:999px; background:@(u.IsActive ? "#1e7e34" : "#6c757d"); color:white;">@(u.IsActive ? "Activo" : "Inactivo")</span></td>
-          <td>
-            <button class="btn" style="background:#C0392B; color:#fff; padding:6px 10px; border-radius:6px;" @onclick="() => Delete(u.Id, u.TenantId)">Eliminar</button>
-          </td>
-        </tr>
-      }
-    </tbody>
-  </table>
+  <div class="table-wrapper">
+    <table class="table">
+      <thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th class="text-end">Acciones</th></tr></thead>
+      <tbody>
+        @foreach (var u in Users)
+        {
+          <tr>
+            <td>@u.Name</td>
+            <td>@u.Email</td>
+            <td><span class="badge badge-neutral">@u.RoleName</span></td>
+            <td><span class="badge @(u.IsActive ? "badge-success" : "badge-neutral")">@(u.IsActive ? "Activo" : "Inactivo")</span></td>
+            <td class="text-end">
+              <button class="btn-icon" title="Eliminar" @onclick="() => Delete(u.Id, u.TenantId)">
+                <span class="material-icons">delete_outline</span>
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
 }
 
 @if (IsInviteOpen)
 {
-  <div class="drawer" style="position:fixed; right:0; top:0; bottom:0; width:420px; background:#111; border-left:1px solid #333; padding:16px;">
-    <h3>Invitar Usuario</h3>
-    <input @bind="InviteReq.Email" placeholder="Email" style="width:100%; padding:6px; margin-bottom:8px;" />
-    <input @bind="InviteReq.Name" placeholder="Nombre" style="width:100%; padding:6px; margin-bottom:8px;" />
-    <input @bind="InviteReq.RoleName" placeholder="Rol" style="width:100%; padding:6px; margin-bottom:8px;" />
-    <button class="btn" style="background:#C0392B; color:#fff; padding:8px 12px; border-radius:6px;" @onclick="Invite">Invitar</button>
-    <button class="btn" style="margin-left:8px;" @onclick="() => IsInviteOpen = false">Cerrar</button>
+  <div class="modal-backdrop" @onclick="() => IsInviteOpen = false">
+    <div class="modal" @onclick:stopPropagation="true">
+      <div class="modal-header">
+        <h3>Invitar Usuario</h3>
+        <button class="btn-icon" @onclick="() => IsInviteOpen = false"><span class="material-icons">close</span></button>
+      </div>
+      <div class="form-group"><label>Email</label><input @bind="InviteReq.Email" placeholder="email@ejemplo.com" class="form-control" /></div>
+      <div class="form-group"><label>Nombre</label><input @bind="InviteReq.Name" placeholder="Nombre completo" class="form-control" /></div>
+      <div class="form-group"><label>Rol</label><input @bind="InviteReq.RoleName" placeholder="Administrador, Operador..." class="form-control" /></div>
+      
+      <div class="modal-actions">
+        <button class="btn btn-secondary" @onclick="() => IsInviteOpen = false">Cancelar</button>
+        <button class="btn btn-primary" @onclick="Invite">Invitar</button>
+      </div>
+    </div>
   </div>
 }
 
@@ -65,7 +80,7 @@ else
 
   private async Task Invite()
   {
-    InviteReq.TenantId = TenantState.ActiveTenantId;
+    InviteReq.TenantId = State.ActiveTenantId;
     var r = await IdentityClientService.InviteUserAsync(InviteReq);
     if (r.Success)
     {

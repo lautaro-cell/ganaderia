@@ -21,7 +21,7 @@
     <div class="tenant-dropdown">
         @if (State.AvailableTenants != null && State.AvailableTenants.Any())
         {
-            <select @onchange="OnTenantChanged" value="@State.ActiveTenantId">
+            <select @onchange="OnTenantChanged" value="@State.ActiveTenantId" class="form-select-sm">
                 @foreach (var tenant in State.AvailableTenants)
                 {
                     <option value="@tenant.Id">@tenant.Name</option>
@@ -30,7 +30,7 @@
         }
         else
         {
-            <select disabled>
+            <select disabled class="form-select-sm">
                 <option>Cargando establecimientos...</option>
             </select>
         }
@@ -53,18 +53,8 @@
     </div>
 </header>
 
-<style>
-    .user-info {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-    .user-name {
-        font-size: 0.85rem;
-    }
-</style>
-
 @code {
+
     protected override void OnInitialized()
     {
         State.OnChange += StateHasChanged;

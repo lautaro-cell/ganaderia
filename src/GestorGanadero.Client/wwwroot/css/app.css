@@ -81,8 +81,8 @@
 
 html, body {
     height: 100%;
-    background: var(--bg-root);
-    color: var(--text-primary);
+    background: var(--bg-root) !important;
+    color: var(--text-primary) !important;
     font-family: var(--font);
     font-size: 14px;
     line-height: 1.6;
@@ -90,17 +90,137 @@ html, body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-#app { height: 100%; }
+#app { height: 100% !important; background: var(--bg-root) !important; }
 
-h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; }
-h2 { font-size: 1.375rem; font-weight: 600; letter-spacing: -0.01em; }
-h3 { font-size: 1.125rem; font-weight: 600; }
-h4 { font-size: 1rem; font-weight: 600; }
+/* ─── Bootstrap Overrides for Dark Mode ─── */
+.table {
+    --bs-table-bg: var(--bg-primary) !important;
+    --bs-table-color: var(--text-primary) !important;
+    --bs-table-border-color: var(--border) !important;
+    --bs-table-hover-bg: var(--surface-hover) !important;
+    --bs-table-hover-color: var(--text-primary) !important;
+    background-color: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+}
 
-a { color: var(--accent); text-decoration: none; transition: color var(--transition-fast); }
-a:hover { color: var(--accent-hover); }
+.table > :not(caption) > * > * {
+    background-color: transparent !important;
+    color: inherit !important;
+    border-bottom-color: var(--border) !important;
+}
 
-/* ─── App Shell ─── */
+.table thead th {
+    background: var(--surface-2) !important;
+    color: var(--text-muted) !important;
+    border-bottom: 1px solid var(--border-strong) !important;
+}
+
+.modal-content {
+    background-color: var(--surface) !important;
+    border: 1px solid var(--border-strong) !important;
+    color: var(--text-primary) !important;
+}
+
+.form-control, .form-select, .form-select-sm, input, select, textarea {
+    background-color: var(--surface-2) !important;
+    border-color: var(--border) !important;
+    color: var(--text-primary) !important;
+}
+
+.form-control:focus, .form-select:focus, input:focus, select:focus, textarea:focus {
+    background-color: var(--surface-3) !important;
+    border-color: var(--accent) !important;
+    color: var(--text-primary) !important;
+    box-shadow: 0 0 0 0.25rem var(--accent-subtle) !important;
+}
+
+/* ─── Tabs Overrides (Bootstrap) ─── */
+.nav-tabs {
+    border-bottom: 1px solid var(--border) !important;
+    background: var(--surface) !important;
+}
+
+.nav-tabs .nav-link {
+    color: var(--text-secondary) !important;
+    border: none !important;
+    border-bottom: 2px solid transparent !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+    padding: var(--space-md) var(--space-lg) !important;
+}
+
+.nav-tabs .nav-link:hover {
+    color: var(--text-primary) !important;
+    background: var(--surface-hover) !important;
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--accent) !important;
+    border-bottom-color: var(--accent) !important;
+    background: var(--accent-subtle) !important;
+}
+
+/* ─── Sidebar Overrides ─── */
+.sidebar {
+    background: var(--surface) !important;
+}
+
+/* ─── Custom UI Components ─── */
+.nav-tabs {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 var(--space-lg);
+    gap: var(--space-md);
+}
+
+.nav-tab {
+    padding: var(--space-md) var(--space-sm);
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    transition: all var(--transition-fast);
+    cursor: pointer;
+}
+
+.nav-tab:hover {
+    color: var(--text-primary);
+}
+
+.nav-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+
+.top-nav {
+    height: var(--topbar-height);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--space-lg);
+}
+
+.top-nav .logo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+
+.top-nav select {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 4px 8px;
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+}
 .app-shell {
     display: flex;
     height: 100vh;

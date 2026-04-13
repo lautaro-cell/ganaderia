@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace GestorGanadero.Migrations
+namespace App.Infrastructure.Migrations
 {
     /// <inheritdoc />
     public partial class AddLoteAndRefactorEntities : Migration

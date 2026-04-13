@@ -1,18 +1,19 @@
 using Grpc.Core;
 using System;
 using System.Threading.Tasks;
+using GestorGanadero.Client.Services;
 
 // Base helper for gRPC calls from client modules.
 public class GrpcClientBase
 {
-  private readonly TenantState _tenantState;
-  public GrpcClientBase(TenantState tenantState)
+  private readonly AppStateContainer _state;
+  public GrpcClientBase(AppStateContainer state)
   {
-    _tenantState = tenantState;
+    _state = state;
   }
 
   // Expose tenant for header injection in concrete clients
-  protected string TenantId => _tenantState?.ActiveTenantId ?? string.Empty;
+  protected string TenantId => _state?.ActiveTenantId ?? string.Empty;
 
   // Attach tenant-id header to outgoing calls
   protected CallOptions WithTenantHeader(CallOptions options)

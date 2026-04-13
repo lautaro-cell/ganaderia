@@ -1,13 +1,26 @@
-@* Page header component - non-generic to simplify usage *@
-<div class="page-header" style="padding:8px 0 12px 0; border-bottom:1px solid #2A2A2A; margin-bottom:8px;">
-  <div style="font-family:var(--font-display); font-size:1.8em; color:white;">@Title</div>
-  @if (Breadcrumb != null)
-  {
-    <div style="font-size:0.9em; color:#aaa;">@Breadcrumb</div>
-  }
-  <div class="actions" style="margin-top:6px;">
-    @Actions
+@* Page header component - standardized style *@
+<div class="page-header">
+  <div class="page-header-row">
+    <div>
+      <h1>@Title</h1>
+      @if (Breadcrumb != null)
+      {
+        <div class="subtitle">@Breadcrumb</div>
+      }
+    </div>
+    @if (Actions != null)
+    {
+      <div class="actions">
+        @Actions
+      </div>
+    }
   </div>
+  @if (ChildContent != null)
+  {
+    <div class="header-content mt-md">
+      @ChildContent
+    </div>
+  }
 </div>
 
 @code {

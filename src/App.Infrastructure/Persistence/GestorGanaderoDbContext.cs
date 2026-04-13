@@ -68,7 +68,7 @@ public class GestorGanaderoDbContext : DbContext, IApplicationDbContext
         modelBuilder.Entity<LivestockEvent>().HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
         modelBuilder.Entity<AccountingDraft>().HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
         modelBuilder.Entity<Field>().HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
-        modelBuilder.Entity<Lote>().HasQueryFilter(e => e.Field.TenantId == _tenantProvider.TenantId);
+        modelBuilder.Entity<Lote>().HasQueryFilter(e => e.Field!.TenantId == _tenantProvider.TenantId);
         modelBuilder.Entity<GestorMaxConfig>().HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
         // Activity & AnimalCategory support null TenantId (global), so we filter only tenant-specific or global
         modelBuilder.Entity<Activity>().HasQueryFilter(e => e.TenantId == null || e.TenantId == _tenantProvider.TenantId);

@@ -10,11 +10,11 @@ using App.Infrastructure.Persistence;
 
 #nullable disable
 
-namespace GestorGanadero.Migrations
+namespace App.Infrastructure.Migrations
 {
     [DbContext(typeof(GestorGanaderoDbContext))]
-    [Migration("20260320145355_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260325124305_AddLoteAndRefactorEntities")]
+    partial class AddLoteAndRefactorEntities
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,6 +25,21 @@ namespace GestorGanadero.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("ActivityLote", b =>
+                {
+                    b.Property<Guid>("ActivitiesId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("LoteId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("ActivitiesId", "LoteId");
+
+                    b.HasIndex("LoteId");
+
+                    b.ToTable("ActivityLote");
+                });
 
             modelBuilder.Entity("GestorGanadero.Server.Domain.Entities.AccountingDraft", b =>
                 {
@@ -104,6 +119,9 @@ namespace GestorGanadero.Migrations
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsGlobal")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -395,6 +413,12 @@ namespace GestorGanadero.Migrations
                     b.Property<int>("HeadCount")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("LoteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Observations")
+                        .HasColumnType("text");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -425,9 +449,46 @@ namespace GestorGanadero.Migrations
 
                     b.HasIndex("FieldId");
 
+                    b.HasIndex("LoteId");
+
                     b.HasIndex("TenantId");
 
                     b.ToTable("LivestockEvents");
+                });
+
+            modelBuilder.Entity("GestorGanadero.Server.Domain.Entities.Lote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("FieldId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FieldId");
+
+                    b.ToTable("Lotes");
                 });
 
             modelBuilder.Entity("GestorGanadero.Server.Domain.Entities.Tenant", b =>
@@ -494,6 +555,21 @@ namespace GestorGanadero.Migrations
                     b.HasIndex("TenantId");
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("ActivityLote", b =>
+                {
+                    b.HasOne("GestorGanadero.Server.Domain.Entities.Activity", null)
+                        .WithMany()
+                        .HasForeignKey("ActivitiesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GestorGanadero.Server.Domain.Entities.Lote", null)
+                        .WithMany()
+                        .HasForeignKey("LoteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("GestorGanadero.Server.Domain.Entities.AccountingDraft", b =>
@@ -605,6 +681,10 @@ namespace GestorGanadero.Migrations
                         .WithMany("LivestockEvents")
                         .HasForeignKey("FieldId");
 
+                    b.HasOne("GestorGanadero.Server.Domain.Entities.Lote", "Lote")
+                        .WithMany()
+                        .HasForeignKey("LoteId");
+
                     b.HasOne("GestorGanadero.Server.Domain.Entities.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
@@ -619,7 +699,20 @@ namespace GestorGanadero.Migrations
 
                     b.Navigation("Field");
 
+                    b.Navigation("Lote");
+
                     b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("GestorGanadero.Server.Domain.Entities.Lote", b =>
+                {
+                    b.HasOne("GestorGanadero.Server.Domain.Entities.Field", "Field")
+                        .WithMany()
+                        .HasForeignKey("FieldId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Field");
                 });
 
             modelBuilder.Entity("GestorGanadero.Server.Domain.Entities.User", b =>

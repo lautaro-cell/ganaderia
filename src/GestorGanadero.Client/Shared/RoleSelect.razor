@@ -8,7 +8,7 @@
 </select>
 
 @code {
-  [Parameter] public string Selected { get; set; }
+  [Parameter] public string Selected { get; set; } = string.Empty;
   [Parameter] public EventCallback<string> SelectedChanged { get; set; }
   [Parameter] public List<RoleOption> Roles { get; set; } = new List<RoleOption> {
     new RoleOption("Administrador", "🛡 Administrador"),

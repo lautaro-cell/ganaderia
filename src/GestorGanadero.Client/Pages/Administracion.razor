@@ -42,6 +42,13 @@
             </div>
             <span class="material-icons" style="font-size:16px; color:var(--text-muted);">chevron_right</span>
         </button>
+        <button class="master-item @(_section == Section.Plantillas ? "selected" : "")" @onclick="() => _section = Section.Plantillas">
+            <div class="flex items-center gap-sm">
+                <span class="material-icons" style="font-size:20px; color:var(--text-muted);">settings_suggest</span>
+                <span style="font-size:0.875rem; font-weight:500;">Plantillas de Eventos</span>
+            </div>
+            <span class="material-icons" style="font-size:16px; color:var(--text-muted);">chevron_right</span>
+        </button>
         <div style="height:1px; background:var(--border); margin:8px 16px;"></div>
         <button class="master-item @(_section == Section.Usuarios ? "selected" : "")" @onclick="() => _section = Section.Usuarios">
             <div class="flex items-center gap-sm">
@@ -59,13 +66,14 @@
             case Section.Actividades: <ActivitiesAdmin /> break;
             case Section.Categorias: <CategoriesAdmin /> break;
             case Section.Lotes: <LotesAdmin /> break;
+            case Section.Plantillas: <TemplatesAdmin /> break;
             case Section.Usuarios: <UsersAdmin /> break;
         }
     </div>
 </div>
 
 @code {
-    private enum Section { Campos, Actividades, Categorias, Lotes, Usuarios }
+    private enum Section { Campos, Actividades, Categorias, Lotes, Plantillas, Usuarios }
     private Section _section = Section.Campos;
 
     protected override void OnInitialized() => State.OnChange += StateHasChanged;
