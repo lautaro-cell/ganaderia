@@ -13,13 +13,11 @@ namespace GestorGanadero.Server.Grpc;
 public class CatalogServiceImplementation : CatalogService.CatalogServiceBase
 {
     private readonly ICatalogService _catalogService;
-    private readonly ILoteService _loteService;
     private readonly ILogger<CatalogServiceImplementation> _logger;
 
-    public CatalogServiceImplementation(ICatalogService catalogService, ILoteService loteService, ILogger<CatalogServiceImplementation> logger)
+    public CatalogServiceImplementation(ICatalogService catalogService, ILogger<CatalogServiceImplementation> logger)
     {
         _catalogService = catalogService;
-        _loteService = loteService;
         _logger = logger;
     }
 
@@ -108,46 +106,33 @@ public class CatalogServiceImplementation : CatalogService.CatalogServiceBase
         return new ActionResponse { Success = true, Message = "Categoría actualizada." };
     }
 
-    public override async Task<ActionResponse> DeleteAnimalCategory(DeleteEntityRequest request, ServerCallContext context)
+    public override async Task<CategoryMappingList> GetCategoryMappings(GetCatalogRequest request, ServerCallContext context)
     {
-        await _catalogService.DeleteCategoryAsync(Guid.Parse(request.Id));
-        return new ActionResponse { Success = true, Message = "Categoría eliminada." };
-    }
-
-    public override async Task<LoteList> GetLotes(GetLotesRequest request, ServerCallContext context)
-    {
-        if (string.IsNullOrEmpty(request.FieldId) || !Guid.TryParse(request.FieldId, out var fieldId))
-        {
-            return new LoteList();
-        }
-        var lotes = await _loteService.GetLotesByFieldAsync(fieldId);
-        var response = new LoteList();
-        response.Lotes.AddRange(lotes.Select(l => new LoteMessage { Id = l.Id.ToString(), Name = l.Name, FieldId = l.FieldId.ToString(), FieldName = l.FieldName ?? "", ActivityIds = { l.ActivityIds.Select(id => id.ToString()) } }));
+        var mappings = await _catalogService.GetMappingsAsync(Guid.Parse(request.TenantId));
+        var response = new CategoryMappingList();
+        response.Mappings.AddRange(mappings.Select(m => new CategoryMappingMessage { 
+            CategoriaClienteId = m.CategoriaClienteId.ToString(),
+            CategoriaGestorId = m.CategoriaGestorId,
+            CategoriaClienteNombre = m.CategoriaClienteNombre,
+            TenantId = m.TenantId.ToString()
+        }));
         return response;
     }
 
-    public override async Task<ActionResponse> CreateLote(LoteMessage request, ServerCallContext context)
+    public override async Task<ActionResponse> AddCategoryMapping(CategoryMappingMessage request, ServerCallContext context)
     {
-        var id = await _loteService.CreateLoteAsync(new LoteDto(Guid.Empty, request.Name, Guid.Parse(request.FieldId), request.ActivityIds.Select(Guid.Parse), null));
-        return new ActionResponse { Success = true, ObjectId = id.ToString() };
+        await _catalogService.AddMappingAsync(new CategoryMappingDto(
+            Guid.Parse(request.CategoriaClienteId),
+            request.CategoriaGestorId,
+            "", "", Guid.Parse(request.TenantId)
+        ));
+        return new ActionResponse { Success = true };
     }
 
-    public override async Task<ActionResponse> UpdateLote(LoteMessage request, ServerCallContext context)
+    public override async Task<ActionResponse> DeleteCategoryMapping(DeleteCategoryMappingRequest request, ServerCallContext context)
     {
-        await _loteService.UpdateLoteAsync(new LoteDto(Guid.Parse(request.Id), request.Name, Guid.Parse(request.FieldId), request.ActivityIds.Select(Guid.Parse), null));
-        return new ActionResponse { Success = true, Message = "Lote actualizado." };
-    }
-
-    public override async Task<ActionResponse> DeleteLote(DeleteEntityRequest request, ServerCallContext context)
-    {
-        await _loteService.DeleteLoteAsync(Guid.Parse(request.Id));
-        return new ActionResponse { Success = true, Message = "Lote eliminado." };
-    }
-
-    public override async Task<ActionResponse> SaveLoteGeometria(LoteGeoRequest request, ServerCallContext context)
-    {
-        await _loteService.SaveGeometryAsync(Guid.Parse(request.LoteId), request.GeojsonPolygon);
-        return new ActionResponse { Success = true, Message = "Geometría guardada." };
+        await _catalogService.DeleteMappingAsync(Guid.Parse(request.CategoriaClienteId), Guid.Parse(request.TenantId));
+        return new ActionResponse { Success = true };
     }
 }
 

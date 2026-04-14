@@ -55,7 +55,6 @@ builder.Services.AddScoped<ITenantProvider, HttpContextTenantProvider>();
 builder.Services.AddScoped<ITranslationService, TranslationService>();
 builder.Services.AddScoped<ILivestockEventService, LivestockEventService>();
 builder.Services.AddScoped<ICatalogService, CatalogService>();
-builder.Services.AddScoped<ILoteService, LoteService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<ISyncCatalogService, SyncCatalogService>();
