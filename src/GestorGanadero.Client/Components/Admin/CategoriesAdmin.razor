@@ -1,69 +1,135 @@
-@using GestorGanadero.Services.Common.Contracts
 @using GestorGanadero.Services.Catalog.Contracts
+@using GestorGanadero.Services.Common.Contracts
 @using GestorGanadero.Client.Services
 @inject AppStateContainer State
 @inject CatalogService.CatalogServiceClient GrpcClient
 @inject IJSRuntime JS
 
-<div class="split-view">
-    <div class="master-panel">
-        <div style="padding:16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border);">
-            <h3 style="font-size:1rem; font-weight:600;">Categorías</h3>
-            <button class="btn btn-primary btn-sm" @onclick="New"><span class="material-icons" style="font-size:16px;">add</span> Nueva</button>
-        </div>
-        <div style="flex:1; overflow-y:auto;">
-            @if (_items == null) { <div class="loading-container"><div class="spinner"></div></div> }
-            else { @foreach (var c in _items) {
-                <div class="master-item @(_sel?.Id == c.Id ? "selected" : "")" @onclick="() => Sel(c)">
-                    <div><div style="font-size:0.875rem; font-weight:500;">@c.Name</div><div style="font-size:0.75rem; color:var(--text-muted);">@c.StandardWeightKg kg</div></div>
-                </div>
-            }}
+<div class="flex flex-col gap-6">
+    <!-- Header -->
+    <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined text-primary text-2xl">pets</span>
+        <h2 class="text-white text-xl font-bold">Gestión de Categorías de Hacienda</h2>
+    </div>
+    <p class="text-text-secondary text-sm -mt-4">Categorías de animales según tipo, edad y sexo.</p>
+
+    <!-- Table -->
+    <div class="bg-background-main border border-border-dark rounded-2xl overflow-hidden shadow-xl shadow-black/20">
+        <table class="w-full text-left text-sm">
+            <thead class="bg-surface-darker text-text-secondary uppercase text-[10px] tracking-widest">
+                <tr>
+                    <th class="px-6 py-4">Nombre</th>
+                    <th class="px-6 py-4">Actividad</th>
+                    <th class="px-6 py-4">Peso Std</th>
+                    <th class="px-6 py-4 text-right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-border-dark">
+                @if (_items == null || !_items.Any())
+                {
+                    <tr>
+                        <td colspan="4" class="px-6 py-8 text-center text-text-secondary">No hay categorías registradas</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var c in _items)
+                    {
+                        <tr class="hover:bg-surface-dark transition-colors">
+                            <td class="px-6 py-4 text-white font-bold">@c.Name</td>
+                            <td class="px-6 py-4 text-text-body">@(_activities?.FirstOrDefault(a => a.Id == c.ActivityId)?.Name ?? "Sin actividad")</td>
+                            <td class="px-6 py-4 text-text-body">@c.StandardWeightKg kg</td>
+                            <td class="px-6 py-4 text-right">
+                                <button class="p-1.5 text-text-secondary hover:text-red-400 rounded-lg transition-colors" title="Eliminar" @onclick="() => Del(c)">
+                                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Create Form -->
+    <div class="bg-background-main rounded-2xl border border-border-dark p-6">
+        <h3 class="text-white font-bold flex items-center gap-2 mb-6">
+            <span class="material-symbols-outlined text-primary">add_circle</span> Crear Categoría
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <label class="flex flex-col gap-2">
+                <span class="text-white text-sm font-medium">Nombre</span>
+                <input type="text" @bind="_newCat.Name" class="w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 py-3 text-white focus:ring-primary outline-none" placeholder="Nombre" />
+            </label>
+            <label class="flex flex-col gap-2">
+                <span class="text-white text-sm font-medium">Actividad</span>
+                <select @bind="_newCat.ActivityId" class="w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 py-3 text-white focus:ring-primary outline-none cursor-pointer">
+                    <option value="">Seleccionar actividad...</option>
+                    @if (_activities != null) { @foreach (var a in _activities) { <option value="@a.Id">@a.Name</option> } }
+                </select>
+            </label>
+            <label class="flex flex-col gap-2">
+                <span class="text-white text-sm font-medium">Peso estándar (Kg)</span>
+                <input type="number" @bind="_newCat.StandardWeightKg" class="w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 py-3 text-white focus:ring-primary outline-none" placeholder="0" />
+            </label>
+            <button class="md:col-span-3 w-full bg-primary hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2" @onclick="Save">
+                <span class="material-symbols-outlined text-[20px]">add</span> Crear
+            </button>
         </div>
     </div>
-    <div class="detail-panel">
-        @if (_sel == null) { <div class="empty-state"><span class="material-icons">category</span><p>Selecciona o crea una categoría.</p></div> }
-        else {
-            <h3 style="margin-bottom:24px;">@(string.IsNullOrEmpty(_sel.Id) ? "Nueva" : "Editar") Categoría</h3>
-            <div class="form-group"><label>Nombre</label><input type="text" @bind="_sel.Name" class="form-control" /></div>
-            <div class="form-group"><label>Actividad</label>
-                <select @bind="_sel.ActivityId" class="form-control"><option value="">Seleccione...</option>@if(_acts!=null){@foreach(var a in _acts){<option value="@a.Id">@a.Name</option>}}</select>
+
+    <!-- Import Section -->
+    <div class="bg-background-main rounded-2xl border border-border-dark p-6">
+        <h3 class="text-white font-bold flex items-center gap-2 mb-6">
+            <span class="material-symbols-outlined text-primary">upload</span> Importar Categorías desde CSV/Excel
+        </h3>
+        <p class="text-text-secondary text-sm mb-4">Suba un archivo CSV o Excel con las columnas: <span class="text-primary">Nombre, Actividad, Peso estandar</span></p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div class="md:col-span-2 bg-[#271c1c] border border-[#543b3b] rounded-xl px-4 py-3 flex items-center gap-3 text-text-secondary">
+                <span class="material-symbols-outlined">attach_file</span>
+                Sin archivos seleccionados
             </div>
-            <div class="form-group"><label>Peso Estándar (KG)</label><input type="text" @bind="_sel.StandardWeightKg" class="form-control" /></div>
-            <div class="form-group"><label>Tipo</label><input type="text" @bind="_sel.CategoryType" class="form-control" placeholder="Macho/Hembra..." /></div>
-            <div class="checkbox-group" style="margin-bottom:24px;"><input type="checkbox" @bind="_sel.IsActive" id="catAct" /><label for="catAct">Activo</label></div>
-            @if (!string.IsNullOrEmpty(_msg)) { <div class="alert @(_ok?"alert-success":"alert-danger") mb-md" style="margin-bottom:16px;">@_msg</div> }
-            <div class="flex gap-sm">
-                @if (!string.IsNullOrEmpty(_sel.Id)) { <button class="btn btn-danger-outline" @onclick="Del">Eliminar</button> }
-                <div style="flex:1;"></div>
-                <button class="btn btn-primary" @onclick="Save" disabled="@_saving">@if(_saving){<span class="spinner"></span>} Guardar</button>
+            <div class="flex gap-2">
+                <button class="flex-1 bg-surface-darker border border-border-dark text-white rounded-lg px-4 py-3 text-sm font-bold flex items-center gap-2 hover:bg-border-dark transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">download</span> Plantilla
+                </button>
+                <button class="flex-1 bg-surface-darker border border-border-dark text-white rounded-lg px-4 py-3 text-sm font-bold flex items-center gap-2 hover:bg-border-dark transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">visibility</span> Previsualizar
+                </button>
             </div>
-        }
+            <button class="md:col-span-3 w-full bg-primary hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined text-[20px]">upload</span> Importar
+            </button>
+        </div>
     </div>
 </div>
 
 @code {
     private List<AnimalCategoryMessage>? _items;
-    private List<ActivityMessage>? _acts;
-    private AnimalCategoryMessage? _sel;
-    private bool _saving; private string _msg = ""; private bool _ok;
+    private List<ActivityMessage>? _activities;
+    private AnimalCategoryMessage _newCat = new() { IsActive = true };
 
     protected override async Task OnInitializedAsync() => await Load();
+
     private async Task Load() {
         if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
-        try { var r = await GrpcClient.GetAnimalCategoriesAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId }); _items = r.Categories.ToList(); var a = await GrpcClient.GetActivitiesAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId }); _acts = a.Activities.ToList(); } catch { }
+        var r = await GrpcClient.GetAnimalCategoriesAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
+        _items = r.Categories.ToList();
+        var a = await GrpcClient.GetActivitiesAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
+        _activities = a.Activities.ToList();
+        _newCat.TenantId = State.ActiveTenantId;
     }
-    private void New() { _sel = new AnimalCategoryMessage { IsActive = true, TenantId = State.ActiveTenantId }; _msg = ""; }
-    private void Sel(AnimalCategoryMessage c) { _sel = new AnimalCategoryMessage { Id = c.Id, Name = c.Name, ActivityId = c.ActivityId, StandardWeightKg = c.StandardWeightKg, CategoryType = c.CategoryType, IsActive = c.IsActive, TenantId = c.TenantId }; _msg = ""; }
+
     private async Task Save() {
-        if (_sel == null || string.IsNullOrWhiteSpace(_sel.Name)) return;
-        _saving = true; _msg = ""; StateHasChanged();
-        try { var r = string.IsNullOrEmpty(_sel.Id) ? await GrpcClient.CreateAnimalCategoryAsync(_sel) : await GrpcClient.UpdateAnimalCategoryAsync(_sel); if (r.Success) { _ok = true; _msg = "Guardado."; await Load(); } else { _ok = false; _msg = r.Message; } }
-        catch (Exception ex) { _ok = false; _msg = $"Error: {ex.Message}"; }
-        finally { _saving = false; StateHasChanged(); }
+        if (string.IsNullOrWhiteSpace(_newCat.Name)) return;
+        await GrpcClient.CreateAnimalCategoryAsync(_newCat);
+        _newCat = new AnimalCategoryMessage { IsActive = true, TenantId = State.ActiveTenantId };
+        await Load();
     }
-    private async Task Del() {
-        if (_sel == null || string.IsNullOrEmpty(_sel.Id)) return;
-        if (!await JS.InvokeAsync<bool>("confirm", $"Eliminar '{_sel.Name}'?")) return;
-        try { var r = await GrpcClient.DeleteAnimalCategoryAsync(new DeleteEntityRequest { Id = _sel.Id, TenantId = State.ActiveTenantId }); if (r.Success) { _sel = null; await Load(); } } catch (Exception ex) { _ok = false; _msg = $"Error: {ex.Message}"; }
+
+    private async Task Del(AnimalCategoryMessage c) {
+        if (!await JS.InvokeAsync<bool>("confirm", "Eliminar?")) return;
+        await GrpcClient.DeleteAnimalCategoryAsync(new DeleteEntityRequest { Id = c.Id, TenantId = State.ActiveTenantId });
+        await Load();
     }
 }

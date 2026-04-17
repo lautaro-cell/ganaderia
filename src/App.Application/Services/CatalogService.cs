@@ -146,6 +146,138 @@ public class CatalogService : ICatalogService
             await _context.SaveChangesAsync();
         }
     }
+
+    // --- Mappings ---
+    public async Task<IEnumerable<CategoryMappingDto>> GetMappingsAsync(Guid tenantId)
+    {
+        return await _context.CategoryMappings
+            .Include(m => m.CategoriaCliente)
+            .Where(m => m.TenantId == tenantId)
+            .Select(m => new CategoryMappingDto(m.CategoriaClienteId, m.CategoriaGestorId, m.CategoriaCliente != null ? m.CategoriaCliente.Name : "Desconocido", "", tenantId))
+            .ToListAsync();
+    }
+
+    public async Task AddMappingAsync(CategoryMappingDto dto)
+    {
+        var mapping = new CategoryMapping
+        {
+            TenantId = dto.TenantId,
+            CategoriaClienteId = dto.CategoriaClienteId,
+            CategoriaGestorId = dto.CategoriaGestorId
+        };
+        _context.CategoryMappings.Add(mapping);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task DeleteMappingAsync(Guid categoriaClienteId, Guid tenantId)
+    {
+        var mapping = await _context.CategoryMappings
+            .FirstOrDefaultAsync(m => m.CategoriaClienteId == categoriaClienteId && m.TenantId == tenantId);
+        if (mapping != null)
+        {
+            _context.CategoryMappings.Remove(mapping);
+            await _context.SaveChangesAsync();
+        }
+    }
+
+    // --- Event Types ---
+    public async Task<IEnumerable<EventTypeDto>> GetEventTypesAsync(Guid tenantId)
+    {
+        return await _context.EventTemplates
+            .Where(e => e.TenantId == tenantId)
+            .Select(e => new EventTypeDto(e.Id, e.Code, e.Name, e.DebitAccountCode, e.CreditAccountCode, e.RequiresOriginDestination, e.RequiresDestinationField, e.IsActive, tenantId))
+            .ToListAsync();
+    }
+
+    public async Task<Guid> CreateEventTypeAsync(EventTypeDto dto)
+    {
+        var et = new EventTemplate
+        {
+            Code = dto.Code,
+            Name = dto.Name,
+            DebitAccountCode = dto.DebitAccountCode,
+            CreditAccountCode = dto.CreditAccountCode,
+            RequiresOriginDestination = dto.RequiresOriginDestination,
+            RequiresDestinationField = dto.RequiresDestinationField,
+            TenantId = dto.TenantId,
+            IsActive = true
+        };
+        _context.EventTemplates.Add(et);
+        await _context.SaveChangesAsync();
+        return et.Id;
+    }
+
+    public async Task UpdateEventTypeAsync(EventTypeDto dto)
+    {
+        var et = await _context.EventTemplates.FindAsync(dto.Id);
+        if (et == null) throw new KeyNotFoundException("Tipo de evento no encontrado");
+        et.Name = dto.Name;
+        et.Code = dto.Code;
+        et.DebitAccountCode = dto.DebitAccountCode;
+        et.CreditAccountCode = dto.CreditAccountCode;
+        et.RequiresOriginDestination = dto.RequiresOriginDestination;
+        et.RequiresDestinationField = dto.RequiresDestinationField;
+        et.IsActive = dto.IsActive;
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task DeleteEventTypeAsync(Guid id)
+    {
+        var et = await _context.EventTemplates.FindAsync(id);
+        if (et != null)
+        {
+            _context.EventTemplates.Remove(et);
+            await _context.SaveChangesAsync();
+        }
+    }
+
+    // --- Accounts ---
+    public async Task<IEnumerable<AccountDto>> GetAccountsAsync(Guid tenantId)
+    {
+        return await _context.Accounts
+            .Include(a => a.Plan)
+            .Where(a => a.TenantId == tenantId)
+            .Select(a => new AccountDto(a.Id, a.Code, a.Name, a.PlanId, a.Plan!.Name, a.NormalType.ToString(), a.IsActive, tenantId))
+            .ToListAsync();
+    }
+
+    public async Task<Guid> CreateAccountAsync(AccountDto dto)
+    {
+        var account = new Account
+        {
+            Code = dto.Code,
+            Name = dto.Name,
+            PlanId = dto.PlanId,
+            NormalType = Enum.Parse<NormalType>(dto.NormalType),
+            TenantId = dto.TenantId,
+            IsActive = true
+        };
+        _context.Accounts.Add(account);
+        await _context.SaveChangesAsync();
+        return account.Id;
+    }
+
+    public async Task UpdateAccountAsync(AccountDto dto)
+    {
+        var account = await _context.Accounts.FindAsync(dto.Id);
+        if (account == null) throw new KeyNotFoundException("Cuenta no encontrada");
+        account.Code = dto.Code;
+        account.Name = dto.Name;
+        account.PlanId = dto.PlanId;
+        account.NormalType = Enum.Parse<NormalType>(dto.NormalType);
+        account.IsActive = dto.IsActive;
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task DeleteAccountAsync(Guid id)
+    {
+        var account = await _context.Accounts.FindAsync(id);
+        if (account != null)
+        {
+            _context.Accounts.Remove(account);
+            await _context.SaveChangesAsync();
+        }
+    }
 }
 
 

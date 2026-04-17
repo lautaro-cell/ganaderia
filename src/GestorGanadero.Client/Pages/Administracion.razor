@@ -4,77 +4,53 @@
 @inject AppStateContainer State
 @implements IDisposable
 
-<div class="page-header">
-    <h1>Administración</h1>
-    <span class="subtitle">Configura campos, actividades, categorías, lotes y usuarios</span>
+<div class="flex flex-col gap-1 mb-8">
+    <h1 class="text-white text-3xl sm:text-4xl font-black leading-tight tracking-tight">Administración</h1>
+    <p class="text-text-secondary text-sm">Configuración y parametrización del sistema</p>
 </div>
 
-<div class="split-view" style="min-height: calc(100vh - 200px);">
-    <aside class="master-panel">
-        <div style="padding: 16px 16px 8px;">
-            <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted);">Secciones</div>
-        </div>
-        <button class="master-item @(_section == Section.Campos ? "selected" : "")" @onclick="() => _section = Section.Campos">
-            <div class="flex items-center gap-sm">
-                <span class="material-icons" style="font-size:20px; color:var(--text-muted);">terrain</span>
-                <span style="font-size:0.875rem; font-weight:500;">Campos</span>
-            </div>
-            <span class="material-icons" style="font-size:16px; color:var(--text-muted);">chevron_right</span>
+<!-- Tabs Pills -->
+<div class="flex flex-wrap gap-2 mb-8">
+    @foreach (var section in Enum.GetValues<Section>())
+    {
+        <button class="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all border @(_section == section ? "bg-primary text-white border-primary" : "bg-surface-dark border-border-dark text-text-secondary hover:bg-surface-darker hover:border-text-secondary")" @onclick='() => _section = section'>
+            <span class="material-symbols-outlined text-lg">@GetIcon(section)</span> @GetLabel(section)
         </button>
-        <button class="master-item @(_section == Section.Actividades ? "selected" : "")" @onclick="() => _section = Section.Actividades">
-            <div class="flex items-center gap-sm">
-                <span class="material-icons" style="font-size:20px; color:var(--text-muted);">assignment</span>
-                <span style="font-size:0.875rem; font-weight:500;">Actividades</span>
-            </div>
-            <span class="material-icons" style="font-size:16px; color:var(--text-muted);">chevron_right</span>
-        </button>
-        <button class="master-item @(_section == Section.Categorias ? "selected" : "")" @onclick="() => _section = Section.Categorias">
-            <div class="flex items-center gap-sm">
-                <span class="material-icons" style="font-size:20px; color:var(--text-muted);">category</span>
-                <span style="font-size:0.875rem; font-weight:500;">Categorías</span>
-            </div>
-            <span class="material-icons" style="font-size:16px; color:var(--text-muted);">chevron_right</span>
-        </button>
-        <button class="master-item @(_section == Section.Lotes ? "selected" : "")" @onclick="() => _section = Section.Lotes">
-            <div class="flex items-center gap-sm">
-                <span class="material-icons" style="font-size:20px; color:var(--text-muted);">grid_view</span>
-                <span style="font-size:0.875rem; font-weight:500;">Lotes</span>
-            </div>
-            <span class="material-icons" style="font-size:16px; color:var(--text-muted);">chevron_right</span>
-        </button>
-        <button class="master-item @(_section == Section.Plantillas ? "selected" : "")" @onclick="() => _section = Section.Plantillas">
-            <div class="flex items-center gap-sm">
-                <span class="material-icons" style="font-size:20px; color:var(--text-muted);">settings_suggest</span>
-                <span style="font-size:0.875rem; font-weight:500;">Plantillas de Eventos</span>
-            </div>
-            <span class="material-icons" style="font-size:16px; color:var(--text-muted);">chevron_right</span>
-        </button>
-        <div style="height:1px; background:var(--border); margin:8px 16px;"></div>
-        <button class="master-item @(_section == Section.Usuarios ? "selected" : "")" @onclick="() => _section = Section.Usuarios">
-            <div class="flex items-center gap-sm">
-                <span class="material-icons" style="font-size:20px; color:var(--text-muted);">people</span>
-                <span style="font-size:0.875rem; font-weight:500;">Usuarios</span>
-            </div>
-            <span class="material-icons" style="font-size:16px; color:var(--text-muted);">chevron_right</span>
-        </button>
-    </aside>
+    }
+</div>
 
-    <div class="detail-panel">
-        @switch (_section)
-        {
-            case Section.Campos: <FieldsAdmin /> break;
-            case Section.Actividades: <ActivitiesAdmin /> break;
-            case Section.Categorias: <CategoriesAdmin /> break;
-            case Section.Lotes: <LotesAdmin /> break;
-            case Section.Plantillas: <TemplatesAdmin /> break;
-            case Section.Usuarios: <UsersAdmin /> break;
-        }
-    </div>
+<!-- Main Section Content -->
+<div class="bg-surface-dark border border-border-dark rounded-2xl p-6 shadow-xl shadow-black/20">
+    @switch (_section)
+    {
+        case Section.Campos: <FieldsAdmin /> break;
+        case Section.Actividades: <ActivitiesAdmin /> break;
+        case Section.Categorias: <CategoriesAdmin /> break;
+        case Section.Mapeo: <MapeoAdmin /> break;
+        case Section.TiposEvento: <TiposEventoAdmin /> break;
+        case Section.Cuentas: <CuentasAdmin /> break;
+        case Section.Planes: <PlanesAdmin /> break;
+        case Section.Empresas: <EmpresasAdmin /> break;
+        case Section.Usuarios: <UsersAdmin /> break;
+        default: <div class="text-text-secondary text-center py-12">Sección en construcción</div> break;
+    }
 </div>
 
 @code {
-    private enum Section { Campos, Actividades, Categorias, Lotes, Plantillas, Usuarios }
+    private enum Section { Campos, Actividades, Categorias, Mapeo, TiposEvento, Cuentas, Planes, Empresas, Usuarios }
     private Section _section = Section.Campos;
+
+    private string GetLabel(Section s) => s switch {
+        Section.Campos => "Campos", Section.Actividades => "Actividades", Section.Categorias => "Categorías",
+        Section.Mapeo => "Mapeo", Section.TiposEvento => "Tipos Evento", Section.Cuentas => "Cuentas",
+        Section.Planes => "Planes", Section.Empresas => "Empresas", Section.Usuarios => "Usuarios", _ => ""
+    };
+    
+    private string GetIcon(Section s) => s switch {
+        Section.Campos => "terrain", Section.Actividades => "assignment", Section.Categorias => "pets",
+        Section.Mapeo => "swap_horiz", Section.TiposEvento => "event", Section.Cuentas => "account_balance",
+        Section.Planes => "grid_view", Section.Empresas => "business", Section.Usuarios => "group", _ => ""
+    };
 
     protected override void OnInitialized() => State.OnChange += StateHasChanged;
     public void Dispose() => State.OnChange -= StateHasChanged;

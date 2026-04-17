@@ -3,60 +3,60 @@
 @inject AppStateContainer State
 @inject OperationsService.OperationsServiceClient GrpcClient
 
-<div class="admin-section">
-    <div class="flex justify-between items-center mb-md">
-        <h3>Plantillas de Eventos</h3>
-        <button class="btn btn-primary btn-sm" disabled>
-            <span class="material-icons" style="font-size:18px;">add</span>
-            Nueva Plantilla
+<div class="p-6">
+    <div class="flex justify-between items-center mb-8">
+        <h3 class="text-xl font-bold text-white">Plantillas de Eventos</h3>
+        <button class="bg-primary hover:bg-primary-dark text-white rounded-lg px-4 py-2 text-sm font-bold transition-colors flex items-center gap-2" disabled>
+            <span class="material-symbols-outlined text-[18px]">add</span> Nueva Plantilla
         </button>
     </div>
 
     @if (_templates == null)
     {
-        <div class="loading-container"><div class="spinner"></div></div>
+        <div class="flex justify-center p-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+        </div>
     }
     else
     {
-        <GestorGanadero.Client.Shared.DataTable TItem="EventTemplate" Items="_templates">
-            <HeaderTemplate>
-                <th>Icono</th>
-                <th>Nombre</th>
-                <th>Campos Requeridos</th>
-                <th>Cuentas Contables</th>
-                <th class="text-center">Acciones</th>
-            </HeaderTemplate>
-            <RowTemplate Context="t">
-                <td>
-                    <div class="icon-circle" style="background:@(t.ColorCode + "18"); color:@t.ColorCode;">
-                        <span class="material-icons">@t.Icon</span>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            @foreach (var t in _templates)
+            {
+                <div class="bg-background-main border border-border-dark rounded-2xl p-6 flex flex-col gap-4 hover:border-primary/50 transition-colors shadow-sm">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:@(t.ColorCode + "18"); color:@t.ColorCode;">
+                            <span class="material-symbols-outlined text-2xl">@t.Icon</span>
+                        </div>
+                        <h4 class="text-white font-bold text-lg">@t.Name</h4>
                     </div>
-                </td>
-                <td><strong>@t.Name</strong></td>
-                <td>
-                    <div class="flex gap-xs flex-wrap">
-                        @foreach (var f in t.Fields)
-                        {
-                            <span class="badge badge-neutral">@f</span>
-                        }
+                    
+                    <div class="flex-1">
+                        <p class="text-text-secondary text-xs font-bold uppercase mb-2">Campos Requeridos</p>
+                        <div class="flex flex-wrap gap-2">
+                            @foreach (var f in t.Fields)
+                            {
+                                <span class="px-2 py-1 rounded-md bg-border-dark text-white text-[10px] font-mono">@f</span>
+                            }
+                        </div>
                     </div>
-                </td>
-                <td>
-                    <span class="text-secondary" style="font-size:0.8rem;">
-                        <span class="material-icons" style="font-size:14px; vertical-align:middle;">account_balance</span>
-                        Configuración por defecto
-                    </span>
-                </td>
-                <td class="text-center">
-                    <button class="btn-icon" title="Configurar Mapeo Contable">
-                        <span class="material-icons">settings_suggest</span>
-                    </button>
-                    <button class="btn-icon" title="Editar">
-                        <span class="material-icons">edit</span>
-                    </button>
-                </td>
-            </RowTemplate>
-        </GestorGanadero.Client.Shared.DataTable>
+                    
+                    <div class="pt-4 border-t border-border-dark flex justify-between items-center">
+                        <span class="text-text-secondary text-xs flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">account_balance</span>
+                            Configuración contable activa
+                        </span>
+                        <div class="flex gap-2">
+                            <button class="p-2 text-text-secondary hover:text-white hover:bg-surface-darker rounded-lg transition-colors" title="Configurar Mapeo">
+                                <span class="material-symbols-outlined text-[18px]">settings_suggest</span>
+                            </button>
+                            <button class="p-2 text-text-secondary hover:text-white hover:bg-surface-darker rounded-lg transition-colors" title="Editar">
+                                <span class="material-symbols-outlined text-[18px]">edit</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
     }
 </div>
 

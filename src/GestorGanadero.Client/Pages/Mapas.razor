@@ -8,24 +8,24 @@
 
 <div class="page-header">
     <h1>Mapas y Catastro</h1>
-    <span class="subtitle">Gestion geografica de lotes</span>
+    <span class="subtitle">Gestion geografica de campos</span>
 </div>
 
 <div class="card" style="padding:0; position:relative; overflow:hidden;">
     <div style="position:absolute; top:16px; left:56px; z-index:1000; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:16px; box-shadow:var(--shadow-lg); max-width:300px;">
         <div class="form-group" style="margin-bottom:0;">
-            <label>Lote para dibujar</label>
-            <select @bind="_activeLoteId" class="form-control">
-                <option value="">Seleccione un lote...</option>
-                @if (_lotes != null)
+            <label>Campo para dibujar</label>
+            <select @bind="_activeFieldId" class="form-control">
+                <option value="">Seleccione un campo...</option>
+                @if (_fields != null)
                 {
-                    @foreach (var l in _lotes)
+                    @foreach (var f in _fields)
                     {
-                        <option value="@l.Id">@l.Name (@l.FieldName)</option>
+                        <option value="@f.Id">@f.Name</option>
                     }
                 }
             </select>
-            <div style="font-size:0.7rem; color:var(--text-muted); margin-top:6px;">Seleccione un lote antes de usar la herramienta de dibujo.</div>
+            <div style="font-size:0.7rem; color:var(--text-muted); margin-top:6px;">Seleccione un campo antes de usar la herramienta de dibujo.</div>
         </div>
 
         @if (!string.IsNullOrEmpty(_statusMsg))
@@ -40,8 +40,8 @@
 </div>
 
 @code {
-    private List<LoteMessage>? _lotes;
-    private string _activeLoteId = "";
+    private List<FieldMessage>? _fields;
+    private string _activeFieldId = "";
     private string _statusMsg = "";
     private bool _statusOk;
     private DotNetObjectReference<Mapas>? _objRef;
@@ -49,7 +49,7 @@
     protected override async Task OnInitializedAsync()
     {
         State.OnChange += StateHasChanged;
-        await LoadLotes();
+        await LoadFields();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -58,59 +58,32 @@
         {
             _objRef = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("initMap", "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", _objRef);
-            await RenderPolygons();
+            // await RenderPolygons(); // Assuming geometries will be added to FieldMessage later
         }
     }
 
-    private async Task LoadLotes()
+    private async Task LoadFields()
     {
         if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
         try
         {
-            var r = await GrpcClient.GetLotesAsync(new GetLotesRequest { TenantId = State.ActiveTenantId });
-            _lotes = r.Lotes.ToList();
+            var r = await GrpcClient.GetFieldsAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
+            _fields = r.Fields.ToList();
         }
         catch { }
-    }
-
-    private async Task RenderPolygons()
-    {
-        if (_lotes == null) return;
-        foreach (var l in _lotes.Where(l => !string.IsNullOrEmpty(l.GeojsonPolygon)))
-            await JS.InvokeVoidAsync("addLotePolygon", l.Id, l.Name, l.GeojsonPolygon);
     }
 
     [JSInvokable]
     public async Task OnPolygonDrawn(string geojson)
     {
-        if (string.IsNullOrEmpty(_activeLoteId))
+        if (string.IsNullOrEmpty(_activeFieldId))
         {
             _statusOk = false;
-            _statusMsg = "Debe seleccionar un lote antes de guardar.";
+            _statusMsg = "Debe seleccionar un campo antes de guardar.";
             StateHasChanged();
             return;
         }
-        try
-        {
-            var r = await GrpcClient.SaveLoteGeometriaAsync(new LoteGeoRequest { LoteId = _activeLoteId, GeojsonPolygon = geojson });
-            if (r.Success)
-            {
-                _statusOk = true;
-                _statusMsg = "Geometria guardada correctamente.";
-                var lote = _lotes?.FirstOrDefault(l => l.Id == _activeLoteId);
-                if (lote != null) await JS.InvokeVoidAsync("addLotePolygon", lote.Id, lote.Name, geojson);
-            }
-            else
-            {
-                _statusOk = false;
-                _statusMsg = "Error al guardar geometria.";
-            }
-        }
-        catch (Exception ex)
-        {
-            _statusOk = false;
-            _statusMsg = $"Error: {ex.Message}";
-        }
+        // Implementation for saving field geometry will go here
         StateHasChanged();
     }
 

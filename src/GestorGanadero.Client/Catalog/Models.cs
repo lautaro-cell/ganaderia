@@ -8,18 +8,8 @@ public class FieldModel
   public string Description { get; set; } = string.Empty;
   public bool IsActive { get; set; }
   public List<string> Activities { get; set; } = new List<string>();
-}
-
-public class LoteModel
-{
-  public string Id { get; set; } = string.Empty;
-  public string Name { get; set; } = string.Empty;
-  public string FieldId { get; set; } = string.Empty;
-  public List<string> ActivityIds { get; set; } = new List<string>();
-  public string FieldName { get; set; } = string.Empty;
   public string GeoJsonPolygon { get; set; } = string.Empty;
   public bool HasGeometry => !string.IsNullOrWhiteSpace(GeoJsonPolygon);
-  public string TenantId { get; set; } = string.Empty;
 }
 
 public class ActivityModel

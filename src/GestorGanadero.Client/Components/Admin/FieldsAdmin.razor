@@ -5,74 +5,110 @@
 @inject CatalogService.CatalogServiceClient GrpcClient
 @inject IJSRuntime JS
 
-<div class="split-view">
-    <div class="master-panel">
-        <div style="padding:16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border);">
-            <h3 style="font-size:1rem; font-weight:600;">Campos</h3>
-            <button class="btn btn-primary btn-sm" @onclick="NewField">
-                <span class="material-icons" style="font-size:16px;">add</span> Nuevo
+@using GestorGanadero.Services.Common.Contracts
+@using GestorGanadero.Services.Catalog.Contracts
+@using GestorGanadero.Client.Services
+@inject AppStateContainer State
+@inject CatalogService.CatalogServiceClient GrpcClient
+@inject IJSRuntime JS
+
+<div class="flex flex-col md:flex-row h-full">
+    <div class="w-full md:w-80 border-r border-border-dark flex flex-col bg-[#1A1A1A]">
+        <div class="p-4 border-b border-border-dark flex justify-between items-center bg-[#222222]">
+            <h3 class="text-white font-bold">Campos</h3>
+            <button class="bg-primary hover:bg-primary-dark text-white rounded-lg px-3 py-1.5 text-xs font-bold transition-colors flex items-center gap-1" @onclick="NewField">
+                <span class="material-symbols-outlined text-[16px]">add</span> Nuevo
             </button>
         </div>
-        <div style="flex:1; overflow-y:auto;">
+        <div class="flex-1 overflow-y-auto p-2">
             @if (_fields == null)
             {
-                <div class="loading-container"><div class="spinner"></div></div>
+                <div class="flex justify-center p-8">
+                    <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+                </div>
             }
             else
             {
-                @foreach (var f in _fields)
-                {
-                    <div class="master-item @(_selected?.Id == f.Id ? "selected" : "")" @onclick="() => Select(f)">
-                        <div>
-                            <div style="font-size:0.875rem; font-weight:500;">@f.Name</div>
-                            <div style="font-size:0.75rem; color:var(--text-muted);">@f.Description</div>
-                        </div>
-                        <span class="badge @(f.IsActive ? "badge-success" : "badge-neutral")">@(f.IsActive ? "Activo" : "Inactivo")</span>
-                    </div>
-                }
+                <div class="flex flex-col gap-1">
+                    @foreach (var f in _fields)
+                    {
+                        <button class="w-full text-left p-3 rounded-xl transition-all border @(_selected?.Id == f.Id ? "bg-primary/10 border-primary/30" : "border-transparent hover:bg-[#2C2C2C]")" @onclick="() => Select(f)">
+                            <div class="flex justify-between items-start mb-1">
+                                <span class="text-sm font-bold @(_selected?.Id == f.Id ? "text-primary" : "text-white")">@f.Name</span>
+                                <span class="text-[10px] px-2 py-0.5 rounded-full font-bold @(f.IsActive ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400")">@(f.IsActive ? "Activo" : "Inactivo")</span>
+                            </div>
+                            <div class="text-xs text-text-secondary line-clamp-2">@(string.IsNullOrEmpty(f.Description) ? "Sin descripción" : f.Description)</div>
+                        </button>
+                    }
+                </div>
             }
         </div>
     </div>
 
-    <div class="detail-panel">
+    <div class="flex-1 p-6 lg:p-10 bg-surface-dark overflow-y-auto">
         @if (_selected == null)
         {
-            <div class="empty-state">
-                <span class="material-icons">terrain</span>
-                <p>Selecciona un campo o crea uno nuevo.</p>
+            <div class="h-full flex flex-col items-center justify-center text-center opacity-50">
+                <span class="material-symbols-outlined text-6xl mb-4">terrain</span>
+                <p class="text-lg font-bold text-white">Selecciona un campo</p>
+                <p class="text-sm text-text-secondary">O crea uno nuevo para empezar.</p>
             </div>
         }
         else
         {
-            <h3 style="margin-bottom:24px;">@(string.IsNullOrEmpty(_selected.Id) ? "Nuevo Campo" : "Editar Campo")</h3>
-            <div class="form-group">
-                <label>Nombre</label>
-                <input type="text" @bind="_selected.Name" class="form-control" placeholder="Ej: La Estancia" />
-            </div>
-            <div class="form-group">
-                <label>Descripción</label>
-                <textarea @bind="_selected.Description" class="form-control" rows="3" placeholder="Ubicación, descripción..."></textarea>
-            </div>
-            <div class="checkbox-group" style="margin-bottom:24px;">
-                <input type="checkbox" @bind="_selected.IsActive" id="fieldActive" />
-                <label for="fieldActive">Activo</label>
-            </div>
+            <div class="max-w-2xl mx-auto">
+                <h3 class="text-2xl font-bold text-white mb-8 border-b border-border-dark pb-4">@(string.IsNullOrEmpty(_selected.Id) ? "Nuevo Campo" : "Editar Campo")</h3>
+                
+                <div class="flex flex-col gap-6">
+                    <label class="flex flex-col gap-2">
+                        <span class="text-white text-sm font-medium">Nombre del campo <span class="text-primary">*</span></span>
+                        <input type="text" @bind="_selected.Name" class="form-input w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 text-white focus:ring-primary focus:border-primary h-12 outline-none" placeholder="Ej: La Estancia" />
+                    </label>
 
-            @if (!string.IsNullOrEmpty(_msg))
-            {
-                <div class="alert @(_ok ? "alert-success" : "alert-danger") mb-md" style="margin-bottom:16px;">@_msg</div>
-            }
+                    <label class="flex flex-col gap-2">
+                        <span class="text-white text-sm font-medium">Descripción</span>
+                        <textarea @bind="_selected.Description" class="form-input w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 py-3 text-white focus:ring-primary focus:border-primary outline-none resize-none" rows="4" placeholder="Ubicación, detalles..."></textarea>
+                    </label>
 
-            <div class="flex gap-sm">
-                @if (!string.IsNullOrEmpty(_selected.Id))
-                {
-                    <button class="btn btn-danger-outline" @onclick="DeleteField">Eliminar</button>
-                }
-                <div style="flex:1;"></div>
-                <button class="btn btn-primary" @onclick="SaveField" disabled="@_saving">
-                    @if (_saving) { <span class="spinner"></span> }
-                    Guardar
-                </button>
+                    <label class="flex items-center gap-3 cursor-pointer mt-2 p-4 rounded-xl border border-border-dark bg-[#222222] hover:bg-[#271c1c] transition-colors w-fit">
+                        <input type="checkbox" @bind="_selected.IsActive" class="w-5 h-5 rounded bg-[#1A1A1A] border-[#595959] text-primary focus:ring-primary focus:ring-offset-[#2C2C2C]" />
+                        <span class="text-white text-sm font-medium">Campo Activo en el sistema</span>
+                    </label>
+
+                    @if (!string.IsNullOrEmpty(_msg))
+                    {
+                        <div class="flex items-center gap-2 p-4 rounded-xl @(_ok ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-red-500/10 border-red-500/20 text-red-400") border mt-4">
+                            <span class="material-symbols-outlined text-xl">@(_ok ? "check_circle" : "error")</span>
+                            <span class="text-sm">@_msg</span>
+                        </div>
+                    }
+
+                    <div class="flex justify-between items-center mt-8 pt-6 border-t border-border-dark">
+                        @if (!string.IsNullOrEmpty(_selected.Id))
+                        {
+                            <button class="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors font-bold text-sm" @onclick="DeleteField">
+                                <span class="material-symbols-outlined text-[18px]">delete</span> Eliminar
+                            </button>
+                        }
+                        else
+                        {
+                            <div></div>
+                        }
+                        
+                        <button class="flex items-center gap-2 px-8 py-3 rounded-xl bg-primary hover:bg-red-700 transition-colors text-white font-bold shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed" @onclick="SaveField" disabled="@_saving">
+                            @if (_saving)
+                            {
+                                <div class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+                                <span>Guardando...</span>
+                            }
+                            else
+                            {
+                                <span class="material-symbols-outlined text-[20px]">save</span>
+                                <span>Guardar</span>
+                            }
+                        </button>
+                    </div>
+                </div>
             </div>
         }
     </div>

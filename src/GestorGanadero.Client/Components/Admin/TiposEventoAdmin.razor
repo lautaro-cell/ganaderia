@@ -1,0 +1,122 @@
+@using GestorGanadero.Services.Catalog.Contracts
+@using GestorGanadero.Services.Common.Contracts
+@using GestorGanadero.Client.Services
+@inject AppStateContainer State
+@inject CatalogService.CatalogServiceClient GrpcClient
+@inject IJSRuntime JS
+
+<div class="flex flex-col gap-6">
+    <!-- Header -->
+    <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined text-primary text-2xl">event</span>
+        <h2 class="text-white text-xl font-bold">Gestión de Tipos de Evento</h2>
+    </div>
+    <p class="text-text-secondary text-sm -mt-4">Configuración de eventos con sus cuentas contables asociadas.</p>
+
+    <!-- Table -->
+    <div class="bg-background-main border border-border-dark rounded-2xl overflow-hidden shadow-xl shadow-black/20">
+        <table class="w-full text-left text-sm">
+            <thead class="bg-surface-darker text-text-secondary uppercase text-[10px] tracking-widest">
+                <tr>
+                    <th class="px-6 py-4">Código</th>
+                    <th class="px-6 py-4">Nombre</th>
+                    <th class="px-6 py-4">Origen/Destino</th>
+                    <th class="px-6 py-4">Campo Destino</th>
+                    <th class="px-6 py-4 text-right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-border-dark">
+                @if (_items == null)
+                {
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-text-secondary">
+                            <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto"></div>
+                        </td>
+                    </tr>
+                }
+                else if (!_items.Any())
+                {
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-text-secondary">No hay tipos de evento registrados</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var e in _items)
+                    {
+                        <tr class="hover:bg-surface-dark transition-colors">
+                            <td class="px-6 py-4 text-primary font-mono font-bold">@e.Code</td>
+                            <td class="px-6 py-4 text-white font-bold">@e.Name</td>
+                            <td class="px-6 py-4 text-text-body">@(e.RequiresOriginDestination ? "Sí" : "No")</td>
+                            <td class="px-6 py-4 text-text-body">@(e.RequiresDestinationField ? "Sí" : "No")</td>
+                            <td class="px-6 py-4 text-right">
+                                <button class="p-1.5 text-text-secondary hover:text-white rounded-lg transition-colors" title="Editar" @onclick="() => Sel(e)">
+                                    <span class="material-symbols-outlined text-[18px]">edit</span>
+                                </button>
+                                <button class="p-1.5 text-text-secondary hover:text-red-400 rounded-lg transition-colors" title="Eliminar" @onclick="() => Del(e)">
+                                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Create/Edit Form -->
+    <div class="bg-background-main rounded-2xl border border-border-dark p-6">
+        <h3 class="text-white font-bold flex items-center gap-2 mb-6">
+            <span class="material-symbols-outlined text-primary">add_circle</span> @(string.IsNullOrEmpty(_sel?.Id) ? "Crear Tipo de Evento" : "Editar Tipo de Evento")
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input type="text" @bind="_sel.Code" class="w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 py-3 text-white focus:ring-primary outline-none" placeholder="Código (ej: VENTA)" />
+            <input type="text" @bind="_sel.Name" class="w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 py-3 text-white focus:ring-primary outline-none" placeholder="Nombre descriptivo" />
+            <input type="text" @bind="_sel.DebitAccountCode" class="w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 py-3 text-white focus:ring-primary outline-none" placeholder="Cuenta DEBE..." />
+            <input type="text" @bind="_sel.CreditAccountCode" class="w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 py-3 text-white focus:ring-primary outline-none" placeholder="Cuenta HABER..." />
+            
+            <label class="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-border-dark bg-[#222222]">
+                <input type="checkbox" @bind="_sel.RequiresOriginDestination" class="w-5 h-5 rounded bg-[#1A1A1A] border-[#595959] text-primary" />
+                <span class="text-white text-sm">Requiere Origen/Destino</span>
+            </label>
+            <label class="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-border-dark bg-[#222222]">
+                <input type="checkbox" @bind="_sel.RequiresDestinationField" class="w-5 h-5 rounded bg-[#1A1A1A] border-[#595959] text-primary" />
+                <span class="text-white text-sm">Requiere Campo Destino</span>
+            </label>
+
+            <button class="md:col-span-2 w-full bg-primary hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2" @onclick="Save">
+                <span class="material-symbols-outlined text-[20px]">save</span> @(string.IsNullOrEmpty(_sel.Id) ? "Crear" : "Actualizar") Tipo de Evento
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<EventTypeMessage>? _items;
+    private EventTypeMessage _sel = new() { IsActive = true };
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load() {
+        if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
+        var r = await GrpcClient.GetEventTypesAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
+        _items = r.EventTypes.ToList();
+        _sel.TenantId = State.ActiveTenantId;
+    }
+
+    private void Sel(EventTypeMessage e) => _sel = new EventTypeMessage { Id = e.Id, Code = e.Code, Name = e.Name, DebitAccountCode = e.DebitAccountCode, CreditAccountCode = e.CreditAccountCode, RequiresOriginDestination = e.RequiresOriginDestination, RequiresDestinationField = e.RequiresDestinationField, IsActive = e.IsActive, TenantId = State.ActiveTenantId };
+
+    private async Task Save() {
+        if (string.IsNullOrWhiteSpace(_sel.Code)) return;
+        if (string.IsNullOrEmpty(_sel.Id)) await GrpcClient.CreateEventTypeAsync(_sel);
+        else await GrpcClient.UpdateEventTypeAsync(_sel);
+        _sel = new EventTypeMessage { IsActive = true, TenantId = State.ActiveTenantId };
+        await Load();
+    }
+
+    private async Task Del(EventTypeMessage e) {
+        if (!await JS.InvokeAsync<bool>("confirm", "Eliminar?")) return;
+        await GrpcClient.DeleteEventTypeAsync(new DeleteEntityRequest { Id = e.Id, TenantId = State.ActiveTenantId });
+        await Load();
+    }
+}

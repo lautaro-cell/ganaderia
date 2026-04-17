@@ -1,87 +1,141 @@
 @page "/reportes/mayor"
-@using GestorGanadero.Client.Shared
-@using GestorGanadero.Client.Reporting
-@using GestorGanadero.Services.Reporting.Contracts
 @using GestorGanadero.Client.Services
+@using GestorGanadero.Services.Reporting.Contracts
+@using Google.Protobuf.WellKnownTypes
+@inject AppStateContainer State
 @inject ReportingClientService ReportingClientService
 
-<PageHeader Title="Ledger" />
+<div class="flex flex-col gap-6 p-6">
+    <!-- Header -->
+    <div class="flex justify-between items-start">
+        <div class="flex flex-col gap-1">
+            <h1 class="text-3xl font-black tracking-tight text-white m-0">Mayor Contable</h1>
+            <p class="text-text-secondary text-sm">Auditoría detallada de movimientos y balances</p>
+        </div>
+        <div class="flex gap-3">
+            <button class="bg-surface-dark border border-border-dark text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 hover:bg-border-dark transition-colors">
+                <span class="material-symbols-outlined text-[18px]">download</span> Exportar CSV
+            </button>
+            <button class="bg-primary hover:bg-primary-dark text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 transition-colors">
+                <span class="material-symbols-outlined text-[18px]">add</span> Nuevo Asiento
+            </button>
+        </div>
+    </div>
 
-@if (IsLoading) { <div style="height:4px; background:linear-gradient(to right, #e74c3c, transparent);"></div> }
+    <!-- Filters -->
+    <div class="bg-surface-dark border border-border-dark rounded-2xl p-6 shadow-xl shadow-black/20">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+            <div class="flex flex-col gap-2">
+                <label class="text-xs font-bold text-text-secondary uppercase">Mes / Período</label>
+                <div class="relative">
+                    <input type="month" @bind="StartDate" class="w-full bg-background-main border border-border-input rounded-lg px-4 py-2.5 text-white text-sm outline-none focus:ring-1 focus:ring-primary" />
+                </div>
+            </div>
+            
+            <div class="flex flex-col gap-2">
+                <label class="text-xs font-bold text-text-secondary uppercase">Campo</label>
+                <select class="w-full bg-background-main border border-border-input rounded-lg px-4 py-2.5 text-white text-sm outline-none focus:ring-1 focus:ring-primary">
+                    <option>Todos los campos</option>
+                </select>
+            </div>
 
-<div class="topbar" style="display:flex; gap:8px; align-items:center; background:#111; padding:12px; border-radius:8px; margin:8px 0;">
-  <input type="date" @bind="StartDate" />
-  <span style="color:#888;">a</span>
-  <input type="date" @bind="EndDate" />
-  <input placeholder="Buscar..." @bind="SearchTerm" style="margin-left:auto; padding:6px 8px;" />
-  <button class="btn" style="background:#C0392B; color:#fff; border:none; padding:6px 12px; border-radius:6px;" @onclick="LoadLedger">Filtrar</button>
+            <div class="flex flex-col gap-2">
+                <label class="text-xs font-bold text-text-secondary uppercase">Vista Categoría</label>
+                <div class="flex bg-background-main p-1 rounded-lg border border-border-input">
+                    <button class="flex-1 px-4 py-1.5 text-xs font-bold rounded-md bg-transparent text-text-secondary hover:text-white">Cliente</button>
+                    <button class="flex-1 px-4 py-1.5 text-xs font-bold rounded-md bg-primary text-white">Gestor</button>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <label class="text-xs font-bold text-text-secondary uppercase">Categoría</label>
+                <select class="w-full bg-background-main border border-border-input rounded-lg px-4 py-2.5 text-white text-sm outline-none focus:ring-1 focus:ring-primary">
+                    <option>Todas las categorías</option>
+                </select>
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <label class="text-xs font-bold text-text-secondary uppercase">Cuenta Contable</label>
+                <select class="w-full bg-background-main border border-border-input rounded-lg px-4 py-2.5 text-white text-sm outline-none focus:ring-1 focus:ring-primary">
+                    <option>Todas las cuentas</option>
+                </select>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button class="w-full bg-surface-darker border border-border-dark text-white rounded-lg px-6 py-2.5 text-sm font-bold flex items-center justify-center gap-2 hover:bg-border-dark transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">filter_list</span> Filtrar
+                </button>
+                <button class="bg-surface-darker border border-border-dark text-text-secondary rounded-lg p-2.5 hover:text-white hover:bg-border-dark transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">refresh</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ledger Table -->
+    <div class="bg-surface-dark border border-border-dark rounded-2xl shadow-xl shadow-black/20 overflow-hidden">
+        <table class="w-full text-left text-sm">
+            <thead class="bg-background-main border-b border-border-dark text-text-secondary">
+                <tr>
+                    <th rowspan="2" class="px-6 py-4 font-bold uppercase text-[10px]">Fecha</th>
+                    <th rowspan="2" class="px-6 py-4 font-bold uppercase text-[10px]">Campo</th>
+                    <th rowspan="2" class="px-6 py-4 font-bold uppercase text-[10px]">Cuenta Contable</th>
+                    <th rowspan="2" class="px-6 py-4 font-bold uppercase text-[10px]">Categoría</th>
+                    <th colspan="2" class="px-6 py-2 font-bold uppercase text-[10px] text-center border-b border-border-dark">Movimiento de Cabezas</th>
+                    <th colspan="2" class="px-6 py-2 font-bold uppercase text-[10px] text-center border-b border-border-dark">Movimiento de Kilos</th>
+                    <th rowspan="2" class="px-6 py-4 font-bold uppercase text-[10px]">KG/CAB</th>
+                    <th rowspan="2" class="px-6 py-4 font-bold uppercase text-[10px]">Referencia</th>
+                </tr>
+                <tr class="text-[10px] text-center border-b border-border-dark">
+                    <th class="py-2 text-green-400 font-bold">DEBE</th>
+                    <th class="py-2 text-red-400 font-bold">HABER</th>
+                    <th class="py-2 text-green-400 font-bold">DEBE (KG)</th>
+                    <th class="py-2 text-red-400 font-bold">HABER (KG)</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-border-dark">
+                @if (Ledger == null || !Ledger.Any())
+                {
+                    <tr>
+                        <td colspan="10" class="py-16 text-center text-text-secondary">
+                            <span class="material-symbols-outlined text-4xl mb-2">error</span>
+                            <p>No hay datos para los filtros seleccionados</p>
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    <!-- Data rows would go here -->
+                }
+            </tbody>
+            <tfoot class="bg-background-main border-t-2 border-border-dark font-bold text-white">
+                <tr>
+                    <td colspan="4" class="px-6 py-4">TOTALES DEL PERÍODO</td>
+                    <td class="text-center text-green-400">0</td>
+                    <td class="text-center text-red-400">0</td>
+                    <td class="text-center text-green-400">0</td>
+                    <td class="text-center text-red-400">0</td>
+                    <td colspan="2"></td>
+                </tr>
+            </tfoot>
+        </table>
+        <div class="px-6 py-4 border-t border-border-dark text-xs text-text-secondary flex justify-between items-center">
+            <span>Mostrando 0 de 0 registros</span>
+            <div class="flex gap-2">
+                <button class="p-1 rounded-md border border-border-dark hover:bg-border-dark"><span class="material-symbols-outlined text-lg">chevron_left</span></button>
+                <button class="p-1 rounded-md border border-border-dark hover:bg-border-dark"><span class="material-symbols-outlined text-lg">chevron_right</span></button>
+            </div>
+        </div>
+    </div>
 </div>
 
-<table class="table" style="width:100%; border-collapse: collapse;">
-  <thead>
-    <tr>
-      <th>Fecha</th>
-      <th>Descripción</th>
-      <th>Tipo</th>
-      <th>Estado</th>
-      <th>Cabezas</th>
-      <th>Peso</th>
-      <th>Monto</th>
-    </tr>
-  </thead>
-  <tbody>
-    @foreach (var r in Ledger)
-    {
-      <tr>
-        <td>@r.Date.ToDateTime().ToString("yyyy-MM-dd")</td>
-        <td>@r.Description</td>
-        <td><span class="badge" style="background:#555; padding:4px 8px; border-radius:999px; color:#fff;">@r.EntryType</span></td>
-        <td><span class="chip" style="padding:4px 8px; border-radius:999px; background:#1e7e34; color:white;">@r.Status</span></td>
-        <td>@r.HeadCount</td>
-        <td>@r.WeightKg</td>
-        <td><strong style="color:#e74c3c;">@r.Amount</strong></td>
-      </tr>
-    }
-  </tbody>
-</table>
-
 @code {
-  private System.Collections.Generic.List<LedgerEntry> Ledger = new();
-  private System.DateTime? StartDate;
-  private System.DateTime? EndDate;
-  private string SearchTerm = string.Empty;
-  private bool IsLoading = false;
-
-  protected override async System.Threading.Tasks.Task OnInitializedAsync()
-  {
-      await LoadLedger();
-  }
-
-  private async System.Threading.Tasks.Task LoadLedger()
-  {
-      Ledger.Clear();
-      IsLoading = true;
-      var req = new LedgerFilter { 
-          TenantId = "TenantA", 
-          PageIndex = 0, 
-          PageSize = 100,
-          SearchTerm = SearchTerm
-      };
-
-      if (StartDate.HasValue) req.StartDate = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(StartDate.Value.ToUniversalTime());
-      if (EndDate.HasValue) req.EndDate = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(EndDate.Value.ToUniversalTime());
-
-      int count = 0;
-      await foreach (var item in ReportingClientService.GetLedgerAsync(req))
-      {
-          Ledger.Add(item);
-          if (++count % 20 == 0)
-          {
-              StateHasChanged();
-          }
-      }
-      
-      StateHasChanged();
-      IsLoading = false;
-  }
+    private List<LedgerEntry> Ledger = new();
+    private DateTime? StartDate;
+    private DateTime? EndDate;
+    
+    private async System.Threading.Tasks.Task LoadLedger()
+    {
+        // Placeholder for loading logic
+    }
 }

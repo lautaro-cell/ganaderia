@@ -5,48 +5,99 @@
 @inject CatalogService.CatalogServiceClient GrpcClient
 @inject IJSRuntime JS
 
-<div class="split-view">
-    <div class="master-panel">
-        <div style="padding:16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border);">
-            <h3 style="font-size:1rem; font-weight:600;">Actividades</h3>
-            <button class="btn btn-primary btn-sm" @onclick="New">
-                <span class="material-icons" style="font-size:16px;">add</span> Nueva
+<div class="flex flex-col md:flex-row h-full">
+    <!-- Master Panel -->
+    <div class="w-full md:w-80 border-r border-border-dark flex flex-col bg-[#1A1A1A]">
+        <div class="p-4 border-b border-border-dark flex justify-between items-center bg-[#222222]">
+            <h3 class="text-white font-bold">Actividades</h3>
+            <button class="bg-primary hover:bg-primary-dark text-white rounded-lg px-3 py-1.5 text-xs font-bold transition-colors flex items-center gap-1" @onclick="New">
+                <span class="material-symbols-outlined text-[16px]">add</span> Nueva
             </button>
         </div>
-        <div style="flex:1; overflow-y:auto;">
+        <div class="flex-1 overflow-y-auto p-2">
             @if (_items == null)
             {
-                <div class="loading-container"><div class="spinner"></div></div>
+                <div class="flex justify-center p-8">
+                    <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+                </div>
             }
             else
             {
-                @foreach (var a in _items)
-                {
-                    <div class="master-item @(_sel?.Id == a.Id ? "selected" : "")" @onclick="() => Sel(a)">
-                        <div>
-                            <div style="font-size:0.875rem; font-weight:500;">@a.Name</div>
-                        </div>
-                        @if (a.IsGlobal) { <span class="badge badge-info">Global</span> }
-                    </div>
-                }
+                <div class="flex flex-col gap-1">
+                    @foreach (var a in _items)
+                    {
+                        <button class="w-full text-left p-3 rounded-xl transition-all border @(_sel?.Id == a.Id ? "bg-primary/10 border-primary/30" : "border-transparent hover:bg-[#2C2C2C]")" @onclick="() => Sel(a)">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-bold @(_sel?.Id == a.Id ? "text-primary" : "text-white")">@a.Name</span>
+                                @if (a.IsGlobal) { <span class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-blue-500/20 text-blue-400">Global</span> }
+                            </div>
+                        </button>
+                    }
+                </div>
             }
         </div>
     </div>
-    <div class="detail-panel">
+
+    <!-- Detail Panel -->
+    <div class="flex-1 p-6 lg:p-10 bg-surface-dark overflow-y-auto">
         @if (_sel == null)
         {
-            <div class="empty-state"><span class="material-icons">assignment</span><p>Selecciona o crea una actividad.</p></div>
+            <div class="h-full flex flex-col items-center justify-center text-center opacity-50">
+                <span class="material-symbols-outlined text-6xl mb-4">assignment</span>
+                <p class="text-lg font-bold text-white">Selecciona una actividad</p>
+                <p class="text-sm text-text-secondary">O crea una nueva para empezar.</p>
+            </div>
         }
         else
         {
-            <h3 style="margin-bottom:24px;">@(string.IsNullOrEmpty(_sel.Id) ? "Nueva" : "Editar") Actividad</h3>
-            <div class="form-group"><label>Nombre</label><input type="text" @bind="_sel.Name" class="form-control" placeholder="Ej: Cría, Invernada..." /></div>
-            <div class="checkbox-group" style="margin-bottom:24px;"><input type="checkbox" @bind="_sel.IsGlobal" id="actGlobal" /><label for="actGlobal">Actividad Global</label></div>
-            @if (!string.IsNullOrEmpty(_msg)) { <div class="alert @(_ok?"alert-success":"alert-danger") mb-md" style="margin-bottom:16px;">@_msg</div> }
-            <div class="flex gap-sm">
-                @if (!string.IsNullOrEmpty(_sel.Id) && !_sel.IsGlobal) { <button class="btn btn-danger-outline" @onclick="Del">Eliminar</button> }
-                <div style="flex:1;"></div>
-                <button class="btn btn-primary" @onclick="Save" disabled="@_saving">@if(_saving){<span class="spinner"></span>} Guardar</button>
+            <div class="max-w-2xl mx-auto">
+                <h3 class="text-2xl font-bold text-white mb-8 border-b border-border-dark pb-4">@(string.IsNullOrEmpty(_sel.Id) ? "Nueva Actividad" : "Editar Actividad")</h3>
+                
+                <div class="flex flex-col gap-6">
+                    <label class="flex flex-col gap-2">
+                        <span class="text-white text-sm font-medium">Nombre de la actividad <span class="text-primary">*</span></span>
+                        <input type="text" @bind="_sel.Name" class="form-input w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 text-white focus:ring-primary focus:border-primary h-12 outline-none" placeholder="Ej: Cría, Invernada..." />
+                    </label>
+
+                    <label class="flex items-center gap-3 cursor-pointer mt-2 p-4 rounded-xl border border-border-dark bg-[#222222] hover:bg-[#271c1c] transition-colors w-fit">
+                        <input type="checkbox" @bind="_sel.IsGlobal" class="w-5 h-5 rounded bg-[#1A1A1A] border-[#595959] text-primary focus:ring-primary focus:ring-offset-[#2C2C2C]" />
+                        <span class="text-white text-sm font-medium">Actividad Global (Disponible para todos)</span>
+                    </label>
+
+                    @if (!string.IsNullOrEmpty(_msg))
+                    {
+                        <div class="flex items-center gap-2 p-4 rounded-xl @(_ok ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-red-500/10 border-red-500/20 text-red-400") border mt-4">
+                            <span class="material-symbols-outlined text-xl">@(_ok ? "check_circle" : "error")</span>
+                            <span class="text-sm">@_msg</span>
+                        </div>
+                    }
+
+                    <div class="flex justify-between items-center mt-8 pt-6 border-t border-border-dark">
+                        @if (!string.IsNullOrEmpty(_sel.Id) && !_sel.IsGlobal)
+                        {
+                            <button class="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors font-bold text-sm" @onclick="Del">
+                                <span class="material-symbols-outlined text-[18px]">delete</span> Eliminar
+                            </button>
+                        }
+                        else
+                        {
+                            <div></div>
+                        }
+                        
+                        <button class="flex items-center gap-2 px-8 py-3 rounded-xl bg-primary hover:bg-red-700 transition-colors text-white font-bold shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed" @onclick="Save" disabled="@_saving">
+                            @if (_saving)
+                            {
+                                <div class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+                                <span>Guardando...</span>
+                            }
+                            else
+                            {
+                                <span class="material-symbols-outlined text-[20px]">save</span>
+                                <span>Guardar</span>
+                            }
+                        </button>
+                    </div>
+                </div>
             </div>
         }
     </div>

@@ -1,0 +1,122 @@
+@using GestorGanadero.Services.Catalog.Contracts
+@using GestorGanadero.Services.Common.Contracts
+@using GestorGanadero.Client.Services
+@inject AppStateContainer State
+@inject CatalogService.CatalogServiceClient GrpcClient
+@inject IJSRuntime JS
+
+<div class="flex flex-col gap-6">
+    <!-- Header -->
+    <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined text-primary text-2xl">account_balance</span>
+        <h2 class="text-white text-xl font-bold">Gestión de Cuentas Contables</h2>
+    </div>
+    <p class="text-text-secondary text-sm -mt-4">Plan de cuentas para la contabilidad ganadera.</p>
+
+    <!-- Table -->
+    <div class="bg-background-main border border-border-dark rounded-2xl overflow-hidden shadow-xl shadow-black/20">
+        <table class="w-full text-left text-sm">
+            <thead class="bg-surface-darker text-text-secondary uppercase text-[10px] tracking-widest">
+                <tr>
+                    <th class="px-6 py-4">Código</th>
+                    <th class="px-6 py-4">Nombre</th>
+                    <th class="px-6 py-4">Plan</th>
+                    <th class="px-6 py-4">Tipo Normal</th>
+                    <th class="px-6 py-4 text-right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-border-dark">
+                @if (_items == null)
+                {
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-text-secondary">
+                            <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto"></div>
+                        </td>
+                    </tr>
+                }
+                else if (!_items.Any())
+                {
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-text-secondary">No hay cuentas registradas</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var c in _items)
+                    {
+                        <tr class="hover:bg-surface-dark transition-colors">
+                            <td class="px-6 py-4 text-primary font-mono font-bold">@c.Code</td>
+                            <td class="px-6 py-4 text-white font-bold">@c.Name</td>
+                            <td class="px-6 py-4 text-text-body"><span class="bg-surface-darker px-2 py-1 rounded text-xs text-white">@c.PlanName</span></td>
+                            <td class="px-6 py-4 text-text-body">@c.NormalType</td>
+                            <td class="px-6 py-4 text-right">
+                                <button class="p-1.5 text-text-secondary hover:text-white rounded-lg transition-colors" title="Editar" @onclick="() => Sel(c)">
+                                    <span class="material-symbols-outlined text-[18px]">edit</span>
+                                </button>
+                                <button class="p-1.5 text-text-secondary hover:text-red-400 rounded-lg transition-colors" title="Eliminar" @onclick="() => Del(c)">
+                                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Create/Edit Form -->
+    <div class="bg-background-main rounded-2xl border border-border-dark p-6">
+        <h3 class="text-white font-bold flex items-center gap-2 mb-6">
+            <span class="material-symbols-outlined text-primary">add_circle</span> @(string.IsNullOrEmpty(_sel?.Id) ? "Crear Cuenta Contable" : "Editar Cuenta Contable")
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input type="text" @bind="_sel.Code" class="w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 py-3 text-white focus:ring-primary outline-none" placeholder="Código (ej: ACT001)" />
+            <input type="text" @bind="_sel.Name" class="w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 py-3 text-white focus:ring-primary outline-none" placeholder="Nombre" />
+            <select @bind="_sel.PlanId" class="w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 py-3 text-white focus:ring-primary outline-none cursor-pointer">
+                <option value="">Seleccionar plan...</option>
+                @if(_plans != null) { @foreach(var p in _plans) { <option value="@p.Id">@p.Name</option> } }
+            </select>
+            <select @bind="_sel.NormalType" class="w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 py-3 text-white focus:ring-primary outline-none cursor-pointer">
+                <option value="Debe">DEBE</option>
+                <option value="Haber">HABER</option>
+            </select>
+
+            <button class="md:col-span-2 w-full bg-primary hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2" @onclick="Save">
+                <span class="material-symbols-outlined text-[20px]">save</span> @(string.IsNullOrEmpty(_sel.Id) ? "Crear" : "Actualizar") Cuenta
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<AccountMessage>? _items;
+    private List<PlanCuentaMessage>? _plans;
+    private AccountMessage _sel = new() { IsActive = true };
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load() {
+        if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
+        var r = await GrpcClient.GetAccountsAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
+        _items = r.Accounts.ToList();
+        var p = await GrpcClient.GetPlanesAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
+        _plans = p.Planes.ToList();
+        _sel.TenantId = State.ActiveTenantId;
+    }
+
+    private void Sel(AccountMessage a) => _sel = new AccountMessage { Id = a.Id, Code = a.Code, Name = a.Name, PlanId = a.PlanId, PlanName = a.PlanName, NormalType = a.NormalType, IsActive = a.IsActive, TenantId = State.ActiveTenantId };
+
+    private async Task Save() {
+        if (string.IsNullOrWhiteSpace(_sel.Code)) return;
+        if (string.IsNullOrEmpty(_sel.Id)) await GrpcClient.CreateAccountAsync(_sel);
+        else await GrpcClient.UpdateAccountAsync(_sel);
+        _sel = new AccountMessage { IsActive = true, TenantId = State.ActiveTenantId };
+        await Load();
+    }
+
+    private async Task Del(AccountMessage a) {
+        if (!await JS.InvokeAsync<bool>("confirm", "Eliminar?")) return;
+        await GrpcClient.DeleteAccountAsync(new DeleteEntityRequest { Id = a.Id, TenantId = State.ActiveTenantId });
+        await Load();
+    }
+}

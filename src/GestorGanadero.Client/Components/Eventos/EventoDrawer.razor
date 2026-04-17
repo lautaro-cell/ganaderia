@@ -10,122 +10,150 @@
 
 @if (SelectedTemplate != null)
 {
-    <div class="drawer-overlay" @onclick="HandleClose">
-        <div class="drawer" @onclick:stopPropagation>
-            <div class="drawer-header">
-                <h2>Registrar @SelectedTemplate.Name</h2>
-                <button class="btn-icon" @onclick="HandleClose">
-                    <span class="material-icons">close</span>
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-end" @onclick="HandleClose">
+        <div class="w-full max-w-[500px] h-full bg-surface-dark border-l border-border-dark flex flex-col shadow-2xl animate-[slideInRight_0.3s_ease-out]" @onclick:stopPropagation>
+            <div class="p-6 border-b border-border-dark flex items-center justify-between">
+                <div>
+                    <h2 class="text-white text-xl font-bold">Registrar @SelectedTemplate.Name</h2>
+                    <p class="text-text-secondary text-sm mt-1">Complete los detalles del movimiento.</p>
+                </div>
+                <button class="text-text-secondary hover:text-white transition-colors" @onclick="HandleClose">
+                    <span class="material-symbols-outlined text-2xl">close</span>
                 </button>
             </div>
 
-            <EditForm Model="@_request" OnValidSubmit="HandleSave">
-                <DataAnnotationsValidator />
-                
-                <div class="drawer-body">
-                    <div class="form-group">
-                        <label>Fecha del Evento</label>
-                        <InputDate @bind-Value="_eventDate" class="form-control" />
-                        <ValidationMessage For="@(() => _eventDate)" />
+            <div class="flex-1 overflow-y-auto p-6">
+                <EditForm Model="@_request" OnValidSubmit="HandleSave">
+                    <DataAnnotationsValidator />
+                    <div class="flex flex-col gap-6">
+                        
+                        <div class="grid grid-cols-1 gap-6">
+                            <label class="flex flex-col gap-2">
+                                <span class="text-white text-sm font-medium">Fecha del Evento <span class="text-primary">*</span></span>
+                                <InputDate @bind-Value="_eventDate" class="form-input w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 text-white focus:ring-primary focus:border-primary h-12 outline-none" />
+                                <ValidationMessage For="@(() => _eventDate)" class="text-primary text-xs" />
+                            </label>
+                        </div>
+
+                        @if (SelectedTemplate.Fields.Contains("head_count") || SelectedTemplate.Fields.Contains("weight_per_head"))
+                        {
+                            <div class="grid grid-cols-2 gap-6">
+                                @if (SelectedTemplate.Fields.Contains("head_count"))
+                                {
+                                    <label class="flex flex-col gap-2">
+                                        <span class="text-white text-sm font-medium">Cabezas</span>
+                                        <InputNumber @bind-Value="HeadCount" class="form-input w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 text-white focus:ring-primary focus:border-primary h-12 outline-none" placeholder="0" />
+                                        <ValidationMessage For="@(() => _request.HeadCount)" class="text-primary text-xs" />
+                                    </label>
+                                }
+
+                                @if (SelectedTemplate.Fields.Contains("weight_per_head"))
+                                {
+                                    <label class="flex flex-col gap-2">
+                                        <span class="text-white text-sm font-medium">Peso (kg)</span>
+                                        <InputNumber @bind-Value="WeightPerHead" class="form-input w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 text-white focus:ring-primary focus:border-primary h-12 outline-none" placeholder="0.0" />
+                                    </label>
+                                }
+                            </div>
+                            @if (SelectedTemplate.Fields.Contains("weight_per_head"))
+                            {
+                                <label class="flex flex-col gap-2">
+                                    <span class="text-white text-sm font-medium">Total KG (Calculado: @(_request.PrimaryValue.ToString("N2")) kg)</span>
+                                    <InputNumber @bind-Value="_request.PrimaryValue" class="form-input w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 text-white focus:ring-primary focus:border-primary h-12 outline-none" placeholder="0.00" />
+                                </label>
+                            }
+                        }
+
+                        @if (SelectedTemplate.Fields.Contains("field_id") || SelectedTemplate.Fields.Contains("category_id"))
+                        {
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                @if (SelectedTemplate.Fields.Contains("field_id"))
+                                {
+                                    <label class="flex flex-col gap-2">
+                                        <span class="text-white text-sm font-medium">Campo <span class="text-primary">*</span></span>
+                                        <div class="relative">
+                                            <InputSelect @bind-Value="_request.FieldId" class="form-select w-full bg-[#271c1c] border-[#543b3b] rounded-xl text-white focus:ring-primary focus:border-primary h-12 pr-10 outline-none">
+                                                <option value="">Seleccione...</option>
+                                                @foreach (var f in _fields)
+                                                {
+                                                    <option value="@f.Id">@f.Name</option>
+                                                }
+                                            </InputSelect>
+                                            <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">expand_more</span>
+                                        </div>
+                                        <ValidationMessage For="@(() => _request.FieldId)" class="text-primary text-xs" />
+                                    </label>
+                                }
+
+                                @if (SelectedTemplate.Fields.Contains("category_id"))
+                                {
+                                    <label class="flex flex-col gap-2">
+                                        <span class="text-white text-sm font-medium">Categoría</span>
+                                        <div class="relative">
+                                            <InputSelect @bind-Value="_request.CategoryId" class="form-select w-full bg-[#271c1c] border-[#543b3b] rounded-xl text-white focus:ring-primary focus:border-primary h-12 pr-10 outline-none">
+                                                <option value="">Seleccione...</option>
+                                                @foreach (var c in _categories)
+                                                {
+                                                    <option value="@c.Id">@c.Name</option>
+                                                }
+                                            </InputSelect>
+                                            <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">expand_more</span>
+                                        </div>
+                                    </label>
+                                }
+                            </div>
+                        }
+
+                        @if (SelectedTemplate.Fields.Contains("activity_id"))
+                        {
+                            <label class="flex flex-col gap-2">
+                                <span class="text-white text-sm font-medium">Actividad</span>
+                                <div class="relative">
+                                    <InputSelect @bind-Value="_request.ActivityId" class="form-select w-full bg-[#271c1c] border-[#543b3b] rounded-xl text-white focus:ring-primary focus:border-primary h-12 pr-10 outline-none">
+                                        <option value="">Seleccione...</option>
+                                        @foreach (var a in _activities)
+                                        {
+                                            <option value="@a.Id">@a.Name</option>
+                                        }
+                                    </InputSelect>
+                                    <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">expand_more</span>
+                                </div>
+                            </label>
+                        }
+
+                        @if (SelectedTemplate.Fields.Contains("observations"))
+                        {
+                            <label class="flex flex-col gap-2">
+                                <span class="text-white text-sm font-medium">Observaciones</span>
+                                <InputTextArea @bind-Value="_request.Observations" class="form-input w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 py-3 text-white focus:ring-primary focus:border-primary outline-none resize-none" rows="3" placeholder="Detalles adicionales..." />
+                            </label>
+                        }
+
+                        @if (!string.IsNullOrEmpty(_error))
+                        {
+                            <div class="flex items-center gap-2 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400">
+                                <span class="material-symbols-outlined text-xl">error</span>
+                                <span class="text-sm">@_error</span>
+                            </div>
+                        }
                     </div>
 
-                    @if (SelectedTemplate.Fields.Contains("head_count"))
-                    {
-                        <div class="form-group">
-                            <label>Cantidad de Cabezas</label>
-                            <InputNumber @bind-Value="HeadCount" class="form-control" placeholder="0" />
-                            <ValidationMessage For="@(() => _request.HeadCount)" />
-                        </div>
-                    }
-
-                    @if (SelectedTemplate.Fields.Contains("weight_per_head"))
-                    {
-                        <div class="form-group">
-                            <label>Peso Promedio (kg)</label>
-                            <InputNumber @bind-Value="WeightPerHead" class="form-control" placeholder="0.00" />
-                        </div>
-                        <div class="form-group">
-                            <label>Peso Total (Calculado: @(_request.PrimaryValue.ToString("N2")) kg)</label>
-                            <InputNumber @bind-Value="_request.PrimaryValue" class="form-control" placeholder="0.00" />
-                        </div>
-                    }
-
-                    @if (SelectedTemplate.Fields.Contains("field_id"))
-                    {
-                        <div class="form-group">
-                            <label>Campo</label>
-                            <InputSelect @bind-Value="_request.FieldId" class="form-control">
-                                <option value="">Seleccione...</option>
-                                @foreach (var f in _fields)
-                                {
-                                    <option value="@f.Id">@f.Name</option>
-                                }
-                            </InputSelect>
-                            <ValidationMessage For="@(() => _request.FieldId)" />
-                        </div>
-                    }
-
-                    @if (SelectedTemplate.Fields.Contains("category_id"))
-                    {
-                        <div class="form-group">
-                            <label>Categoria</label>
-                            <InputSelect @bind-Value="_request.CategoryId" class="form-control">
-                                <option value="">Seleccione...</option>
-                                @foreach (var c in _categories)
-                                {
-                                    <option value="@c.Id">@c.Name</option>
-                                }
-                            </InputSelect>
-                        </div>
-                    }
-
-                    @if (SelectedTemplate.Fields.Contains("activity_id"))
-                    {
-                        <div class="form-group">
-                            <label>Actividad</label>
-                            <InputSelect @bind-Value="_request.ActivityId" class="form-control">
-                                <option value="">Seleccione...</option>
-                                @foreach (var a in _activities)
-                                {
-                                    <option value="@a.Id">@a.Name</option>
-                                }
-                            </InputSelect>
-                        </div>
-                    }
-
-                    @if (SelectedTemplate.Fields.Contains("observations"))
-                    {
-                        <div class="form-group">
-                            <label>Observaciones</label>
-                            <InputTextArea @bind-Value="_request.Observations" class="form-control" rows="3" placeholder="Detalles adicionales..." />
-                        </div>
-                    }
-
-                    @if (!string.IsNullOrEmpty(_error))
-                    {
-                        <div class="alert alert-danger mt-md">
-                            <span class="material-icons" style="font-size:18px;">error</span>
-                            @_error
-                        </div>
-                    }
-                </div>
-
-                <div class="drawer-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="HandleClose">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" disabled="@_saving">
-                        @if (_saving)
-                        {
-                            <span class="spinner"></span>
-                            <span>Guardando...</span>
-                        }
-                        else
-                        {
-                            <span class="material-icons" style="font-size:18px;">check</span>
-                            <span>Registrar Evento</span>
-                        }
-                    </button>
-                </div>
-            </EditForm>
+                    <div class="pt-6 border-t border-border-dark flex justify-end gap-3 mt-6">
+                        <button type="button" class="px-6 py-2.5 rounded-xl border border-border-dark text-white font-bold hover:bg-surface-darker transition-colors" @onclick="HandleClose">Cancelar</button>
+                        <button type="submit" class="flex min-w-[140px] items-center justify-center rounded-xl px-6 py-2.5 bg-primary hover:bg-red-700 transition-colors text-white font-bold shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed" disabled="@_saving">
+                            @if (_saving)
+                            {
+                                <div class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+                                <span>Guardando...</span>
+                            }
+                            else
+                            {
+                                <span>Guardar</span>
+                            }
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
         </div>
     </div>
 }

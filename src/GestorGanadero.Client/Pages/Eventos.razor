@@ -7,118 +7,127 @@
 @inject OperationsService.OperationsServiceClient GrpcClient
 @implements IDisposable
 
-<div class="page-header">
-    <div class="page-header-row">
-        <div>
-            <h1>Dashboard</h1>
-            <span class="subtitle">Resumen de operaciones del dia</span>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+    <div class="bg-surface-dark rounded-xl p-6 border border-border-dark flex items-center gap-4">
+        <div class="w-12 h-12 rounded-lg bg-emerald-900/20 flex items-center justify-center text-emerald-500">
+            <span class="material-symbols-outlined text-2xl">inventory_2</span>
         </div>
-        <div class="flex items-center gap-sm">
-            <input type="date" @bind="_startDate" class="form-control" style="width:auto;" />
-            <span style="color:var(--text-muted);">—</span>
-            <input type="date" @bind="_endDate" class="form-control" style="width:auto;" />
-            <button class="btn btn-secondary btn-sm" @onclick="LoadData">
-                <span class="material-icons" style="font-size:16px;">refresh</span>
-            </button>
+        <div>
+            <p class="text-text-secondary text-[10px] font-bold uppercase tracking-widest">Stock Total</p>
+            <p class="text-white text-3xl font-black">@(_events?.Sum(e => e.HeadCount) ?? 0)</p>
+            <p class="text-text-secondary text-xs">cabezas</p>
+        </div>
+    </div>
+    <div class="bg-surface-dark rounded-xl p-6 border border-border-dark flex items-center gap-4">
+        <div class="w-12 h-12 rounded-lg bg-blue-900/20 flex items-center justify-center text-blue-500">
+            <span class="material-symbols-outlined text-2xl">event_note</span>
+        </div>
+        <div>
+            <p class="text-text-secondary text-[10px] font-bold uppercase tracking-widest">Actividad Reciente</p>
+            <p class="text-white text-3xl font-black">@(_events?.Count(e => e.OccurredOn.ToDateTime() > DateTime.Now.AddMonths(-1)) ?? 0)</p>
+            <p class="text-text-secondary text-xs">eventos este mes</p>
+        </div>
+    </div>
+    <div class="bg-surface-dark rounded-xl p-6 border border-border-dark flex items-center gap-4">
+        <div class="w-12 h-12 rounded-lg bg-emerald-900/20 flex items-center justify-center text-emerald-500">
+            <span class="material-symbols-outlined text-2xl">check_circle</span>
+        </div>
+        <div>
+            <p class="text-text-secondary text-[10px] font-bold uppercase tracking-widest">Estado</p>
+            <p class="text-white text-xl font-bold flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Al día
+            </p>
+            <p class="text-text-secondary text-xs">sistema operativo</p>
         </div>
     </div>
 </div>
 
-<!-- KPI Cards -->
-<div class="kpi-grid">
-    <div class="kpi-card">
-        <div class="kpi-label">Eventos Hoy</div>
-        <div class="kpi-value">@(_events?.Count(e => e.OccurredOn.ToDateTime().Date == DateTime.Today) ?? 0)</div>
-    </div>
-    <div class="kpi-card">
-        <div class="kpi-label">Total Cabezas</div>
-        <div class="kpi-value">@(_events?.Sum(e => e.HeadCount) ?? 0)</div>
-    </div>
-    <div class="kpi-card">
-        <div class="kpi-label">Peso Total (kg)</div>
-        <div class="kpi-value">@((_events?.Sum(e => e.TotalWeight) ?? 0).ToString("N0"))</div>
-    </div>
-    <div class="kpi-card">
-        <div class="kpi-label">Eventos Periodo</div>
-        <div class="kpi-value">@(_events?.Count ?? 0)</div>
+<div class="flex justify-between items-center mb-6">
+    <div class="flex flex-col gap-1">
+        <h1 class="text-white text-3xl font-black leading-tight tracking-tight">Lista de Eventos</h1>
+        <p class="text-text-secondary text-sm">Gestiona y audita los movimientos de tu ganado.</p>
     </div>
 </div>
 
 <!-- Template Grid -->
-<div class="card mb-lg">
-    <div class="card-header">
-        <h3><span class="material-icons" style="font-size:20px; vertical-align:middle; margin-right:8px;">add_circle</span>Registrar Nuevo Evento</h3>
+<div class="bg-surface-dark rounded-2xl shadow-xl shadow-black/20 overflow-hidden border border-border-dark mb-8">
+    <div class="pt-6 px-6 pb-4 border-b border-border-dark">
+        <h3 class="text-white text-lg font-bold flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">add_circle</span>Registrar Nuevo Evento
+        </h3>
     </div>
-    <div class="template-grid">
-        @if (_templates == null)
-        {
-            <div class="loading-container"><div class="spinner spinner-lg"></div></div>
-        }
-        else
-        {
-            @foreach (var t in _templates)
+    <div class="p-6">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            @if (_templates == null)
             {
-                <div class="template-card" @onclick="() => OpenDrawer(t)">
-                    <div class="icon" style="background:@(t.ColorCode + "18"); color:@t.ColorCode;">
-                        <span class="material-icons">@(!string.IsNullOrEmpty(t.Icon) ? t.Icon : "event_note")</span>
-                    </div>
-                    <span class="name">@t.Name</span>
+                <div class="col-span-full flex justify-center py-8">
+                    <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
                 </div>
             }
-        }
+            else
+            {
+                @foreach (var t in _templates)
+                {
+                    <div class="bg-background-main border border-border-dark rounded-xl p-4 flex flex-col items-center gap-3 cursor-pointer hover:border-primary/50 hover:bg-[#271c1c] hover:-translate-y-1 transition-all shadow-sm" @onclick="() => OpenDrawer(t)">
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:@(t.ColorCode + "18"); color:@t.ColorCode;">
+                            <span class="material-symbols-outlined text-2xl">@(!string.IsNullOrEmpty(t.Icon) ? t.Icon : "event_note")</span>
+                        </div>
+                        <span class="text-white text-xs font-bold text-center leading-tight">@t.Name</span>
+                    </div>
+                }
+            }
+        </div>
     </div>
 </div>
 
 <!-- Events Table -->
-<div class="card">
-    <div class="card-header">
-        <h3><span class="material-icons" style="font-size:20px; vertical-align:middle; margin-right:8px;">history</span>Registro de Eventos</h3>
-        <span class="badge badge-neutral">@(_events?.Count ?? 0) eventos</span>
-    </div>
-
+<div class="bg-surface-dark border border-border-dark rounded-2xl shadow-xl shadow-black/20 overflow-hidden">
     @if (_events == null)
     {
-        <div class="loading-container"><div class="spinner spinner-lg"></div><span>Cargando eventos...</span></div>
+        <div class="flex flex-col items-center justify-center py-16 gap-4">
+            <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+            <span class="text-text-secondary text-sm">Cargando eventos...</span>
+        </div>
     }
     else if (!_events.Any())
     {
-        <div class="empty-state">
-            <span class="material-icons">inbox</span>
-            <p>No hay eventos registrados en el periodo seleccionado.</p>
+        <div class="flex flex-col items-center justify-center py-16 text-center text-text-secondary">
+            <span class="material-symbols-outlined text-5xl mb-4">inbox</span>
+            <p class="text-white text-lg font-bold">No hay eventos</p>
         </div>
     }
     else
     {
-        <div class="table-wrapper">
-            <table>
-                <thead>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm whitespace-nowrap">
+                <thead class="bg-background-main border-b border-border-dark text-text-secondary uppercase text-[10px] tracking-widest">
                     <tr>
-                        <th>Fecha</th>
-                        <th>Tipo</th>
-                        <th>Campo</th>
-                        <th class="text-end">Cabezas</th>
-                        <th class="text-end">Peso Prom.</th>
-                        <th class="text-end">Total KG</th>
-                        <th class="text-center">Acciones</th>
+                        <th class="px-6 py-4 font-bold">Fecha</th>
+                        <th class="px-6 py-4 font-bold">Tipo</th>
+                        <th class="px-6 py-4 font-bold">Campo</th>
+                        <th class="px-6 py-4 font-bold text-right">Cabezas</th>
+                        <th class="px-6 py-4 font-bold text-right">Peso Prom.</th>
+                        <th class="px-6 py-4 font-bold text-right">Total KG</th>
+                        <th class="px-6 py-4 font-bold text-center">Acciones</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="divide-y divide-border-dark">
                     @foreach (var ev in _events)
                     {
-                        <tr>
-                            <td>@ev.OccurredOn.ToDateTime().ToLocalTime().ToString("dd MMM, HH:mm")</td>
-                            <td>
-                                <span class="badge" style="background:@(GetColor(ev.TypeName) + "18"); color:@GetColor(ev.TypeName);">
+                        <tr class="hover:bg-[#271c1c] transition-colors">
+                            <td class="px-6 py-4 text-white font-medium">@ev.OccurredOn.ToDateTime().ToLocalTime().ToString("dd MMM, HH:mm")</td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 rounded-full text-xs font-bold" style="background:@(GetColor(ev.TypeName) + "18"); color:@GetColor(ev.TypeName);">
                                     @ev.TypeName
                                 </span>
                             </td>
-                            <td>@ev.FieldName</td>
-                            <td class="text-end font-mono">@ev.HeadCount</td>
-                            <td class="text-end font-mono">@ev.WeightPerHead.ToString("N1") kg</td>
-                            <td class="text-end font-mono">@ev.TotalWeight.ToString("N0") kg</td>
-                            <td class="text-center">
-                                <button class="btn-icon" title="Eliminar" @onclick="() => DeleteEvent(ev)">
-                                    <span class="material-icons">delete_outline</span>
+                            <td class="px-6 py-4 text-text-body">@ev.FieldName</td>
+                            <td class="px-6 py-4 text-right text-white font-mono font-bold">@ev.HeadCount</td>
+                            <td class="px-6 py-4 text-right text-text-secondary font-mono">@ev.WeightPerHead.ToString("N1") kg</td>
+                            <td class="px-6 py-4 text-right text-white font-mono font-bold">@ev.TotalWeight.ToString("N0") kg</td>
+                            <td class="px-6 py-4 text-center">
+                                <button class="p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Eliminar" @onclick="() => DeleteEvent(ev)">
+                                    <span class="material-symbols-outlined text-[18px]">delete</span>
                                 </button>
                             </td>
                         </tr>
@@ -141,8 +150,6 @@
     private List<EventTemplate>? _templates;
     private List<EventDetail>? _events;
     private EventTemplate? _selectedTemplate;
-    private DateTime _startDate = DateTime.Today.AddDays(-7);
-    private DateTime _endDate = DateTime.Today.AddDays(1);
     private Action? _stateChangedAction;
 
     private string GetColor(string? typeName) => (typeName ?? string.Empty).ToLower() switch
@@ -155,7 +162,7 @@
         var t when t.Contains("alim") => "#eab308",
         var t when t.Contains("pese") => "#06b6d4",
         var t when t.Contains("mov") => "#14b8a6",
-        _ => "#71717a"
+        _ => "#ffffff"
     };
 
     protected override async Task OnInitializedAsync()
@@ -176,15 +183,15 @@
             var eRes = await GrpcClient.GetEventsAsync(new GetEventsRequest
             {
                 TenantId = State.ActiveTenantId,
-                StartDate = Timestamp.FromDateTime(_startDate.ToUniversalTime()),
-                EndDate = Timestamp.FromDateTime(_endDate.ToUniversalTime())
+                StartDate = Timestamp.FromDateTime(DateTime.UtcNow.AddMonths(-1)),
+                EndDate = Timestamp.FromDateTime(DateTime.UtcNow.AddDays(1))
             });
             _events = eRes.Events.OrderByDescending(e => e.OccurredOn).ToList();
         }
         catch (Exception ex) { Console.WriteLine(ex.Message); }
     }
 
-    private void OpenDrawer(EventTemplate t) => _selectedTemplate = t;
+    private void OpenDrawer(EventTemplate? t) => _selectedTemplate = t;
 
     private async Task OnEventSaved()
     {

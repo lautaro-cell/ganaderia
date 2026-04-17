@@ -4,6 +4,7 @@ using System.Text.Json;
 using App.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NodaTime;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -13,9 +14,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace App.Infrastructure.Migrations
 {
     [DbContext(typeof(GestorGanaderoDbContext))]
-    partial class GestorGanaderoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260415115913_AddEventTypeFields")]
+    partial class AddEventTypeFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -23,53 +26,6 @@ namespace App.Infrastructure.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("App.Domain.Entities.Account", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Instant>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("NormalType")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("PlanId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Instant?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PlanId");
-
-                    b.HasIndex("TenantId");
-
-                    b.ToTable("Accounts");
-                });
 
             modelBuilder.Entity("App.Domain.Entities.AccountingDraft", b =>
                 {
@@ -528,42 +484,6 @@ namespace App.Infrastructure.Migrations
                     b.ToTable("LivestockEvents");
                 });
 
-            modelBuilder.Entity("App.Domain.Entities.PlanCuenta", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Instant>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Instant?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId");
-
-                    b.ToTable("PlanesCuenta");
-                });
-
             modelBuilder.Entity("App.Domain.Entities.Tenant", b =>
                 {
                     b.Property<Guid>("Id")
@@ -632,25 +552,6 @@ namespace App.Infrastructure.Migrations
                     b.HasIndex("TenantId");
 
                     b.ToTable("Users");
-                });
-
-            modelBuilder.Entity("App.Domain.Entities.Account", b =>
-                {
-                    b.HasOne("App.Domain.Entities.PlanCuenta", "Plan")
-                        .WithMany("Accounts")
-                        .HasForeignKey("PlanId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("App.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Plan");
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("App.Domain.Entities.AccountingDraft", b =>
@@ -798,17 +699,6 @@ namespace App.Infrastructure.Migrations
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("App.Domain.Entities.PlanCuenta", b =>
-                {
-                    b.HasOne("App.Domain.Entities.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Tenant");
-                });
-
             modelBuilder.Entity("App.Domain.Entities.User", b =>
                 {
                     b.HasOne("App.Domain.Entities.Tenant", "Tenant")
@@ -833,11 +723,6 @@ namespace App.Infrastructure.Migrations
             modelBuilder.Entity("App.Domain.Entities.LivestockEvent", b =>
                 {
                     b.Navigation("AccountingDrafts");
-                });
-
-            modelBuilder.Entity("App.Domain.Entities.PlanCuenta", b =>
-                {
-                    b.Navigation("Accounts");
                 });
 #pragma warning restore 612, 618
         }

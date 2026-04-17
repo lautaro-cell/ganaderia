@@ -34,7 +34,7 @@ public class TranslationService : ITranslationService
             throw new InvalidOperationException("The event does not have an associated template.");
 
         var totalAmount = eventEntity.TotalAmount;
-        var concept = $"Ref: {eventEntity.EventTemplate.Name} - Lote: {eventEntity.CostCenterCode} - Cabezas: {eventEntity.HeadCount}";
+        var concept = $"Ref: {eventEntity.EventTemplate.Name} - Campo: {eventEntity.CostCenterCode} - Cabezas: {eventEntity.HeadCount}";
 
         // 2. Generar el Asiento del DEBE (Debit)
         var debitDraft = new AccountingDraft

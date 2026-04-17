@@ -13,7 +13,7 @@
     {
       <div class="card" style="background:#111; border:1px solid #333; padding:12px; border-radius:8px;">
         <div style="font-weight:600;">@f.Name</div>
-        <div style="color:#bbb; font-size:12px;">@f.Description</div>
+        <div style="color:#fff; font-size:12px;">@f.Description</div>
         <div style="margin-top:6px;"><span class="badge" style="background:@(f.IsActive?"#1e7e34":"#6c757d"); padding:4px 8px; border-radius:999px;">@(f.IsActive ? "Activo" : "Inactivo")</span></div>
         <div style="margin-top:6px; display:flex; gap:6px;">
           <button class="btn" style="background:#444; color:#fff; padding:6px 8px; border-radius:6px;" @onclick="() => EditField(f)">✎</button>

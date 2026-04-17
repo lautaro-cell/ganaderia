@@ -24,7 +24,6 @@ public static class DatabaseSeeder
                 TRUNCATE TABLE ""AccountingDrafts"" RESTART IDENTITY CASCADE;
                 TRUNCATE TABLE ""LivestockEvents"" RESTART IDENTITY CASCADE;
                 TRUNCATE TABLE ""EventTemplates"" RESTART IDENTITY CASCADE;
-                TRUNCATE TABLE ""Lotes"" RESTART IDENTITY CASCADE;
                 TRUNCATE TABLE ""AnimalCategories"" RESTART IDENTITY CASCADE;
                 TRUNCATE TABLE ""Activities"" RESTART IDENTITY CASCADE;
                 TRUNCATE TABLE ""Fields"" RESTART IDENTITY CASCADE;
@@ -32,7 +31,6 @@ public static class DatabaseSeeder
                 TRUNCATE TABLE ""Tenants"" RESTART IDENTITY CASCADE;
                 TRUNCATE TABLE ""ExternalCatalogs"" RESTART IDENTITY CASCADE;
                 TRUNCATE TABLE ""GestorMaxConfigs"" RESTART IDENTITY CASCADE;
-                TRUNCATE TABLE ""ActivityLote"" RESTART IDENTITY CASCADE;
             ");
             logger.LogInformation("Tablas vaciadas (TRUNCATE CASCADE).");
 

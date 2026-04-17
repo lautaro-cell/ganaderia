@@ -1,0 +1,63 @@
+@using GestorGanadero.Services.Common.Contracts
+@using GestorGanadero.Client.Services
+@inject AppStateContainer State
+@inject IJSRuntime JS
+
+<div class="flex flex-col gap-6">
+    <!-- Header -->
+    <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined text-primary text-2xl">business</span>
+        <h2 class="text-white text-xl font-bold">Gestión de Empresas</h2>
+    </div>
+    <p class="text-text-secondary text-sm -mt-4">Las empresas son establecimientos que agrupan usuarios, campos y configuraciones de integración.</p>
+
+    <!-- Table -->
+    <div class="bg-background-main border border-border-dark rounded-2xl overflow-hidden shadow-xl shadow-black/20">
+        <table class="w-full text-left text-sm">
+            <thead class="bg-surface-darker text-text-secondary uppercase text-[10px] tracking-widest">
+                <tr>
+                    <th class="px-6 py-4">Nombre</th>
+                    <th class="px-6 py-4">Descripción</th>
+                    <th class="px-6 py-4">Usuarios</th>
+                    <th class="px-6 py-4">Campos</th>
+                    <th class="px-6 py-4">Gestor DB</th>
+                    <th class="px-6 py-4">Gestor Key</th>
+                    <th class="px-6 py-4">Último Test</th>
+                    <th class="px-6 py-4 text-right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-border-dark">
+                <!-- Mock Data to match design -->
+                <tr class="hover:bg-surface-dark transition-colors">
+                    <td class="px-6 py-4 text-white font-bold">Dolores Herrera Vegas SRL</td>
+                    <td class="px-6 py-4 text-text-body">cliente prueba</td>
+                    <td class="px-6 py-4 text-text-body">3</td>
+                    <td class="px-6 py-4 text-text-body">2</td>
+                    <td class="px-6 py-4 text-text-body font-mono">846</td>
+                    <td class="px-6 py-4 text-text-body font-mono">****0uA=</td>
+                    <td class="px-6 py-4 text-emerald-500 text-xs font-bold">20/3/2026</td>
+                    <td class="px-6 py-4 text-right flex items-center justify-end gap-2">
+                        <button class="p-1.5 text-text-secondary hover:text-white rounded-lg transition-colors"><span class="material-symbols-outlined text-[18px]">settings</span></button>
+                        <button class="p-1.5 text-text-secondary hover:text-white rounded-lg transition-colors"><span class="material-symbols-outlined text-[18px]">wifi</span></button>
+                        <button class="p-1.5 text-text-secondary hover:text-white rounded-lg transition-colors"><span class="material-symbols-outlined text-[18px]">refresh</span></button>
+                        <button class="bg-surface-darker border border-border-dark hover:border-red-900/50 text-red-500 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ml-2">Eliminar</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Create Form -->
+    <div class="bg-background-main rounded-2xl border border-border-dark p-6">
+        <h3 class="text-white font-bold flex items-center gap-2 mb-6">
+            <span class="material-symbols-outlined text-primary">add_circle</span> Crear Empresa
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input type="text" class="w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 py-3 text-white focus:ring-primary outline-none" placeholder="Nombre de la empresa" />
+            <input type="text" class="w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 py-3 text-white focus:ring-primary outline-none" placeholder="Descripción opcional" />
+            <button class="md:col-span-2 w-full bg-primary hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined text-[20px]">save</span> Crear Empresa
+            </button>
+        </div>
+    </div>
+</div>

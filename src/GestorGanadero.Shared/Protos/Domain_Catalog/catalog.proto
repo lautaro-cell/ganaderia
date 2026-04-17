@@ -20,11 +20,21 @@ service CatalogService {
   rpc UpdateAnimalCategory (AnimalCategoryMessage) returns (common.v1.ActionResponse);
   rpc DeleteAnimalCategory (common.v1.DeleteEntityRequest) returns (common.v1.ActionResponse);
 
-  rpc GetLotes (GetLotesRequest) returns (LoteList);
-  rpc CreateLote (LoteMessage) returns (common.v1.ActionResponse);
-  rpc UpdateLote (LoteMessage) returns (common.v1.ActionResponse);
-  rpc DeleteLote (common.v1.DeleteEntityRequest) returns (common.v1.ActionResponse);
-  rpc SaveLoteGeometria (LoteGeoRequest) returns (common.v1.ActionResponse);
+  rpc GetCategoryMappings (GetCatalogRequest) returns (CategoryMappingList);
+  rpc AddCategoryMapping (CategoryMappingMessage) returns (common.v1.ActionResponse);
+  rpc DeleteCategoryMapping (DeleteCategoryMappingRequest) returns (common.v1.ActionResponse);
+
+  rpc GetEventTypes (GetCatalogRequest) returns (EventTypeList);
+  rpc CreateEventType (EventTypeMessage) returns (common.v1.ActionResponse);
+  rpc UpdateEventType (EventTypeMessage) returns (common.v1.ActionResponse);
+  rpc DeleteEventType (common.v1.DeleteEntityRequest) returns (common.v1.ActionResponse);
+
+  rpc GetAccounts (GetCatalogRequest) returns (AccountList);
+  rpc CreateAccount (AccountMessage) returns (common.v1.ActionResponse);
+  rpc UpdateAccount (AccountMessage) returns (common.v1.ActionResponse);
+  rpc DeleteAccount (common.v1.DeleteEntityRequest) returns (common.v1.ActionResponse);
+
+  rpc GetPlanes (GetCatalogRequest) returns (PlanCuentaList);
 }
 
 message GetCatalogRequest { string tenant_id = 1; }
@@ -55,20 +65,53 @@ message AnimalCategoryMessage {
   string tenant_id = 8;
 }
 
-message LoteMessage {
+message CategoryMappingMessage {
+  string categoria_cliente_id = 1;
+  string categoria_gestor_id = 2;
+  string categoria_cliente_nombre = 3;
+  string categoria_gestor_nombre = 4;
+  string tenant_id = 5;
+}
+
+message DeleteCategoryMappingRequest {
+  string categoria_cliente_id = 1;
+  string tenant_id = 2;
+}
+
+message EventTypeMessage {
   string id = 1;
-  string name = 2;
-  string field_id = 3;
-  repeated string activity_ids = 4;
-  string field_name = 5;
-  string geojson_polygon = 6;
-  string tenant_id = 7;
+  string code = 2;
+  string name = 3;
+  string debit_account_code = 4;
+  string credit_account_code = 5;
+  bool requires_origin_destination = 6;
+  bool requires_destination_field = 7;
+  bool is_active = 8;
+  string tenant_id = 9;
+}
+
+message PlanCuentaMessage {
+  string id = 1;
+  string code = 2;
+  string name = 3;
+  string tenant_id = 4;
+}
+
+message AccountMessage {
+  string id = 1;
+  string code = 2;
+  string name = 3;
+  string plan_id = 4;
+  string plan_name = 5;
+  string normal_type = 6;
+  bool is_active = 7;
+  string tenant_id = 8;
 }
 
 message FieldList          { repeated FieldMessage fields = 1; }
 message ActivityList       { repeated ActivityMessage activities = 1; }
 message AnimalCategoryList { repeated AnimalCategoryMessage categories = 1; }
-message LoteList           { repeated LoteMessage lotes = 1; }
-
-message GetLotesRequest { string field_id = 1; string tenant_id = 2; }
-message LoteGeoRequest { string lote_id = 1; string geojson_polygon = 2; }
+message CategoryMappingList { repeated CategoryMappingMessage mappings = 1; }
+message EventTypeList { repeated EventTypeMessage event_types = 1; }
+message AccountList { repeated AccountMessage accounts = 1; }
+message PlanCuentaList { repeated PlanCuentaMessage planes = 1; }

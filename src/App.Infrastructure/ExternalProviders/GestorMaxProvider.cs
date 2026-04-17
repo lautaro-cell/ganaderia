@@ -30,8 +30,8 @@ public class GestorMaxProvider : IERPProvider
     {
         var mockData = new[]
         {
-            new { Code = "LOTE_01", Name = "Lote La Posta", Surface = 150 },
-            new { Code = "LOTE_02", Name = "Lote El Trébol", Surface = 200 }
+            new { Code = "CAMPO_01", Name = "Campo La Posta", Surface = 150 },
+            new { Code = "CAMPO_02", Name = "Campo El Trébol", Surface = 200 }
         };
 
         return JsonDocument.Parse(JsonSerializer.Serialize(mockData));

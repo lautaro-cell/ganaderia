@@ -134,5 +134,76 @@ public class CatalogServiceImplementation : CatalogService.CatalogServiceBase
         await _catalogService.DeleteMappingAsync(Guid.Parse(request.CategoriaClienteId), Guid.Parse(request.TenantId));
         return new ActionResponse { Success = true };
     }
+
+    public override async Task<EventTypeList> GetEventTypes(GetCatalogRequest request, ServerCallContext context)
+    {
+        var types = await _catalogService.GetEventTypesAsync(Guid.Parse(request.TenantId));
+        var response = new EventTypeList();
+        response.EventTypes.AddRange(types.Select(e => new EventTypeMessage {
+            Id = e.Id.ToString(), Code = e.Code, Name = e.Name, DebitAccountCode = e.DebitAccountCode, 
+            CreditAccountCode = e.CreditAccountCode, RequiresOriginDestination = e.RequiresOriginDestination, 
+            RequiresDestinationField = e.RequiresDestinationField, IsActive = e.IsActive, TenantId = e.TenantId.ToString()
+        }));
+        return response;
+    }
+
+    public override async Task<ActionResponse> CreateEventType(EventTypeMessage request, ServerCallContext context)
+    {
+        var id = await _catalogService.CreateEventTypeAsync(new EventTypeDto(
+            Guid.Empty, request.Code, request.Name, request.DebitAccountCode, request.CreditAccountCode, 
+            request.RequiresOriginDestination, request.RequiresDestinationField, request.IsActive, Guid.Parse(request.TenantId)
+        ));
+        return new ActionResponse { Success = true, ObjectId = id.ToString() };
+    }
+
+    public override async Task<ActionResponse> UpdateEventType(EventTypeMessage request, ServerCallContext context)
+    {
+        await _catalogService.UpdateEventTypeAsync(new EventTypeDto(
+            Guid.Parse(request.Id), request.Code, request.Name, request.DebitAccountCode, request.CreditAccountCode, 
+            request.RequiresOriginDestination, request.RequiresDestinationField, request.IsActive, Guid.Parse(request.TenantId)
+        ));
+        return new ActionResponse { Success = true };
+    }
+
+    public override async Task<ActionResponse> DeleteEventType(DeleteEntityRequest request, ServerCallContext context)
+    {
+        await _catalogService.DeleteEventTypeAsync(Guid.Parse(request.Id));
+        return new ActionResponse { Success = true };
+    }
+
+    public override async Task<AccountList> GetAccounts(GetCatalogRequest request, ServerCallContext context)
+    {
+        var accounts = await _catalogService.GetAccountsAsync(Guid.Parse(request.TenantId));
+        var response = new AccountList();
+        response.Accounts.AddRange(accounts.Select(a => new AccountMessage { 
+            Id = a.Id.ToString(), Code = a.Code, Name = a.Name, PlanId = a.PlanId.ToString(), 
+            PlanName = a.PlanName, NormalType = a.NormalType, IsActive = a.IsActive, TenantId = a.TenantId.ToString()
+        }));
+        return response;
+    }
+
+    public override async Task<ActionResponse> CreateAccount(AccountMessage request, ServerCallContext context)
+    {
+        var id = await _catalogService.CreateAccountAsync(new AccountDto(
+            Guid.Empty, request.Code, request.Name, Guid.Parse(request.PlanId), request.PlanName, 
+            request.NormalType, request.IsActive, Guid.Parse(request.TenantId)
+        ));
+        return new ActionResponse { Success = true, ObjectId = id.ToString() };
+    }
+
+    public override async Task<ActionResponse> UpdateAccount(AccountMessage request, ServerCallContext context)
+    {
+        await _catalogService.UpdateAccountAsync(new AccountDto(
+            Guid.Parse(request.Id), request.Code, request.Name, Guid.Parse(request.PlanId), request.PlanName, 
+            request.NormalType, request.IsActive, Guid.Parse(request.TenantId)
+        ));
+        return new ActionResponse { Success = true };
+    }
+
+    public override async Task<ActionResponse> DeleteAccount(DeleteEntityRequest request, ServerCallContext context)
+    {
+        await _catalogService.DeleteAccountAsync(Guid.Parse(request.Id));
+        return new ActionResponse { Success = true };
+    }
 }
 

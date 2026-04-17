@@ -1,58 +1,80 @@
 @page "/login"
+@layout GestorGanadero.Client.Layout.EmptyLayout
 @using GestorGanadero.Client.Services
 @using System.ComponentModel.DataAnnotations
 @inject IAuthService AuthService
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 
-<div class="login-wrapper">
-    <div class="login-card">
-        <div class="login-brand">
-            <div class="brand-icon">GG</div>
-            <h1>Gestor Ganadero</h1>
-            <p>Inicia sesión para continuar</p>
-        </div>
-
-        <EditForm Model="@model" OnValidSubmit="HandleLogin">
-            <DataAnnotationsValidator />
-            
-            @if (!string.IsNullOrEmpty(errorMessage))
-            {
-                <div class="alert alert-danger mb-md" style="margin-bottom:16px;">
-                    <span class="material-icons" style="font-size:18px;">error</span>
-                    @errorMessage
+<div class="flex-1 flex flex-col items-center justify-center p-4 md:p-8 relative overflow-hidden min-h-screen bg-background-main w-full">
+    <div class="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary/5 rounded-full blur-[100px] pointer-events-none"></div>
+    <div class="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[80px] pointer-events-none"></div>
+    
+    <div class="w-full max-w-[420px] relative z-10">
+        <div class="bg-surface-dark rounded-2xl shadow-xl shadow-black/20 overflow-hidden border border-border-dark">
+            <div class="pt-10 px-8 pb-2 text-center">
+                <div class="size-16 mx-auto bg-primary/10 rounded-2xl flex items-center justify-center mb-6 text-primary">
+                    <span class="material-symbols-outlined text-4xl">pets</span>
                 </div>
-            }
-
-            <div class="form-group">
-                <label for="email">Email</label>
-                <InputText id="email" @bind-Value="model.Email" class="form-control" placeholder="admin@ganaderia.com" />
-                <ValidationMessage For="@(() => model.Email)" />
+                <h1 class="text-3xl font-bold tracking-tight mb-2 text-white">Gestor Ganadero</h1>
+                <p class="text-text-secondary text-base">Inicia sesión para continuar</p>
             </div>
+            
+            <div class="p-8 flex flex-col gap-6">
+                <EditForm Model="@model" OnValidSubmit="HandleLogin" class="flex flex-col gap-4">
+                    <DataAnnotationsValidator />
+                    
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="flex items-center gap-2 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400">
+                            <span class="material-symbols-outlined text-xl">error</span>
+                            <span class="text-sm">@errorMessage</span>
+                        </div>
+                    }
 
-            <div class="form-group">
-                <label for="password">Contraseña</label>
-                <InputText id="password" @bind-Value="model.Password" type="password" class="form-control" placeholder="••••••••" />
-                <ValidationMessage For="@(() => model.Password)" />
+                    <label class="flex flex-col gap-2">
+                        <span class="text-white text-sm font-medium">Email</span>
+                        <div class="relative">
+                            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">mail</span>
+                            <InputText id="email" @bind-Value="model.Email" class="form-input w-full bg-[#271c1c] border-[#543b3b] rounded-xl pl-10 pr-4 text-white focus:ring-primary focus:border-primary h-12 outline-none transition-colors" placeholder="admin@ganaderia.com" />
+                        </div>
+                        <ValidationMessage For="@(() => model.Email)" class="text-primary text-xs" />
+                    </label>
+
+                    <label class="flex flex-col gap-2">
+                        <span class="text-white text-sm font-medium">Contraseña</span>
+                        <div class="relative">
+                            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">lock</span>
+                            <InputText id="password" @bind-Value="model.Password" type="password" class="form-input w-full bg-[#271c1c] border-[#543b3b] rounded-xl pl-10 pr-4 text-white focus:ring-primary focus:border-primary h-12 outline-none transition-colors" placeholder="••••••••" />
+                        </div>
+                        <ValidationMessage For="@(() => model.Password)" class="text-primary text-xs" />
+                    </label>
+
+                    <button type="submit" class="w-full h-14 mt-4 bg-primary hover:bg-red-600 text-white text-lg font-bold rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all duration-300 flex items-center justify-center gap-2 group disabled:opacity-70 disabled:cursor-not-allowed" disabled="@isLoading">
+                        @if (isLoading)
+                        {
+                            <div class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+                            <span>Iniciando sesión...</span>
+                        }
+                        else
+                        {
+                            <span>Ingresar</span>
+                            <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">login</span>
+                        }
+                    </button>
+                </EditForm>
             </div>
-
-            <button type="submit" class="btn btn-primary login-btn mt-md" disabled="@isLoading">
-                @if (isLoading)
-                {
-                    <span class="spinner"></span>
-                    <span>Iniciando sesión...</span>
-                }
-                else
-                {
-                    <span class="material-icons" style="font-size:18px;">login</span>
-                    <span>Iniciar Sesión</span>
-                }
-            </button>
-        </EditForm>
-
-        <div style="text-align:center; margin-top:24px; font-size:0.75rem; color:var(--text-muted);">
-            Credenciales de prueba: admin@ganaderia.com / admin123
+            
+            <div class="px-8 pb-8 pt-0 text-center">
+                <div class="h-px w-full bg-border-dark mb-6"></div>
+                <p class="text-xs text-text-secondary">
+                    Credenciales de prueba: <span class="text-white font-mono bg-background-main px-2 py-1 rounded">admin@ganaderia.com</span> / <span class="text-white font-mono bg-background-main px-2 py-1 rounded">admin123</span>
+                </p>
+            </div>
         </div>
+        <footer class="mt-8 text-center opacity-60">
+            <p class="text-xs font-medium text-text-secondary">Gestor Ganadero © 2026</p>
+        </footer>
     </div>
 </div>
 

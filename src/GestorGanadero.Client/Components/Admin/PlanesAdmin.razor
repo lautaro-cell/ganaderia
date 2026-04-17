@@ -1,0 +1,107 @@
+@using GestorGanadero.Services.Catalog.Contracts
+@using GestorGanadero.Services.Common.Contracts
+@using GestorGanadero.Client.Services
+@inject AppStateContainer State
+@inject CatalogService.CatalogServiceClient GrpcClient
+@inject IJSRuntime JS
+
+<div class="flex flex-col gap-6">
+    <!-- Header -->
+    <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined text-primary text-2xl">grid_view</span>
+        <h2 class="text-white text-xl font-bold">Gestión de Planes de Cuenta</h2>
+    </div>
+    <p class="text-text-secondary text-sm -mt-4">Definición de los planes contables del sistema.</p>
+
+    <!-- Table -->
+    <div class="bg-background-main border border-border-dark rounded-2xl overflow-hidden shadow-xl shadow-black/20">
+        <table class="w-full text-left text-sm">
+            <thead class="bg-surface-darker text-text-secondary uppercase text-[10px] tracking-widest">
+                <tr>
+                    <th class="px-6 py-4">Código</th>
+                    <th class="px-6 py-4">Nombre</th>
+                    <th class="px-6 py-4 text-right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-border-dark">
+                @if (_items == null)
+                {
+                    <tr>
+                        <td colspan="3" class="px-6 py-8 text-center text-text-secondary">
+                            <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto"></div>
+                        </td>
+                    </tr>
+                }
+                else if (!_items.Any())
+                {
+                    <tr>
+                        <td colspan="3" class="px-6 py-8 text-center text-text-secondary">No hay planes registrados</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var p in _items)
+                    {
+                        <tr class="hover:bg-surface-dark transition-colors">
+                            <td class="px-6 py-4 text-primary font-mono font-bold">@p.Code</td>
+                            <td class="px-6 py-4 text-white font-bold">@p.Name</td>
+                            <td class="px-6 py-4 text-right">
+                                <button class="p-1.5 text-text-secondary hover:text-white rounded-lg transition-colors" title="Editar" @onclick="() => Sel(p)">
+                                    <span class="material-symbols-outlined text-[18px]">edit</span>
+                                </button>
+                                <button class="p-1.5 text-text-secondary hover:text-red-400 rounded-lg transition-colors" title="Eliminar" @onclick="() => Del(p)">
+                                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Create/Edit Form -->
+    <div class="bg-background-main rounded-2xl border border-border-dark p-6">
+        <h3 class="text-white font-bold flex items-center gap-2 mb-6">
+            <span class="material-symbols-outlined text-primary">add_circle</span> @(string.IsNullOrEmpty(_sel?.Id) ? "Crear Plan de Cuenta" : "Editar Plan de Cuenta")
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input type="text" @bind="_sel.Code" class="w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 py-3 text-white focus:ring-primary outline-none" placeholder="Código (ej: ACT)" />
+            <input type="text" @bind="_sel.Name" class="w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 py-3 text-white focus:ring-primary outline-none" placeholder="Nombre" />
+
+            <button class="md:col-span-2 w-full bg-primary hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2" @onclick="Save">
+                <span class="material-symbols-outlined text-[20px]">save</span> @(string.IsNullOrEmpty(_sel.Id) ? "Crear" : "Actualizar") Plan
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<PlanCuentaMessage>? _items;
+    private PlanCuentaMessage _sel = new();
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load() {
+        if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
+        var r = await GrpcClient.GetPlanesAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
+        _items = r.Planes.ToList();
+        _sel.TenantId = State.ActiveTenantId;
+    }
+
+    private void Sel(PlanCuentaMessage p) => _sel = new PlanCuentaMessage { Id = p.Id, Code = p.Code, Name = p.Name, TenantId = State.ActiveTenantId };
+
+    private async Task Save() {
+        if (string.IsNullOrWhiteSpace(_sel.Code)) return;
+        if (string.IsNullOrEmpty(_sel.Id)) await GrpcClient.CreateEventTypeAsync(new EventTypeMessage { Code = _sel.Code, Name = _sel.Name, TenantId = _sel.TenantId }); // Fixme: need correct DTO
+        else await GrpcClient.UpdateEventTypeAsync(new EventTypeMessage { Id = _sel.Id, Code = _sel.Code, Name = _sel.Name, TenantId = _sel.TenantId });
+        _sel = new PlanCuentaMessage { TenantId = State.ActiveTenantId };
+        await Load();
+    }
+
+    private async Task Del(PlanCuentaMessage p) {
+        if (!await JS.InvokeAsync<bool>("confirm", "Eliminar?")) return;
+        await GrpcClient.DeleteEventTypeAsync(new DeleteEntityRequest { Id = p.Id, TenantId = State.ActiveTenantId });
+        await Load();
+    }
+}

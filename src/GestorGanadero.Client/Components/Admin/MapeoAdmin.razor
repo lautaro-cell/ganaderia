@@ -1,0 +1,125 @@
+@using GestorGanadero.Services.Common.Contracts
+@using GestorGanadero.Services.Catalog.Contracts
+@using GestorGanadero.Client.Services
+@inject AppStateContainer State
+@inject CatalogService.CatalogServiceClient GrpcClient
+@inject IJSRuntime JS
+
+<div class="flex flex-col gap-6">
+    <!-- Header -->
+    <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined text-primary text-2xl">swap_horiz</span>
+        <h2 class="text-white text-xl font-bold">Mapeo de Categorías</h2>
+    </div>
+    <p class="text-text-secondary text-sm -mt-4">Asigne categorías del cliente a categorías de consolidación (Gestor) para reportes unificados.</p>
+
+    <!-- KPI Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-background-main rounded-xl p-6 border border-border-dark">
+            <p class="text-text-secondary text-xs font-bold uppercase tracking-widest mb-1">Total Cliente</p>
+            <p class="text-white text-3xl font-black">@(_cats?.Count ?? 0)</p>
+        </div>
+        <div class="bg-background-main rounded-xl p-6 border border-border-dark">
+            <p class="text-text-secondary text-xs font-bold uppercase tracking-widest mb-1">Mapeadas</p>
+            <p class="text-white text-3xl font-black">@(_mappings?.Count ?? 0)</p>
+        </div>
+        <div class="bg-background-main rounded-xl p-6 border border-border-dark">
+            <p class="text-text-secondary text-xs font-bold uppercase tracking-widest mb-1">Sin Mapear</p>
+            <p class="text-white text-3xl font-black">@((_cats?.Count ?? 0) - (_mappings?.Count ?? 0))</p>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="bg-background-main rounded-2xl border border-border-dark overflow-hidden">
+        <table class="w-full text-left text-sm">
+            <thead class="bg-surface-darker text-text-secondary uppercase text-[10px] tracking-widest">
+                <tr>
+                    <th class="px-6 py-4">Categoría Cliente</th>
+                    <th class="px-6 py-4">Categoría Gestor</th>
+                    <th class="px-6 py-4">Estado</th>
+                    <th class="px-6 py-4 text-right">Acción</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-border-dark">
+                @if (_mappings == null || !_mappings.Any())
+                {
+                    <tr>
+                        <td colspan="4" class="px-6 py-8 text-center text-text-secondary">No hay mapeos registrados.</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var m in _mappings)
+                    {
+                        <tr class="hover:bg-surface-dark transition-colors">
+                            <td class="px-6 py-4 text-white font-bold">@m.CategoriaClienteNombre</td>
+                            <td class="px-6 py-4 text-primary font-bold">@m.CategoriaGestorId.ToUpper()</td>
+                            <td class="px-6 py-4 text-emerald-500 text-xs font-bold">Activo</td>
+                            <td class="px-6 py-4 text-right">
+                                <button class="bg-surface-dark border border-border-dark hover:border-red-900/50 text-red-500 hover:text-red-400 rounded-lg px-4 py-2 text-xs font-bold transition-all flex items-center gap-2 ml-auto" @onclick="() => Quitar(m)">
+                                    <span class="material-symbols-outlined text-[16px]">link_off</span> Quitar
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Create Form -->
+    <div class="bg-background-main rounded-2xl border border-border-dark p-6">
+        <h3 class="text-white font-bold flex items-center gap-2 mb-6">
+            <span class="material-symbols-outlined text-primary">add_circle</span> Asignar Mapeo
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+            <label class="flex flex-col gap-2">
+                <span class="text-white text-sm font-medium">Categoría Cliente</span>
+                <select @bind="_clienteCatId" class="w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 py-3 text-white focus:ring-primary outline-none">
+                    <option value="">- Categoría Cliente -</option>
+                    @if (_cats != null) { @foreach (var c in _cats) { <option value="@c.Id">@c.Name</option> } }
+                </select>
+            </label>
+            <label class="flex flex-col gap-2">
+                <span class="text-white text-sm font-medium">Categoría Gestor</span>
+                <input type="text" @bind="_gestorCatId" class="w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 py-3 text-white focus:ring-primary outline-none" placeholder="- Categoría Gestor -" />
+            </label>
+            <button class="md:col-span-2 w-full bg-primary hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2" @onclick="Asignar">
+                <span class="material-symbols-outlined text-[20px]">link</span> Asignar
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<AnimalCategoryMessage>? _cats;
+    private List<CategoryMappingMessage>? _mappings;
+    private string _clienteCatId = "";
+    private string _gestorCatId = "";
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load() {
+        if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
+        var r = await GrpcClient.GetAnimalCategoriesAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
+        _cats = r.Categories.ToList();
+        var m = await GrpcClient.GetCategoryMappingsAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
+        _mappings = m.Mappings.ToList();
+    }
+
+    private async Task Asignar() {
+        if (string.IsNullOrEmpty(_clienteCatId) || string.IsNullOrEmpty(_gestorCatId)) return;
+        await GrpcClient.AddCategoryMappingAsync(new CategoryMappingMessage { 
+            CategoriaClienteId = _clienteCatId, 
+            CategoriaGestorId = _gestorCatId,
+            TenantId = State.ActiveTenantId
+        });
+        _clienteCatId = ""; _gestorCatId = "";
+        await Load();
+    }
+
+    private async Task Quitar(CategoryMappingMessage m) {
+        await GrpcClient.DeleteCategoryMappingAsync(new DeleteCategoryMappingRequest { CategoriaClienteId = m.CategoriaClienteId, TenantId = State.ActiveTenantId });
+        await Load();
+    }
+}
