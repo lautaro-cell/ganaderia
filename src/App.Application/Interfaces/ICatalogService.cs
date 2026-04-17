@@ -38,5 +38,11 @@ public interface ICatalogService
     Task<Guid> CreateAccountAsync(AccountDto dto);
     Task UpdateAccountAsync(AccountDto dto);
     Task DeleteAccountAsync(Guid id);
+
+    // Planes
+    Task<IEnumerable<PlanCuentaDto>> GetPlanesAsync(Guid tenantId);
+    Task<Guid> CreatePlanAsync(PlanCuentaDto dto);
+    Task UpdatePlanAsync(PlanCuentaDto dto);
+    Task DeletePlanAsync(Guid id);
 }
 

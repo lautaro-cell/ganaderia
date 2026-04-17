@@ -205,5 +205,15 @@ public class CatalogServiceImplementation : CatalogService.CatalogServiceBase
         await _catalogService.DeleteAccountAsync(Guid.Parse(request.Id));
         return new ActionResponse { Success = true };
     }
+
+    public override async Task<PlanCuentaList> GetPlanes(GetCatalogRequest request, ServerCallContext context)
+    {
+        var planes = await _catalogService.GetPlanesAsync(Guid.Parse(request.TenantId));
+        var response = new PlanCuentaList();
+        response.Planes.AddRange(planes.Select(p => new PlanCuentaMessage { 
+            Id = p.Id.ToString(), Code = p.Code, Name = p.Name, TenantId = p.TenantId.ToString() 
+        }));
+        return response;
+    }
 }
 
