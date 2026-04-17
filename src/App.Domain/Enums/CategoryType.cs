@@ -7,7 +7,7 @@ namespace App.Domain.Enums;
 /// </summary>
 public enum CategoryType
 {
-    Cliente = 1,   // Categoría definida por el cliente
+    Client = 1,   // Categoría definida por el cliente
     Gestor = 2    // Categoría sincronizada desde GestorMax
 }
 

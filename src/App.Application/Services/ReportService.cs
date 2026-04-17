@@ -16,13 +16,10 @@ public class ReportService : IReportService
         _context = context;
     }
 
-    public async Task<IEnumerable<BalanceItemDto>> GetBalanceAsync(Guid? fieldId, Instant? date, string categoryView)
+    public async Task<IEnumerable<BalanceItemDto>> GetBalanceAsync(Guid? fieldId, Instant? date, string categoryView, Guid tenantId)
     {
         var query = _context.AccountingDrafts
-            .Include(a => a.Field)
-            .Include(a => a.Activity)
-            .Include(a => a.Category)
-            .Include(a => a.LivestockEvent)
+            .Where(a => a.TenantId == tenantId)
             .AsQueryable();
 
         if (fieldId.HasValue)
@@ -31,39 +28,37 @@ public class ReportService : IReportService
         if (date.HasValue)
             query = query.Where(a => a.LivestockEvent != null && a.LivestockEvent.EventDate <= date.Value);
 
-        var data = await query.ToListAsync();
-
-        // Si la vista es "gestor", aplicamos el mapeo
+        // Si la vista es "gestor", aplicamos el mapeo en la consulta SQL
         if (categoryView == "gestor")
         {
-            var mappings = await _context.CategoryMappings.ToListAsync();
-            var gestorCategories = await _context.AnimalCategories
-                .Where(c => c.Type == CategoryType.Gestor)
-                .ToListAsync();
+            var gestorQuery = from a in query
+                              join m in _context.CategoryMappings on a.CategoryId equals m.CategoriaClienteId into am
+                              from m in am.DefaultIfEmpty()
+                              join gc in _context.AnimalCategories.Where(c => c.Type == CategoryType.Gestor && c.TenantId == tenantId) 
+                                   on m.CategoriaGestorId equals gc.ExternalId into agc
+                              from gc in agc.DefaultIfEmpty()
+                              group a by new {
+                                  a.AccountCode,
+                                  FieldName = a.Field != null ? a.Field.Name : "Sin Campo",
+                                  ActivityName = a.Activity != null ? a.Activity.Name : "Sin Actividad",
+                                  CategoryName = gc != null ? gc.Name : (a.Category != null ? a.Category.Name : "Sin Categoría")
+                              } into g
+                              select new BalanceItemDto(
+                                  g.Key.FieldName,
+                                  g.Key.CategoryName,
+                                  g.Sum(a => a.EntryType == "DEBE" ? a.HeadCount : -a.HeadCount),
+                                  g.Sum(a => a.EntryType == "DEBE" ? (a.WeightKg ?? 0) : -(a.WeightKg ?? 0)),
+                                  g.Key.ActivityName,
+                                  g.Key.AccountCode,
+                                  g.Sum(a => a.DebitAmount),
+                                  g.Sum(a => a.CreditAmount),
+                                  g.Sum(a => a.DebitAmount - a.CreditAmount)
+                              );
 
-            var resultGestor = data
-                .GroupBy(a => new {
-                    a.AccountCode,
-                    FieldName = a.Field != null ? a.Field.Name : "Sin Campo",
-                    ActivityName = a.Activity != null ? a.Activity.Name : "Sin Actividad",
-                    CategoryName = ResolveGestorCategoryName(a.CategoryId, mappings, gestorCategories, a.Category?.Name ?? "Sin Categoría")
-                })
-                .Select(g => new BalanceItemDto(
-                    g.Key.FieldName,
-                    g.Key.CategoryName,
-                    g.Sum(a => a.EntryType == "DEBE" ? a.HeadCount : -a.HeadCount),
-                    g.Sum(a => a.EntryType == "DEBE" ? (a.WeightKg ?? 0) : -(a.WeightKg ?? 0)),
-                    g.Key.ActivityName,
-                    g.Key.AccountCode,
-                    g.Sum(a => a.DebitAmount),
-                    g.Sum(a => a.CreditAmount),
-                    g.Sum(a => a.DebitAmount - a.CreditAmount)
-                ));
-
-            return resultGestor;
+            return await gestorQuery.ToListAsync();
         }
 
-        var result = data
+        var resultQuery = query
             .GroupBy(a => new {
                 a.AccountCode,
                 FieldName = a.Field != null ? a.Field.Name : "Sin Campo",
@@ -82,18 +77,7 @@ public class ReportService : IReportService
                 g.Sum(a => a.DebitAmount - a.CreditAmount)
             ));
 
-        return result;
-    }
-
-    private string ResolveGestorCategoryName(Guid? clienteCatId, List<CategoryMapping> mappings, List<AnimalCategory> gestorCategories, string fallbackName)
-    {
-        if (!clienteCatId.HasValue) return fallbackName;
-
-        var mapping = mappings.FirstOrDefault(m => m.CategoriaClienteId == clienteCatId.Value);
-        if (mapping == null) return fallbackName;
-
-        var gestorCat = gestorCategories.FirstOrDefault(c => c.ExternalId == mapping.CategoriaGestorId);
-        return gestorCat?.Name ?? fallbackName;
+        return await resultQuery.ToListAsync();
     }
 
     public async Task<IEnumerable<LedgerEntryDto>> GetLedgerAsync(Instant? startDate, Instant? endDate, int pageIndex, int pageSize, string searchTerm, Guid tenantId)

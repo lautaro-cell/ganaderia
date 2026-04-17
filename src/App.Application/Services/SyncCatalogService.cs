@@ -80,13 +80,13 @@ public class SyncCatalogService : ISyncCatalogService
                     Name = name,
                     Type = CategoryType.Gestor,
                     IsActive = true,
-                    LastSyncedAt = DateTimeOffset.UtcNow // Usamos BCL para simplicidad en este campo específico si NodaTime no es requerido aquí
+                    LastSyncedAt = SystemClock.Instance.GetCurrentInstant()
                 });
             }
             else
             {
                 existing.Name = name;
-                existing.LastSyncedAt = DateTimeOffset.UtcNow;
+                existing.LastSyncedAt = SystemClock.Instance.GetCurrentInstant();
                 _context.AnimalCategories.Update(existing);
             }
         }

@@ -26,7 +26,8 @@ public class ReportingServiceImplementation : ReportingService.ReportingServiceB
         var balance = await _reportService.GetBalanceAsync(
             string.IsNullOrEmpty(request.FieldId) ? null : Guid.Parse(request.FieldId),
             request.Date == null ? (Instant?)null : Instant.FromDateTimeUtc(request.Date.ToDateTime()),
-            request.CategoryView);
+            request.CategoryView,
+            string.IsNullOrEmpty(request.TenantId) ? Guid.Empty : Guid.Parse(request.TenantId));
 
         var response = new BalanceReport { ReportDate = request.Date ?? Timestamp.FromDateTime(DateTime.UtcNow) };
         response.Items.AddRange(balance.Select(b => new BalanceItem

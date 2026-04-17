@@ -12,11 +12,13 @@ public class LivestockEventService : ILivestockEventService
 {
     private readonly IApplicationDbContext _context;
     private readonly ITenantProvider _tenantProvider;
+    private readonly ITranslationService _translationService;
 
-    public LivestockEventService(IApplicationDbContext context, ITenantProvider tenantProvider)
+    public LivestockEventService(IApplicationDbContext context, ITenantProvider tenantProvider, ITranslationService translationService)
     {
         _context = context;
         _tenantProvider = tenantProvider;
+        _translationService = translationService;
     }
 
     public async Task<Guid> CreateEventAsync(CreateLivestockEventRequest request)
@@ -44,6 +46,9 @@ public class LivestockEventService : ILivestockEventService
 
         _context.LivestockEvents.Add(newEvent);
         await _context.SaveChangesAsync();
+
+        // Ejecutar flujo de traducción automático para generar AccountingDrafts
+        await _translationService.TranslateEventToDraftAsync(newEvent.Id);
 
         return newEvent.Id;
     }

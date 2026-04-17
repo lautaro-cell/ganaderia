@@ -79,9 +79,9 @@ public class TranslationService : ITranslationService
 
         return tipo switch
         {
-            EventType.Traslado => BuildTraslado(ev, concept, heads, kg),
-            EventType.CambioActividad => BuildCambioActividad(ev, concept, heads, kg),
-            EventType.CambioCategoria => BuildCambioCategoria(ev, concept, heads, kg),
+            EventType.Traslado => BuildTraslado(ev, concept, amount, heads, kg),
+            EventType.CambioActividad => BuildCambioActividad(ev, concept, amount, heads, kg),
+            EventType.CambioCategoria => BuildCambioCategoria(ev, concept, amount, heads, kg),
             EventType.AjusteKg => BuildAjusteKg(ev, concept, kg),
             EventType.Recuento => Enumerable.Empty<AccountingDraft>(),
             _ => BuildSimplePair(ev, concept, amount, heads, kg)
@@ -97,12 +97,12 @@ public class TranslationService : ITranslationService
         };
     }
 
-    private IEnumerable<AccountingDraft> BuildTraslado(LivestockEvent ev, string concept, int heads, decimal kg)
+    private IEnumerable<AccountingDraft> BuildTraslado(LivestockEvent ev, string concept, decimal amount, int heads, decimal kg)
     {
         return new[]
         {
-            MakeDraft(ev, "ACT001", concept, heads, 0, heads, kg, "DEBE", fieldId: ev.DestinationFieldId),
-            MakeDraft(ev, "ACT001", concept, 0, heads, heads, kg, "HABER", fieldId: ev.FieldId)
+            MakeDraft(ev, "ACT001", concept, amount, 0, heads, kg, "DEBE", fieldId: ev.DestinationFieldId),
+            MakeDraft(ev, "ACT001", concept, 0, amount, heads, kg, "HABER", fieldId: ev.FieldId)
         };
     }
 
@@ -122,21 +122,21 @@ public class TranslationService : ITranslationService
               };
     }
 
-    private IEnumerable<AccountingDraft> BuildCambioActividad(LivestockEvent ev, string concept, int heads, decimal kg)
+    private IEnumerable<AccountingDraft> BuildCambioActividad(LivestockEvent ev, string concept, decimal amount, int heads, decimal kg)
     {
         return new[]
         {
-            MakeDraft(ev, "ACT001", concept, heads, 0, heads, kg, "DEBE", activityId: ev.DestinationActivityId),
-            MakeDraft(ev, "ACT001", concept, 0, heads, heads, kg, "HABER", activityId: ev.OriginActivityId)
+            MakeDraft(ev, "ACT001", concept, amount, 0, heads, kg, "DEBE", activityId: ev.DestinationActivityId),
+            MakeDraft(ev, "ACT001", concept, 0, amount, heads, kg, "HABER", activityId: ev.OriginActivityId)
         };
     }
 
-    private IEnumerable<AccountingDraft> BuildCambioCategoria(LivestockEvent ev, string concept, int heads, decimal kg)
+    private IEnumerable<AccountingDraft> BuildCambioCategoria(LivestockEvent ev, string concept, decimal amount, int heads, decimal kg)
     {
         return new[]
         {
-            MakeDraft(ev, "ACT001", concept, heads, 0, heads, kg, "DEBE", categoryId: ev.DestinationCategoryId),
-            MakeDraft(ev, "ACT001", concept, 0, heads, heads, kg, "HABER", categoryId: ev.OriginCategoryId)
+            MakeDraft(ev, "ACT001", concept, amount, 0, heads, kg, "DEBE", categoryId: ev.DestinationCategoryId),
+            MakeDraft(ev, "ACT001", concept, 0, amount, heads, kg, "HABER", categoryId: ev.OriginCategoryId)
         };
     }
 

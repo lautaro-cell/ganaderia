@@ -1,3 +1,4 @@
+using NodaTime;
 using App.Domain.Common;
 using App.Domain.Enums;
 
@@ -17,12 +18,12 @@ public class AnimalCategory : BaseAuditableEntity
     public bool IsActive { get; set; } = true;
 
     /// <summary>Cliente = propia del cliente, Gestor = sincronizada desde GestorMax.</summary>
-    public CategoryType Type { get; set; } = CategoryType.Cliente;
+    public CategoryType Type { get; set; } = CategoryType.Client;
 
     /// <summary>ID externo en GestorMax, para enlace con el ERP.</summary>
     public string? ExternalId { get; set; }
 
-    public DateTimeOffset? LastSyncedAt { get; set; }
+    public Instant? LastSyncedAt { get; set; }
 
     public Activity? Activity { get; set; }
     public Tenant? Tenant { get; set; }
