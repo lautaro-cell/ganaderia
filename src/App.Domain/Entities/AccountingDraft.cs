@@ -17,8 +17,13 @@ public class AccountingDraft : BaseAuditableEntity
     public decimal? WeightKg { get; set; }
     public decimal? WeightPerHead { get; set; }
     public Guid? FieldId { get; set; }
+    public Guid? ActivityId { get; set; }
+    public Guid? CategoryId { get; set; }
 
     public Tenant? Tenant { get; set; }
     public LivestockEvent? LivestockEvent { get; set; }
+    public Field? Field { get; set; }
+    public Activity? Activity { get; set; }
+    public AnimalCategory? Category { get; set; }
 }
 

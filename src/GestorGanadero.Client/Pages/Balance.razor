@@ -29,10 +29,8 @@
     <div class="bg-surface-dark border border-border-dark rounded-2xl p-6 shadow-xl shadow-black/20">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
             <label class="flex flex-col gap-2">
-                <span class="text-xs font-bold text-text-secondary uppercase tracking-widest">Periodo Contable</span>
-                <select class="w-full bg-background-main border border-border-input rounded-lg px-4 py-2.5 text-white text-sm outline-none focus:ring-1 focus:ring-primary">
-                    <option>Todos los periodos</option>
-                </select>
+                <span class="text-xs font-bold text-text-secondary uppercase tracking-widest">Fecha de Corte</span>
+                <input type="date" @bind="_date" class="w-full bg-background-main border border-border-input rounded-lg px-4 py-2 text-white text-sm outline-none focus:ring-1 focus:ring-primary" />
             </label>
 
             <label class="flex flex-col gap-2">
@@ -64,8 +62,8 @@
             <label class="flex flex-col gap-2">
                 <span class="text-xs font-bold text-text-secondary uppercase tracking-widest">Vista Categoría</span>
                 <div class="flex bg-background-main p-1 rounded-lg border border-border-input">
-                    <button class="px-6 py-1.5 text-xs font-bold rounded-md @(_view == "cliente" ? "bg-primary text-white" : "bg-transparent text-text-secondary hover:text-white")" @onclick='() => _view = "cliente"'>Cliente</button>
-                    <button class="px-6 py-1.5 text-xs font-bold rounded-md @(_view == "gestor" ? "bg-primary text-white" : "bg-transparent text-text-secondary hover:text-white")" @onclick='() => _view = "gestor"'>Gestor</button>
+                    <button class="px-6 py-1.5 text-xs font-bold rounded-md @(_view == "cliente" ? "bg-primary text-white" : "bg-transparent text-text-secondary hover:text-white")" @onclick='async () => { _view = "cliente"; await FetchBalance(); }'>Cliente</button>
+                    <button class="px-6 py-1.5 text-xs font-bold rounded-md @(_view == "gestor" ? "bg-primary text-white" : "bg-transparent text-text-secondary hover:text-white")" @onclick='async () => { _view = "gestor"; await FetchBalance(); }'>Gestor</button>
                 </div>
             </label>
             <button class="bg-primary hover:bg-primary-dark text-white rounded-lg px-8 py-2.5 text-sm font-bold shadow-lg shadow-primary/20 transition-all" @onclick="FetchBalance" disabled="@_loading">
@@ -97,24 +95,30 @@
                 <table class="w-full text-left text-sm">
                     <thead class="bg-background-main border-b border-border-dark text-text-secondary uppercase text-[10px] tracking-widest">
                         <tr>
+                            <th class="px-6 py-4 font-bold">Cuenta</th>
                             <th class="px-6 py-4 font-bold">Campo</th>
                             <th class="px-6 py-4 font-bold">Categoría</th>
                             <th class="px-6 py-4 font-bold">Actividad</th>
+                            <th class="px-6 py-4 font-bold text-right">Debe</th>
+                            <th class="px-6 py-4 font-bold text-right">Haber</th>
+                            <th class="px-6 py-4 font-bold text-right">Saldo</th>
                             <th class="px-6 py-4 font-bold text-right">Cabezas</th>
-                            <th class="px-6 py-4 font-bold text-right">Total KG</th>
-                            <th class="px-6 py-4 font-bold text-right">KG/Cab</th>
+                            <th class="px-6 py-4 font-bold text-right">KG Stock</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-border-dark">
                         @foreach (var item in _report.Items)
                         {
                             <tr class="hover:bg-[#271c1c] transition-colors">
+                                <td class="px-6 py-4 text-white font-mono">@item.AccountCode</td>
                                 <td class="px-6 py-4 text-white font-bold">@item.FieldName</td>
                                 <td class="px-6 py-4 text-text-body">@item.CategoryName</td>
                                 <td class="px-6 py-4"><span class="px-2 py-1 rounded-md bg-border-dark text-white text-xs">@item.ActivityName</span></td>
-                                <td class="px-6 py-4 text-right text-white font-mono font-bold">@item.HeadCount</td>
-                                <td class="px-6 py-4 text-right text-white font-mono font-bold">@item.TotalWeight.ToString("N1")</td>
-                                <td class="px-6 py-4 text-right text-white font-mono font-bold">@((item.HeadCount > 0 ? item.TotalWeight / item.HeadCount : 0).ToString("N2"))</td>
+                                <td class="px-6 py-4 text-right text-text-secondary font-mono">@item.DebitTotal.ToString("N0")</td>
+                                <td class="px-6 py-4 text-right text-text-secondary font-mono">@item.CreditTotal.ToString("N0")</td>
+                                <td class="px-6 py-4 text-right text-white font-mono font-bold">@item.NetBalance.ToString("N2")</td>
+                                <td class="px-6 py-4 text-right text-primary font-mono font-bold">@item.HeadCount</td>
+                                <td class="px-6 py-4 text-right text-primary font-mono font-bold">@item.TotalWeight.ToString("N1")</td>
                             </tr>
                         }
                     </tbody>
@@ -128,6 +132,7 @@
     private List<FieldMessage>? _fields;
     private string _fieldId = "";
     private string _view = "cliente";
+    private DateTime? _date = DateTime.Today;
     private bool _loading;
     private BalanceReport? _report;
 
@@ -135,6 +140,7 @@
     {
         State.OnChange += StateHasChanged;
         await LoadFields();
+        await FetchBalance();
     }
 
     private async Task LoadFields()
@@ -156,10 +162,15 @@
         StateHasChanged();
         try
         {
-            // Placeholder for real logic (GrpcClient needs to be properly configured/imported if not already)
-            // Mocking for now to match UI update request
-            _report = new BalanceReport(); 
-            // _report = await GrpcClient.GetBalanceAsync(...);
+            var request = new GetBalanceRequest 
+            { 
+                TenantId = State.ActiveTenantId,
+                FieldId = _fieldId,
+                CategoryView = _view,
+                Date = _date.HasValue ? Timestamp.FromDateTime(_date.Value.ToUniversalTime()) : null
+            };
+            
+            _report = await GrpcClient.GetBalanceAsync(request);
         }
         catch (Exception ex) { Console.WriteLine(ex.Message); }
         finally { _loading = false; StateHasChanged(); }

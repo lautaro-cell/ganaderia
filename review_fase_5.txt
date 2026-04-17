@@ -1,0 +1,14 @@
+# Review: Fase 5 — Categorías CLIENTE/GESTOR
+
+**Estado**: ⚠️ ESTRUCTURAL (Infraestructura lista, lógica ausente)
+
+## Hallazgos del Análisis
+1. **Entidades**: `AnimalCategory` y `CategoryType` ya contemplan la distinción entre `Client` y `Gestor`. Esto es un avance positivo.
+2. **Servicio**: El `ReportService` recibe el parámetro `categoryView` pero lo ignora totalmente en la consulta LINQ.
+
+## Revisoría Técnica (Testing Cruzado)
+- **Consistencia de Nombres**: Existe una pequeña discrepancia entre el plan (`Cliente`/`Gestor` en español) y el código (`Client`/`Gestor` en inglés). Se recomienda estandarizar al inglés dentro del código (`CategoryType.Client`) y usar traducción solo en la UI para evitar confusiones.
+- **Mapping**: El sistema requerirá una tabla de mapeo `CategoryMapping` para unir categorías de cliente con las de gestor. Se debe verificar si esta tabla tiene su repositorio y servicio de sincronización (Fase 5 - Sprint 5.1).
+
+## Conclusión
+La cimentación para la Fase 5 está presente, lo que facilitará su implementación. Solo resta conectar la lógica de agrupación condicionada en el servicio de reportes.

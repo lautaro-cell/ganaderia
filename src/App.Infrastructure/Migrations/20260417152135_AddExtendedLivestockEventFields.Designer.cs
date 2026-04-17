@@ -4,6 +4,7 @@ using System.Text.Json;
 using App.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NodaTime;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -13,9 +14,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace App.Infrastructure.Migrations
 {
     [DbContext(typeof(GestorGanaderoDbContext))]
-    partial class GestorGanaderoDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260417152135_AddExtendedLivestockEventFields")]
+    partial class AddExtendedLivestockEventFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -80,12 +83,6 @@ namespace App.Infrastructure.Migrations
                     b.Property<string>("AccountCode")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<Guid?>("ActivityId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("CategoryId")
-                        .HasColumnType("uuid");
 
                     b.Property<string>("Concept")
                         .IsRequired()

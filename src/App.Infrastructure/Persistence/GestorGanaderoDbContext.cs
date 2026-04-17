@@ -83,15 +83,28 @@ public class GestorGanaderoDbContext : DbContext, IApplicationDbContext
             .HasForeignKey(e => e.LivestockEventId);
 
         modelBuilder.Entity<LivestockEvent>()
-            .HasOne(e => e.Field)
-            .WithMany(f => f.LivestockEvents)
-            .HasForeignKey(e => e.FieldId)
+            .HasOne(c => c.Category)
+            .WithMany()
+            .HasForeignKey(c => c.CategoryId)
             .IsRequired(false);
 
-        modelBuilder.Entity<AnimalCategory>()
-            .HasOne(c => c.Activity)
-            .WithMany(a => a.AnimalCategories)
-            .HasForeignKey(c => c.ActivityId);
+        modelBuilder.Entity<AccountingDraft>(b =>
+        {
+            b.HasOne(d => d.Field)
+                .WithMany()
+                .HasForeignKey(d => d.FieldId)
+                .IsRequired(false);
+            
+            b.HasOne(d => d.Activity)
+                .WithMany()
+                .HasForeignKey(d => d.ActivityId)
+                .IsRequired(false);
+            
+            b.HasOne(d => d.Category)
+                .WithMany()
+                .HasForeignKey(d => d.CategoryId)
+                .IsRequired(false);
+        });
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

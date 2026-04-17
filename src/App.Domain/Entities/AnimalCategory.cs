@@ -16,8 +16,8 @@ public class AnimalCategory : BaseAuditableEntity
     public decimal? StandardWeightKg { get; set; }
     public bool IsActive { get; set; } = true;
 
-    /// <summary>Client = propia del cliente, Gestor = sincronizada desde GestorMax.</summary>
-    public CategoryType Type { get; set; } = CategoryType.Client;
+    /// <summary>Cliente = propia del cliente, Gestor = sincronizada desde GestorMax.</summary>
+    public CategoryType Type { get; set; } = CategoryType.Cliente;
 
     /// <summary>ID externo en GestorMax, para enlace con el ERP.</summary>
     public string? ExternalId { get; set; }

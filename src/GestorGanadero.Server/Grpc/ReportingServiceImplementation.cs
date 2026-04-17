@@ -35,7 +35,11 @@ public class ReportingServiceImplementation : ReportingService.ReportingServiceB
             CategoryName = b.CategoryName ?? "",
             HeadCount = b.HeadCount,
             TotalWeight = (double)b.TotalWeight,
-            ActivityName = b.ActivityName ?? ""
+            ActivityName = b.ActivityName ?? "",
+            AccountCode = b.AccountCode ?? "",
+            DebitTotal = (double)b.DebitTotal,
+            CreditTotal = (double)b.CreditTotal,
+            NetBalance = (double)b.NetBalance
         }));
         return response;
     }

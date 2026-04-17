@@ -5,7 +5,6 @@ using App.Application.Interfaces;
 using App.Domain.Entities;
 using App.Domain.Enums;
 
-
 namespace App.Application.Services;
 
 public class TranslationService : ITranslationService
@@ -33,61 +32,141 @@ public class TranslationService : ITranslationService
         if (eventEntity.EventTemplate == null)
             throw new InvalidOperationException("The event does not have an associated template.");
 
-        var totalAmount = eventEntity.TotalAmount;
-        var concept = $"Ref: {eventEntity.EventTemplate.Name} - Campo: {eventEntity.CostCenterCode} - Cabezas: {eventEntity.HeadCount}";
+        // 2. Generar Asientos según tipo de evento
+        var drafts = BuildDrafts(eventEntity).ToList();
 
-        // 2. Generar el Asiento del DEBE (Debit)
-        var debitDraft = new AccountingDraft
+        // 3. Persistir si hay asientos o es Recuento (para validar el evento)
+        if (drafts.Any())
         {
-            TenantId = eventEntity.TenantId,
-            LivestockEventId = eventEntity.Id,
-            AccountCode = eventEntity.EventTemplate.DebitAccountCode,
-            Concept = concept,
-            DebitAmount = totalAmount,
-            CreditAmount = 0
-        };
-
-        // 3. Generar el Asiento del HABER (Credit)
-        var creditDraft = new AccountingDraft
+            _context.AccountingDrafts.AddRange(drafts);
+            eventEntity.Status = LivestockEventStatus.Validated;
+        }
+        else if (eventEntity.EventTemplate.EventType == EventType.Recuento)
         {
-            TenantId = eventEntity.TenantId,
-            LivestockEventId = eventEntity.Id,
-            AccountCode = eventEntity.EventTemplate.CreditAccountCode,
-            Concept = concept,
-            DebitAmount = 0,
-            CreditAmount = totalAmount
-        };
-
-        // 4. Persistir
-        _context.AccountingDrafts.Add(debitDraft);
-        _context.AccountingDrafts.Add(creditDraft);
-
-        // Cambiar el Status del LivestockEvent a Validated
-        eventEntity.Status = LivestockEventStatus.Validated;
+            eventEntity.Status = LivestockEventStatus.Validated;
+        }
 
         await _context.SaveChangesAsync();
 
-        // 5. Mapear y Retornar
-        return new List<AccountingDraftDto>
+        // 4. Mapear y Retornar
+        return drafts.Select(d => new AccountingDraftDto(
+            d.Id,
+            d.TenantId,
+            d.LivestockEventId,
+            d.AccountCode,
+            d.Concept,
+            d.DebitAmount,
+            d.CreditAmount
+        ));
+    }
+
+    private IEnumerable<AccountingDraft> BuildDrafts(LivestockEvent ev)
+    {
+        var tipo = ev.EventTemplate!.EventType;
+        var concept = $"Ref: {ev.EventTemplate.Name} - Campo: {ev.CostCenterCode} - Cabezas: {ev.HeadCount}";
+        var amount = ev.TotalAmount;
+        var heads = ev.HeadCount;
+        var kg = ev.EstimatedWeightKg;
+
+        // Mapa simple: la mayoría de tipos usan el par fijo del template
+        var simpleTipos = new HashSet<EventType> {
+            EventType.Apertura, EventType.Nacimiento, EventType.Destete,
+            EventType.Compra, EventType.Venta, EventType.Mortandad, EventType.Consumo
+        };
+
+        if (simpleTipos.Contains(tipo))
+            return BuildSimplePair(ev, concept, amount, heads, kg);
+
+        return tipo switch
         {
-            new AccountingDraftDto(
-                debitDraft.Id,
-                debitDraft.TenantId,
-                debitDraft.LivestockEventId,
-                debitDraft.AccountCode,
-                debitDraft.Concept,
-                debitDraft.DebitAmount,
-                debitDraft.CreditAmount),
-            new AccountingDraftDto(
-                creditDraft.Id,
-                creditDraft.TenantId,
-                creditDraft.LivestockEventId,
-                creditDraft.AccountCode,
-                creditDraft.Concept,
-                creditDraft.DebitAmount,
-                creditDraft.CreditAmount)
+            EventType.Traslado => BuildTraslado(ev, concept, heads, kg),
+            EventType.CambioActividad => BuildCambioActividad(ev, concept, heads, kg),
+            EventType.CambioCategoria => BuildCambioCategoria(ev, concept, heads, kg),
+            EventType.AjusteKg => BuildAjusteKg(ev, concept, kg),
+            EventType.Recuento => Enumerable.Empty<AccountingDraft>(),
+            _ => BuildSimplePair(ev, concept, amount, heads, kg)
+        };
+    }
+
+    private IEnumerable<AccountingDraft> BuildSimplePair(LivestockEvent ev, string concept, decimal amount, int heads, decimal kg)
+    {
+        return new[]
+        {
+            MakeDraft(ev, ev.EventTemplate!.DebitAccountCode, concept, amount, 0, heads, kg, "DEBE"),
+            MakeDraft(ev, ev.EventTemplate!.CreditAccountCode, concept, 0, amount, heads, kg, "HABER")
+        };
+    }
+
+    private IEnumerable<AccountingDraft> BuildTraslado(LivestockEvent ev, string concept, int heads, decimal kg)
+    {
+        return new[]
+        {
+            MakeDraft(ev, "ACT001", concept, heads, 0, heads, kg, "DEBE", fieldId: ev.DestinationFieldId),
+            MakeDraft(ev, "ACT001", concept, 0, heads, heads, kg, "HABER", fieldId: ev.FieldId)
+        };
+    }
+
+    private IEnumerable<AccountingDraft> BuildAjusteKg(LivestockEvent ev, string concept, decimal kg)
+    {
+        var absKg = Math.Abs(kg);
+        return kg >= 0
+            ? new[]
+              {
+                  MakeDraft(ev, "ACT001", concept, absKg, 0, 0, absKg, "DEBE"),
+                  MakeDraft(ev, "RES008", concept, 0, absKg, 0, absKg, "HABER")
+              }
+            : new[]
+              {
+                  MakeDraft(ev, "RES008", concept, absKg, 0, 0, absKg, "DEBE"),
+                  MakeDraft(ev, "ACT001", concept, 0, absKg, 0, absKg, "HABER")
+              };
+    }
+
+    private IEnumerable<AccountingDraft> BuildCambioActividad(LivestockEvent ev, string concept, int heads, decimal kg)
+    {
+        return new[]
+        {
+            MakeDraft(ev, "ACT001", concept, heads, 0, heads, kg, "DEBE", activityId: ev.DestinationActivityId),
+            MakeDraft(ev, "ACT001", concept, 0, heads, heads, kg, "HABER", activityId: ev.OriginActivityId)
+        };
+    }
+
+    private IEnumerable<AccountingDraft> BuildCambioCategoria(LivestockEvent ev, string concept, int heads, decimal kg)
+    {
+        return new[]
+        {
+            MakeDraft(ev, "ACT001", concept, heads, 0, heads, kg, "DEBE", categoryId: ev.DestinationCategoryId),
+            MakeDraft(ev, "ACT001", concept, 0, heads, heads, kg, "HABER", categoryId: ev.OriginCategoryId)
+        };
+    }
+
+    private AccountingDraft MakeDraft(
+        LivestockEvent ev, 
+        string accountCode, 
+        string concept, 
+        decimal debit, 
+        decimal credit, 
+        int heads, 
+        decimal kg, 
+        string entryType, 
+        Guid? fieldId = null,
+        Guid? activityId = null,
+        Guid? categoryId = null)
+    {
+        return new AccountingDraft
+        {
+            TenantId = ev.TenantId,
+            LivestockEventId = ev.Id,
+            AccountCode = accountCode,
+            Concept = concept,
+            DebitAmount = debit,
+            CreditAmount = credit,
+            EntryType = entryType,
+            HeadCount = heads,
+            WeightKg = kg,
+            FieldId = fieldId ?? ev.FieldId,
+            ActivityId = activityId ?? ev.ActivityId,
+            CategoryId = categoryId ?? ev.CategoryId
         };
     }
 }
-
-

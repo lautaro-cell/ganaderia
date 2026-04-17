@@ -5,5 +5,9 @@ public record BalanceItemDto(
     string CategoryName,
     int HeadCount,
     decimal TotalWeight,
-    string ActivityName);
+    string ActivityName,
+    string AccountCode,
+    decimal DebitTotal,
+    decimal CreditTotal,
+    decimal NetBalance);
 

@@ -52,5 +52,44 @@ public class SyncCatalogService : ISyncCatalogService
         }
 
         await _context.SaveChangesAsync();
+
+        if (type == CatalogType.CategoriasAnimales)
+        {
+            await ProcessAnimalCategories(tenantId, data);
+        }
+    }
+
+    private async Task ProcessAnimalCategories(Guid tenantId, JsonDocument data)
+    {
+        var categories = data.RootElement.EnumerateArray();
+        foreach (var catJson in categories)
+        {
+            var code = catJson.GetProperty("Code").GetString() ?? "";
+            var name = catJson.GetProperty("Name").GetString() ?? "";
+
+            var existing = await _context.AnimalCategories
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.ExternalId == code && c.Type == CategoryType.Gestor);
+
+            if (existing == null)
+            {
+                _context.AnimalCategories.Add(new AnimalCategory
+                {
+                    TenantId = tenantId,
+                    ExternalId = code,
+                    Name = name,
+                    Type = CategoryType.Gestor,
+                    IsActive = true,
+                    LastSyncedAt = DateTimeOffset.UtcNow // Usamos BCL para simplicidad en este campo específico si NodaTime no es requerido aquí
+                });
+            }
+            else
+            {
+                existing.Name = name;
+                existing.LastSyncedAt = DateTimeOffset.UtcNow;
+                _context.AnimalCategories.Update(existing);
+            }
+        }
+        await _context.SaveChangesAsync();
     }
 }

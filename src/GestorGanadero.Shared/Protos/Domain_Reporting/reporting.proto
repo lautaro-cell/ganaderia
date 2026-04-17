@@ -44,6 +44,10 @@ message BalanceItem {
   int32 head_count = 3;
   double total_weight = 4;
   string activity_name = 5;
+  string account_code = 6;
+  double debit_total = 7;
+  double credit_total = 8;
+  double net_balance = 9;
 }
 
 message BalanceReport {

@@ -10,8 +10,13 @@ public class LivestockEvent : BaseAuditableEntity
     public Guid EventTemplateId { get; set; }
     public required string CostCenterCode { get; set; } // Campo code (legacy)
     public Guid? FieldId { get; set; }           // FK to Field entity
+    public Guid? DestinationFieldId { get; set; }
     public Guid? ActivityId { get; set; }         // FK to Activity entity
+    public Guid? OriginActivityId { get; set; }
+    public Guid? DestinationActivityId { get; set; }
     public Guid? CategoryId { get; set; }         // FK to AnimalCategory entity
+    public Guid? OriginCategoryId { get; set; }
+    public Guid? DestinationCategoryId { get; set; }
     public int HeadCount { get; set; }
     public decimal EstimatedWeightKg { get; set; }
     public decimal? WeightPerHead { get; set; }
