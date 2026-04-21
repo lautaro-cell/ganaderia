@@ -38,5 +38,8 @@ public interface ICatalogService
     Task<Guid> CreateAccountAsync(AccountDto dto);
     Task UpdateAccountAsync(AccountDto dto);
     Task DeleteAccountAsync(Guid id);
+
+    // Erp Concepts
+    Task<IEnumerable<ErpConceptDto>> GetErpConceptsAsync(Guid tenantId);
 }
 

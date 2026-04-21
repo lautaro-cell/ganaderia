@@ -1,0 +1,1740 @@
+<!DOCTYPE html>
+<html class="dark" lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestor Ganadero</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐮</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#ec1313",
+            "primary-dark": "#b90e0e",
+            "background-main": "#1A1A1A",
+            "background-subtle": "#2C2C2C",
+            "background-disabled": "#222222",
+            "background-dark": "#1A1A1A",
+            "surface-dark": "#2C2C2C",
+            "surface-darker": "#222222",
+            "text-title": "#EFEFEF",
+            "text-body": "#D9D9D9",
+            "text-secondary": "#8C8C8C",
+            "text-disabled": "#757575",
+            "border": "#595959",
+            "border-dark": "#595959",
+            "border-input": "#595959",
+          },
+          fontFamily: {
+            "display": ["Manrope", "sans-serif"]
+          },
+          borderRadius: {
+            "DEFAULT": "0.5rem",
+            "lg": "0.75rem",
+            "xl": "1rem",
+            "2xl": "1.5rem",
+            "full": "9999px"
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    :root {
+      --color-background-main: #1A1A1A;
+      --color-background-subtle: #2C2C2C;
+      --color-background-disabled: #222222;
+      --color-text-title: #EFEFEF;
+      --color-text-body: #D9D9D9;
+      --color-text-secondary: #8C8C8C;
+      --color-text-disabled: #757575;
+      --color-border: #595959;
+      --color-primary: #ec1313;
+    }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: var(--color-background-main); }
+    ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #6b6b6b; }
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    .hidden { display: none !important; }
+    
+    /* Custom Select Styling - Improved UX */
+    select,
+    select.form-select {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-color: var(--color-background-subtle);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ec1313' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 16px;
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 10px 40px 10px 12px;
+      color: var(--color-text-body);
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    select:hover:not(:disabled),
+    select.form-select:hover:not(:disabled) {
+      border-color: var(--color-primary);
+      background-color: #3a3a3a;
+    }
+    select:focus,
+    select.form-select:focus {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(236, 19, 19, 0.25);
+      outline: none;
+      background-color: #3a3a3a;
+    }
+    select:disabled,
+    select.form-select:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background-color: var(--color-background-disabled);
+    }
+    select option, select optgroup {
+      background: var(--color-background-subtle);
+      color: var(--color-text-body);
+      padding: 10px;
+    }
+    select option:hover, select option:focus {
+      background: #3a3a3a;
+    }
+    select optgroup {
+      font-weight: bold;
+      color: var(--color-text-secondary);
+    }
+    /* Fix for selects with left icon padding */
+    select.form-select[class*="pl-10"],
+    select[class*="pl-10"] {
+      padding-left: 40px;
+      background-position: right 12px center;
+    }
+    
+    /* Print Styles - Balance Report */
+    @media print {
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      body {
+        background: white !important;
+        color: black !important;
+        font-size: 12pt !important;
+      }
+      /* Hide everything except balance content */
+      header, nav, aside, footer,
+      #loginSection, #mainContent > *:not(#balancePanel),
+      .sidebar, .nav-tabs, .tab-buttons,
+      button, .filters-row, .balance-controls,
+      .mode-toggle, #balanceFilters,
+      [class*="bg-primary"], [class*="hover:"],
+      .material-symbols-outlined,
+      #printBalanceBtn, #exportBalanceCSVBtn,
+      .flex.gap-2.items-center:has(button) {
+        display: none !important;
+      }
+      /* Show only balance tree */
+      #balancePanel {
+        display: block !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      #balanceTree {
+        display: block !important;
+        background: white !important;
+        width: 100% !important;
+      }
+      #balanceTree table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        background: white !important;
+        color: black !important;
+        font-size: 10pt !important;
+      }
+      #balanceTree th, #balanceTree td {
+        border: 1px solid #333 !important;
+        padding: 6px 8px !important;
+        background: white !important;
+        color: black !important;
+        text-align: left !important;
+      }
+      #balanceTree th {
+        background: #f0f0f0 !important;
+        font-weight: bold !important;
+      }
+      #balanceTree tr:nth-child(even) td {
+        background: #fafafa !important;
+      }
+      /* Print header */
+      #balanceTree::before {
+        content: "BALANCE CONTABLE - Dolores Herrera Vegas SRL";
+        display: block !important;
+        text-align: center !important;
+        font-size: 16pt !important;
+        font-weight: bold !important;
+        margin-bottom: 20px !important;
+        color: black !important;
+      }
+    }
+
+    /* =========================
+       LOGO GESTOR – HEADER
+       ========================= */
+    .gestor-logo-wrap {
+      display: flex;
+      align-items: center;
+      margin-right: 16px;
+    }
+    .gestor-logo-link {
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .gestor-logo-svg {
+      display: inline-flex;
+      align-items: center;
+    }
+    .gestor-logo {
+      height: 40px;
+      width: auto;
+      display: block;
+    }
+    /* Color rojo corporativo */
+    .gestor-logo .st0 {
+      fill: #FF0033 !important;
+    }
+    /* TEXTO "GESTOR" — modo claro */
+    html[data-theme="light"] .gestor-logo .st1 {
+      fill: #1A1A1A !important;
+    }
+    /* TEXTO "GESTOR" — modo oscuro (default) */
+    .gestor-logo .st1 {
+      fill: #EFEFEF !important;
+    }
+
+    /* =========================
+       LOGO GESTOR – LOGIN
+       ========================= */
+    .login-logo-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .login-logo-svg {
+      display: inline-flex;
+      align-items: center;
+    }
+    .login-logo-svg .gestor-logo {
+      height: 48px;
+      width: auto;
+      display: block;
+    }
+    /* Rojo corporativo */
+    .login-logo-svg .st0 {
+      fill: #FF0033 !important;
+    }
+    /* Texto "GESTOR" en fondo oscuro (login) */
+    .login-logo-svg .st1 {
+      fill: #EFEFEF !important;
+    }
+  </style>
+</head>
+<body class="bg-background-dark font-display text-white antialiased min-h-screen flex flex-col overflow-x-hidden">
+  <div id="app" class="flex flex-col min-h-screen">
+    
+    <!-- ERROR SECTION (Usuario sin empresa asignada) -->
+    <div id="errorSection" class="hidden flex-1 flex flex-col items-center justify-center p-4 md:p-8 relative overflow-hidden min-h-screen">
+      <div class="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-red-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+      <div class="w-full max-w-[420px] relative z-10">
+        <div class="bg-surface-dark rounded-2xl shadow-xl shadow-black/20 overflow-hidden border border-red-500/30">
+          <div class="pt-10 px-8 pb-6 text-center">
+            <div class="size-16 mx-auto bg-red-500/10 rounded-2xl flex items-center justify-center mb-6 text-red-500">
+              <span class="material-symbols-outlined text-4xl">error</span>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight mb-3 text-red-400">Usuario sin empresa asignada</h1>
+            <p class="text-text-secondary text-base mb-6">Contacte al administrador para que le asigne una empresa.</p>
+            <a href="/api/logout" class="inline-flex items-center gap-2 px-6 py-3 bg-surface-dark border border-border-dark rounded-full text-sm font-medium hover:bg-red-900/20 transition-colors">
+              <span class="material-symbols-outlined text-lg">logout</span>
+              Cerrar Sesión
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOGIN SECTION -->
+    <div id="loginSection" class="flex-1 flex flex-col items-center justify-center p-4 md:p-8 relative overflow-hidden min-h-screen">
+      <div class="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary/5 rounded-full blur-[100px] pointer-events-none"></div>
+      <div class="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[80px] pointer-events-none"></div>
+      
+      <div class="w-full max-w-[420px] relative z-10">
+        <div class="bg-surface-dark rounded-2xl shadow-xl shadow-black/20 overflow-hidden border border-border-dark">
+          <div class="pt-10 px-8 pb-2 text-center">
+            <div id="loginLogoWrap" class="login-logo-wrap">
+              <span class="login-logo-svg" aria-hidden="true">
+                <svg class="gestor-logo" role="img" focusable="false" version="1.1" id="LoginLogo" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 595.28 243.6" xml:space="preserve"><style type="text/css">.st0{fill:#FF0033;}.st1{fill:#777575;}</style><path class="st0" d="M104.53,106.57c0,0-20.17-22.29-14.05-46.75c0,0,5.08-12.98,20.66-12.37c0,0,4.18,0.48,10.2,4.12 c0,0,3.02,1.6,9.47-0.61c0,0,5.19-3.95,14.36-3.09c0,0,12.84,0.95,17.11,13.78c0,0,5.5,23.83-15.58,44.91 c0,0,18.03-15.28,34.83-14.97c0,0,20.17,0.92,20.47,25.05c0,0-0.31,5.2-2.14,8.25c0,0-2.14,6.42,0.3,11.3c0,0,3.37,4.28,1.83,11 c0,0,1.22,15.88-19.55,19.85c0,0-22.72,3.91-51.63-29.94c0,0,2.75,36.36-22.61,71.19c0,0-3.67,7.03-10.69,0 c0,0-8.25-11.61,1.53-16.5c0,0,24.77-12.93,22.69-53.16l-17.8,15.58c0,0-16.8,13.44-35.44,13.14c0,0-20.47-2.75-17.72-24.75 c0,0,2.45-9.38,2.45-13.4c0,0-0.2-7.38-2.7-11.96c0,0-6.14-16.45,18.28-22.92C68.78,94.34,81.92,90.37,104.53,106.57z"/><g><path class="st1" d="M272.27,108.54l-6.52,6.41c-6.57-6.43-14.16-9.65-22.79-9.65c-7.54,0-13.82,2.42-18.84,7.27 c-5.01,4.84-7.53,10.9-7.53,18.17c0,6.36,2.43,12.09,7.3,17.18c4.87,5.1,11.58,7.64,20.13,7.64c12.83,0,20.9-5.57,24.2-16.72 h-17.38v-8.79h27.43c0,4.41-0.3,7.92-0.88,10.54c-0.59,2.63-1.81,5.51-3.66,8.68c-1.85,3.16-4.32,5.99-7.4,8.5 c-3.08,2.5-6.38,4.3-9.9,5.37c-3.52,1.07-7.72,1.61-12.6,1.61c-11.11,0-19.98-3.49-26.6-10.48c-6.62-6.98-9.92-14.97-9.92-23.96 c0-9.45,3.38-17.51,10.15-24.15c6.77-6.65,14.97-9.97,24.6-9.97c5.73,0,10.96,0.87,15.69,2.6 C262.47,100.55,267.31,103.79,272.27,108.54z"/><path class="st1" d="M289.14,98.23h35.67v8.79h-26.98v16.06h26.98v8.68h-26.98v22.13h26.98v8.69h-35.67V98.23z"/><path class="st1" d="M374.46,105.4l-7.12,5.71c-1.88-1.96-3.59-3.41-5.12-4.37c-1.53-0.96-3.74-1.44-6.63-1.44 c-3.16,0-5.72,0.72-7.69,2.14c-1.97,1.43-2.95,3.26-2.95,5.52c0,1.95,0.86,3.67,2.58,5.16c1.72,1.49,4.64,3.13,8.78,4.9 c4.13,1.78,7.35,3.43,9.66,4.97c2.3,1.53,4.19,3.22,5.67,5.08c1.48,1.85,2.58,3.8,3.3,5.86c0.72,2.05,1.08,4.22,1.08,6.51 c0,5.35-1.94,9.91-5.83,13.68c-3.89,3.77-8.6,5.65-14.12,5.65c-5.39,0-10.15-1.48-14.27-4.42c-4.13-2.94-7.3-7.37-9.52-13.26 l8.79-2.47c3.2,7.24,8.1,10.86,14.7,10.86c3.2,0,5.86-0.95,7.98-2.87c2.12-1.92,3.19-4.33,3.19-7.26c0-1.74-0.55-3.49-1.67-5.26 c-1.12-1.76-2.5-3.22-4.15-4.36c-1.65-1.14-4.28-2.45-7.88-3.93c-3.6-1.48-6.38-2.83-8.32-4.06c-1.94-1.23-3.63-2.69-5.04-4.39 c-1.42-1.7-2.46-3.39-3.12-5.07c-0.66-1.69-0.99-3.49-0.99-5.4c0-4.61,1.85-8.54,5.56-11.79c3.71-3.25,8.2-4.88,13.49-4.88 c3.5,0,7.05,0.76,10.66,2.28C369.07,100,372.07,102.31,374.46,105.4z"/><path class="st1" d="M382.95,98.23h39.35v8.79h-15.36v55.57h-8.69v-55.57h-15.31V98.23z"/><path class="st1" d="M427.46,130.03c0-9.29,3.5-17.24,10.51-23.88c7-6.63,15.43-9.95,25.26-9.95c9.6,0,17.87,3.35,24.81,10.03 c6.93,6.68,10.41,14.61,10.41,23.8c0,9.73-3.43,17.94-10.28,24.66c-6.86,6.72-15.27,10.08-25.23,10.08 c-9.84,0-18.2-3.39-25.11-10.15C430.91,147.85,427.46,139.65,427.46,130.03z M489.09,130.44c0-7.1-2.56-13.08-7.68-17.94 c-5.12-4.86-11.42-7.3-18.89-7.3c-7.1,0-13.19,2.47-18.26,7.42c-5.07,4.95-7.61,10.89-7.61,17.82c0,7.03,2.61,12.98,7.8,17.84 c5.21,4.86,11.58,7.29,19.13,7.29c6.94,0,12.92-2.48,17.96-7.44C486.57,143.16,489.09,137.27,489.09,130.44z"/><path class="st1" d="M511.26,98.23h13.94c6.94,0,12.59,1.72,16.95,5.17c4.37,3.46,6.55,7.87,6.55,13.27 c0,4.31-1.42,8.11-4.24,11.41c-2.82,3.3-7.22,5.62-13.2,6.97l18.7,27.54h-10.08l-17.86-26.47h-1.97v26.47h-8.8V98.23z M520.06,106.01v22.43c12.97,0.28,19.45-3.48,19.45-11.26c0-2.72-0.76-4.95-2.28-6.69c-1.51-1.73-3.53-2.92-6.06-3.54 C528.65,106.32,524.94,106.01,520.06,106.01z"/></g><g><path class="st0" d="M450.99,200.06l3.71-12.1c1.03-3.37,1.69-5.67,1.98-6.88c0.29-1.21,0.43-2.11,0.43-2.69 c0-0.51-0.09-0.91-0.27-1.2c-0.18-0.29-0.42-0.43-0.72-0.43c-0.82,0-1.64,0.37-2.46,1.12c-0.82,0.75-1.73,1.94-2.72,3.58h-2.7 c1.38-2.71,2.9-4.83,4.57-6.35c1.66-1.52,3.27-2.28,4.81-2.28c1.22,0,2.15,0.39,2.8,1.17c0.64,0.78,0.96,1.92,0.96,3.41 c0,0.32-0.02,0.69-0.07,1.11c-0.05,0.42-0.11,0.87-0.19,1.35c1.57-2.46,3.09-4.26,4.54-5.4c1.45-1.14,2.97-1.71,4.54-1.71 c1.54,0,2.74,0.47,3.58,1.4c0.84,0.93,1.26,2.25,1.26,3.95c0,0.26-0.01,0.53-0.04,0.83c-0.02,0.3-0.06,0.61-0.11,0.93 c1.78-2.57,3.39-4.4,4.81-5.48c1.42-1.09,2.9-1.63,4.42-1.63c1.61,0,2.91,0.49,3.92,1.46c1,0.97,1.51,2.24,1.51,3.8 c0,0.9-0.15,1.95-0.46,3.14c-0.3,1.2-0.92,3.02-1.86,5.48c-1.12,3.02-1.86,5.09-2.2,6.22c-0.35,1.13-0.52,1.95-0.52,2.46 c0,0.53,0.13,0.95,0.4,1.26c0.26,0.31,0.63,0.47,1.1,0.47c0.74,0,1.53-0.47,2.39-1.42c0.85-0.95,1.71-2.33,2.58-4.15h2.77 c-1.56,3.28-3.12,5.67-4.68,7.17c-1.56,1.5-3.25,2.25-5.08,2.25c-1.3,0-2.31-0.4-3.02-1.19c-0.72-0.8-1.07-1.92-1.07-3.36 c0-1.01,0.18-2.22,0.53-3.63c0.35-1.41,1.04-3.5,2.07-6.28c0.85-2.27,1.46-4.03,1.82-5.3c0.36-1.27,0.54-2.22,0.54-2.84 c0-0.77-0.2-1.36-0.6-1.76c-0.4-0.4-0.99-0.6-1.76-0.6c-2.44,0-4.82,2.13-7.15,6.37c-2.32,4.25-4.3,10.17-5.94,17.75h-4.87 l3.64-12.1c0.29-0.95,0.7-2.23,1.23-3.86c1-3.01,1.49-4.96,1.49-5.86c0-0.79-0.19-1.37-0.57-1.75c-0.38-0.38-0.96-0.57-1.75-0.57 c-2.3,0-4.56,2.1-6.77,6.31c-2.22,4.21-4.18,10.15-5.88,17.81H450.99z"/><path class="st0" d="M509.35,196.35c-1.42,1.57-2.85,2.75-4.31,3.53c-1.46,0.78-2.96,1.17-4.48,1.17c-2.28,0-4.14-0.94-5.58-2.83 c-1.44-1.89-2.16-4.37-2.16-7.44c0-2.28,0.38-4.54,1.16-6.77c0.77-2.23,1.86-4.26,3.28-6.07c1.43-1.8,3-3.19,4.72-4.16 c1.72-0.97,3.47-1.46,5.25-1.46c1.69,0,3.11,0.45,4.25,1.35c1.15,0.9,2.1,2.3,2.86,4.22l1.33-5.13h4.7l-5.64,20.34l-0.02,0.07 c-0.27,1.03-0.41,1.74-0.41,2.15c0,0.53,0.13,0.95,0.37,1.26c0.25,0.31,0.58,0.47,1,0.47c0.69,0,1.43-0.41,2.2-1.23 c0.78-0.82,1.59-2.03,2.45-3.62h2.75c-1.3,2.89-2.73,5.06-4.28,6.52c-1.55,1.45-3.2,2.18-4.95,2.18c-1.27,0-2.27-0.37-2.99-1.1 C510.12,199.08,509.62,197.92,509.35,196.35z M508.12,175.67c-1.25,0-2.47,0.4-3.65,1.21c-1.18,0.8-2.27,1.97-3.26,3.49 c-1.06,1.62-1.9,3.46-2.52,5.51c-0.62,2.05-0.93,4.03-0.93,5.94c0,1.85,0.42,3.3,1.25,4.35c0.83,1.05,1.98,1.58,3.42,1.58 c1.12,0,2.21-0.33,3.26-0.98c1.05-0.65,2.05-1.61,3-2.88c1.21-1.61,2.19-3.56,2.95-5.86c0.76-2.3,1.14-4.43,1.14-6.39 c0-1.83-0.42-3.29-1.26-4.36C510.68,176.21,509.55,175.67,508.12,175.67z"/><path class="st0" d="M532.9,196.4c-1.17,1.49-2.37,2.61-3.6,3.35c-1.23,0.74-2.5,1.11-3.82,1.11c-1.64,0-3.01-0.47-4.11-1.4 c-1.1-0.93-1.65-2.08-1.65-3.45c0-1.17,0.3-2.11,0.9-2.81c0.6-0.7,1.4-1.05,2.4-1.05c0.83,0,1.53,0.25,2.08,0.76 c0.55,0.51,0.83,1.14,0.83,1.92c0,0.79-0.39,1.62-1.18,2.48c-0.24,0.24-0.36,0.4-0.36,0.48c0,0.19,0.14,0.37,0.41,0.54 c0.27,0.17,0.6,0.25,0.99,0.25c1.09,0,2.14-0.54,3.15-1.63c1-1.08,1.86-2.6,2.57-4.54c0.63-1.75,1.14-3.81,1.53-6.17 c0.39-2.36,0.59-4.51,0.59-6.43c0-1.27-0.26-2.28-0.78-3.02c-0.52-0.75-1.21-1.12-2.06-1.12c-1.06,0-2.03,0.4-2.89,1.21 c-0.87,0.8-1.78,2.15-2.75,4.02h-2.72c0.98-2.62,2.26-4.65,3.84-6.09c1.58-1.44,3.31-2.16,5.19-2.16c1.43,0,2.64,0.4,3.64,1.21 c1,0.8,1.74,1.98,2.24,3.54c0.88-1.53,1.94-2.71,3.16-3.54c1.22-0.84,2.51-1.25,3.86-1.25c1.57,0,2.9,0.48,3.99,1.43 c1.09,0.96,1.63,2.13,1.63,3.51c0,1.01-0.29,1.82-0.87,2.41c-0.58,0.59-1.36,0.89-2.34,0.89c-0.8,0-1.47-0.22-2.01-0.65 c-0.54-0.43-0.81-0.99-0.81-1.66c0-0.56,0.19-1.13,0.57-1.7c0.38-0.57,0.57-0.87,0.57-0.9c0-0.19-0.12-0.37-0.36-0.54 c-0.24-0.17-0.51-0.25-0.82-0.25c-1.08,0-2.07,0.5-2.98,1.51c-0.91,1-1.68,2.44-2.3,4.3c-0.71,2.17-1.27,4.41-1.69,6.72 c-0.42,2.31-0.63,4.23-0.63,5.74c0,1.4,0.27,2.47,0.8,3.22c0.53,0.75,1.29,1.12,2.27,1.12c1.03,0,2.09-0.45,3.18-1.36 c1.09-0.91,2.23-2.28,3.42-4.13l2.77,0.17c-1.49,2.81-3.09,4.91-4.8,6.28c-1.7,1.37-3.56,2.06-5.57,2.06 c-1.57,0-2.83-0.38-3.77-1.13C533.66,198.87,533.09,197.79,532.9,196.4z"/></g></svg>
+              </span>
+            </div>
+            <h1 class="text-3xl font-bold tracking-tight mb-2">Gestor Ganadero</h1>
+            <p class="text-text-secondary text-base">Inicia sesión para continuar</p>
+          </div>
+          <div class="p-8 flex flex-col gap-6">
+            <a href="/api/login" class="w-full h-14 bg-primary hover:bg-red-600 text-white text-lg font-bold rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all duration-300 flex items-center justify-center gap-2 group no-underline">
+              <span>Iniciar Sesión</span>
+              <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+            </a>
+          </div>
+          <div class="px-8 pb-8 pt-0 text-center">
+            <div class="h-px w-full bg-border-dark mb-6"></div>
+            <p class="text-sm text-text-secondary">
+              Inicia sesión con Google, GitHub o email
+            </p>
+          </div>
+        </div>
+        <footer class="mt-12 text-center opacity-60">
+          <p class="text-xs font-medium text-text-secondary">Gestor Ganadero © 2024</p>
+        </footer>
+      </div>
+    </div>
+    
+    <!-- CLIENT SELECT SECTION (For Auditors) -->
+    <div id="clientSelectSection" class="hidden flex-1 flex flex-col min-h-screen">
+      <header class="sticky top-0 z-50 w-full border-b border-border-dark bg-background-dark/95 backdrop-blur-sm">
+        <div class="px-6 md:px-10 py-3 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+              <span class="material-symbols-outlined text-2xl">pets</span>
+            </div>
+            <h2 class="text-lg font-bold leading-tight tracking-tight">Gestor Ganadero</h2>
+          </div>
+          <div class="flex items-center gap-6">
+            <div class="hidden md:flex items-center gap-3">
+              <div class="text-right">
+                <p id="selectUserName" class="text-sm font-bold leading-none">Usuario</p>
+                <p id="selectUserRole" class="text-xs text-text-secondary font-medium">Auditor</p>
+              </div>
+              <div id="selectUserAvatar" class="bg-primary/20 rounded-full size-10 flex items-center justify-center text-primary font-bold"></div>
+            </div>
+            <button id="logoutFromSelectBtn" class="flex items-center justify-center rounded-full size-10 bg-surface-dark border border-border-dark text-primary hover:bg-red-900/20 transition-colors">
+              <span class="material-symbols-outlined text-xl">logout</span>
+            </button>
+          </div>
+        </div>
+      </header>
+      
+      <main class="flex-1 flex flex-col items-center justify-center p-4 md:p-8 relative overflow-hidden">
+        <div class="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary/5 rounded-full blur-[100px] pointer-events-none"></div>
+        <div class="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[80px] pointer-events-none"></div>
+        
+        <div class="w-full max-w-[520px] relative z-10">
+          <div class="bg-surface-dark rounded-2xl shadow-xl shadow-black/20 overflow-hidden border border-border-dark">
+            <div class="pt-10 px-8 pb-2 text-center">
+              <div class="size-16 mx-auto bg-primary/10 rounded-2xl flex items-center justify-center mb-6 text-primary">
+                <span class="material-symbols-outlined text-4xl">domain_verification</span>
+              </div>
+              <h1 class="text-3xl font-bold tracking-tight mb-2">Seleccionar cliente</h1>
+              <p class="text-text-secondary text-base">Seleccioná la empresa o establecimiento para comenzar.</p>
+            </div>
+            <div class="p-8 flex flex-col gap-6">
+              <div class="flex flex-col gap-2">
+                <label class="text-sm font-bold ml-1 text-gray-200" for="clienteSelector">Empresa o Cliente</label>
+                <div class="relative group">
+                  <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <span class="material-symbols-outlined text-text-secondary">search</span>
+                  </div>
+                  <select id="clienteSelector" class="w-full h-14 pl-12 pr-10 bg-surface-darker border border-border-input rounded-xl text-base text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer shadow-sm hover:border-primary/30 appearance-none">
+                    <option value="">Buscar por nombre o ID...</option>
+                  </select>
+                  <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none">expand_more</span>
+                </div>
+                <div class="flex justify-between px-1">
+                  <span id="clientCount" class="text-xs text-text-secondary font-medium">0 clientes asignados</span>
+                  <button id="refreshClientList" class="text-xs text-primary font-bold hover:underline">Actualizar lista</button>
+                </div>
+                <p class="text-xs text-text-secondary px-1 mt-1">Consejo: Use las teclas de flecha ↑↓ para navegar por la lista</p>
+              </div>
+              <button id="selectClientBtn" disabled class="w-full h-14 bg-primary hover:bg-red-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-lg font-bold rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all duration-300 flex items-center justify-center gap-2 group">
+                <span>Entrar</span>
+                <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+              </button>
+            </div>
+            <div class="px-8 pb-8 pt-0 text-center">
+              <div class="h-px w-full bg-border-dark mb-6"></div>
+              <p class="text-sm text-text-secondary">
+                ¿No encontrás a tu cliente? <a class="text-primary font-bold hover:underline" href="#">Contactar al administrador</a>
+              </p>
+            </div>
+          </div>
+          
+          <div id="noClientsWarning" class="hidden mt-8 p-4 rounded-xl bg-red-900/20 border border-red-900/50 flex items-start gap-3">
+            <span class="material-symbols-outlined text-primary mt-0.5">info</span>
+            <p class="text-sm text-red-100 font-medium">
+              No tenés clientes asignados. Por favor contactá al administrador del sistema para solicitar acceso.
+            </p>
+          </div>
+        </div>
+      </main>
+    </div>
+    
+    <!-- MAIN SECTION -->
+    <div id="mainSection" class="hidden flex flex-col min-h-screen">
+      <!-- Header -->
+      <header class="sticky top-0 z-50 flex items-center justify-between whitespace-nowrap border-b border-border-dark bg-background-dark px-4 md:px-10 py-4">
+        <div id="gestorLogoWrap" class="gestor-logo-wrap">
+          <a href="/" class="gestor-logo-link" aria-label="Gestor">
+            <span class="gestor-logo-svg" aria-hidden="true">
+              <svg class="gestor-logo" role="img" focusable="false" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 595.28 243.6" xml:space="preserve"><style type="text/css">.st0{fill:#FF0033;}.st1{fill:#777575;}</style><path class="st0" d="M104.53,106.57c0,0-20.17-22.29-14.05-46.75c0,0,5.08-12.98,20.66-12.37c0,0,4.18,0.48,10.2,4.12 c0,0,3.02,1.6,9.47-0.61c0,0,5.19-3.95,14.36-3.09c0,0,12.84,0.95,17.11,13.78c0,0,5.5,23.83-15.58,44.91 c0,0,18.03-15.28,34.83-14.97c0,0,20.17,0.92,20.47,25.05c0,0-0.31,5.2-2.14,8.25c0,0-2.14,6.42,0.3,11.3c0,0,3.37,4.28,1.83,11 c0,0,1.22,15.88-19.55,19.85c0,0-22.72,3.91-51.63-29.94c0,0,2.75,36.36-22.61,71.19c0,0-3.67,7.03-10.69,0 c0,0-8.25-11.61,1.53-16.5c0,0,24.77-12.93,22.69-53.16l-17.8,15.58c0,0-16.8,13.44-35.44,13.14c0,0-20.47-2.75-17.72-24.75 c0,0,2.45-9.38,2.45-13.4c0,0-0.2-7.38-2.7-11.96c0,0-6.14-16.45,18.28-22.92C68.78,94.34,81.92,90.37,104.53,106.57z"/><g><path class="st1" d="M272.27,108.54l-6.52,6.41c-6.57-6.43-14.16-9.65-22.79-9.65c-7.54,0-13.82,2.42-18.84,7.27 c-5.01,4.84-7.53,10.9-7.53,18.17c0,6.36,2.43,12.09,7.3,17.18c4.87,5.1,11.58,7.64,20.13,7.64c12.83,0,20.9-5.57,24.2-16.72 h-17.38v-8.79h27.43c0,4.41-0.3,7.92-0.88,10.54c-0.59,2.63-1.81,5.51-3.66,8.68c-1.85,3.16-4.32,5.99-7.4,8.5 c-3.08,2.5-6.38,4.3-9.9,5.37c-3.52,1.07-7.72,1.61-12.6,1.61c-11.11,0-19.98-3.49-26.6-10.48c-6.62-6.98-9.92-14.97-9.92-23.96 c0-9.45,3.38-17.51,10.15-24.15c6.77-6.65,14.97-9.97,24.6-9.97c5.73,0,10.96,0.87,15.69,2.6 C262.47,100.55,267.31,103.79,272.27,108.54z"/><path class="st1" d="M289.14,98.23h35.67v8.79h-26.98v16.06h26.98v8.68h-26.98v22.13h26.98v8.69h-35.67V98.23z"/><path class="st1" d="M374.46,105.4l-7.12,5.71c-1.88-1.96-3.59-3.41-5.12-4.37c-1.53-0.96-3.74-1.44-6.63-1.44 c-3.16,0-5.72,0.72-7.69,2.14c-1.97,1.43-2.95,3.26-2.95,5.52c0,1.95,0.86,3.67,2.58,5.16c1.72,1.49,4.64,3.13,8.78,4.9 c4.13,1.78,7.35,3.43,9.66,4.97c2.3,1.53,4.19,3.22,5.67,5.08c1.48,1.85,2.58,3.8,3.3,5.86c0.72,2.05,1.08,4.22,1.08,6.51 c0,5.35-1.94,9.91-5.83,13.68c-3.89,3.77-8.6,5.65-14.12,5.65c-5.39,0-10.15-1.48-14.27-4.42c-4.13-2.94-7.3-7.37-9.52-13.26 l8.79-2.47c3.2,7.24,8.1,10.86,14.7,10.86c3.2,0,5.86-0.95,7.98-2.87c2.12-1.92,3.19-4.33,3.19-7.26c0-1.74-0.55-3.49-1.67-5.26 c-1.12-1.76-2.5-3.22-4.15-4.36c-1.65-1.14-4.28-2.45-7.88-3.93c-3.6-1.48-6.38-2.83-8.32-4.06c-1.94-1.23-3.63-2.69-5.04-4.39 c-1.42-1.7-2.46-3.39-3.12-5.07c-0.66-1.69-0.99-3.49-0.99-5.4c0-4.61,1.85-8.54,5.56-11.79c3.71-3.25,8.2-4.88,13.49-4.88 c3.5,0,7.05,0.76,10.66,2.28C369.07,100,372.07,102.31,374.46,105.4z"/><path class="st1" d="M382.95,98.23h39.35v8.79h-15.36v55.57h-8.69v-55.57h-15.31V98.23z"/><path class="st1" d="M427.46,130.03c0-9.29,3.5-17.24,10.51-23.88c7-6.63,15.43-9.95,25.26-9.95c9.6,0,17.87,3.35,24.81,10.03 c6.93,6.68,10.41,14.61,10.41,23.8c0,9.73-3.43,17.94-10.28,24.66c-6.86,6.72-15.27,10.08-25.23,10.08 c-9.84,0-18.2-3.39-25.11-10.15C430.91,147.85,427.46,139.65,427.46,130.03z M489.09,130.44c0-7.1-2.56-13.08-7.68-17.94 c-5.12-4.86-11.42-7.3-18.89-7.3c-7.1,0-13.19,2.47-18.26,7.42c-5.07,4.95-7.61,10.89-7.61,17.82c0,7.03,2.61,12.98,7.8,17.84 c5.21,4.86,11.58,7.29,19.13,7.29c6.94,0,12.92-2.48,17.96-7.44C486.57,143.16,489.09,137.27,489.09,130.44z"/><path class="st1" d="M511.26,98.23h13.94c6.94,0,12.59,1.72,16.95,5.17c4.37,3.46,6.55,7.87,6.55,13.27 c0,4.31-1.42,8.11-4.24,11.41c-2.82,3.3-7.22,5.62-13.2,6.97l18.7,27.54h-10.08l-17.86-26.47h-1.97v26.47h-8.8V98.23z M520.06,106.01v22.43c12.97,0.28,19.45-3.48,19.45-11.26c0-2.72-0.76-4.95-2.28-6.69c-1.51-1.73-3.53-2.92-6.06-3.54 C528.65,106.32,524.94,106.01,520.06,106.01z"/></g><g><path class="st0" d="M450.99,200.06l3.71-12.1c1.03-3.37,1.69-5.67,1.98-6.88c0.29-1.21,0.43-2.11,0.43-2.69 c0-0.51-0.09-0.91-0.27-1.2c-0.18-0.29-0.42-0.43-0.72-0.43c-0.82,0-1.64,0.37-2.46,1.12c-0.82,0.75-1.73,1.94-2.72,3.58h-2.7 c1.38-2.71,2.9-4.83,4.57-6.35c1.66-1.52,3.27-2.28,4.81-2.28c1.22,0,2.15,0.39,2.8,1.17c0.64,0.78,0.96,1.92,0.96,3.41 c0,0.32-0.02,0.69-0.07,1.11c-0.05,0.42-0.11,0.87-0.19,1.35c1.57-2.46,3.09-4.26,4.54-5.4c1.45-1.14,2.97-1.71,4.54-1.71 c1.54,0,2.74,0.47,3.58,1.4c0.84,0.93,1.26,2.25,1.26,3.95c0,0.26-0.01,0.53-0.04,0.83c-0.02,0.3-0.06,0.61-0.11,0.93 c1.78-2.57,3.39-4.4,4.81-5.48c1.42-1.09,2.9-1.63,4.42-1.63c1.61,0,2.91,0.49,3.92,1.46c1,0.97,1.51,2.24,1.51,3.8 c0,0.9-0.15,1.95-0.46,3.14c-0.3,1.2-0.92,3.02-1.86,5.48c-1.12,3.02-1.86,5.09-2.2,6.22c-0.35,1.13-0.52,1.95-0.52,2.46 c0,0.53,0.13,0.95,0.4,1.26c0.26,0.31,0.63,0.47,1.1,0.47c0.74,0,1.53-0.47,2.39-1.42c0.85-0.95,1.71-2.33,2.58-4.15h2.77 c-1.56,3.28-3.12,5.67-4.68,7.17c-1.56,1.5-3.25,2.25-5.08,2.25c-1.3,0-2.31-0.4-3.02-1.19c-0.72-0.8-1.07-1.92-1.07-3.36 c0-1.01,0.18-2.22,0.53-3.63c0.35-1.41,1.04-3.5,2.07-6.28c0.85-2.27,1.46-4.03,1.82-5.3c0.36-1.27,0.54-2.22,0.54-2.84 c0-0.77-0.2-1.36-0.6-1.76c-0.4-0.4-0.99-0.6-1.76-0.6c-2.44,0-4.82,2.13-7.15,6.37c-2.32,4.25-4.3,10.17-5.94,17.75h-4.87 l3.64-12.1c0.29-0.95,0.7-2.23,1.23-3.86c1-3.01,1.49-4.96,1.49-5.86c0-0.79-0.19-1.37-0.57-1.75c-0.38-0.38-0.96-0.57-1.75-0.57 c-2.3,0-4.56,2.1-6.77,6.31c-2.22,4.21-4.18,10.15-5.88,17.81H450.99z"/><path class="st0" d="M509.35,196.35c-1.42,1.57-2.85,2.75-4.31,3.53c-1.46,0.78-2.96,1.17-4.48,1.17c-2.28,0-4.14-0.94-5.58-2.83 c-1.44-1.89-2.16-4.37-2.16-7.44c0-2.28,0.38-4.54,1.16-6.77c0.77-2.23,1.86-4.26,3.28-6.07c1.43-1.8,3-3.19,4.72-4.16 c1.72-0.97,3.47-1.46,5.25-1.46c1.69,0,3.11,0.45,4.25,1.35c1.15,0.9,2.1,2.3,2.86,4.22l1.33-5.13h4.7l-5.64,20.34l-0.02,0.07 c-0.27,1.03-0.41,1.74-0.41,2.15c0,0.53,0.13,0.95,0.37,1.26c0.25,0.31,0.58,0.47,1,0.47c0.69,0,1.43-0.41,2.2-1.23 c0.78-0.82,1.59-2.03,2.45-3.62h2.75c-1.3,2.89-2.73,5.06-4.28,6.52c-1.55,1.45-3.2,2.18-4.95,2.18c-1.27,0-2.27-0.37-2.99-1.1 C510.12,199.08,509.62,197.92,509.35,196.35z M508.12,175.67c-1.25,0-2.47,0.4-3.65,1.21c-1.18,0.8-2.27,1.97-3.26,3.49 c-1.06,1.62-1.9,3.46-2.52,5.51c-0.62,2.05-0.93,4.03-0.93,5.94c0,1.85,0.42,3.3,1.25,4.35c0.83,1.05,1.98,1.58,3.42,1.58 c1.12,0,2.21-0.33,3.26-0.98c1.05-0.65,2.05-1.61,3-2.88c1.21-1.61,2.19-3.56,2.95-5.86c0.76-2.3,1.14-4.43,1.14-6.39 c0-1.83-0.42-3.29-1.26-4.36C510.68,176.21,509.55,175.67,508.12,175.67z"/><path class="st0" d="M532.9,196.4c-1.17,1.49-2.37,2.61-3.6,3.35c-1.23,0.74-2.5,1.11-3.82,1.11c-1.64,0-3.01-0.47-4.11-1.4 c-1.1-0.93-1.65-2.08-1.65-3.45c0-1.17,0.3-2.11,0.9-2.81c0.6-0.7,1.4-1.05,2.4-1.05c0.83,0,1.53,0.25,2.08,0.76 c0.55,0.51,0.83,1.14,0.83,1.92c0,0.79-0.39,1.62-1.18,2.48c-0.24,0.24-0.36,0.4-0.36,0.48c0,0.19,0.14,0.37,0.41,0.54 c0.27,0.17,0.6,0.25,0.99,0.25c1.09,0,2.14-0.54,3.15-1.63c1-1.08,1.86-2.6,2.57-4.54c0.63-1.75,1.14-3.81,1.53-6.17 c0.39-2.36,0.59-4.51,0.59-6.43c0-1.27-0.26-2.28-0.78-3.02c-0.52-0.75-1.21-1.12-2.06-1.12c-1.06,0-2.03,0.4-2.89,1.21 c-0.87,0.8-1.78,2.15-2.75,4.02h-2.72c0.98-2.62,2.26-4.65,3.84-6.09c1.58-1.44,3.31-2.16,5.19-2.16c1.43,0,2.64,0.4,3.64,1.21 c1,0.8,1.74,1.98,2.24,3.54c0.88-1.53,1.94-2.71,3.16-3.54c1.22-0.84,2.51-1.25,3.86-1.25c1.57,0,2.9,0.48,3.99,1.43 c1.09,0.96,1.63,2.13,1.63,3.51c0,1.01-0.29,1.82-0.87,2.41c-0.58,0.59-1.36,0.89-2.34,0.89c-0.8,0-1.47-0.22-2.01-0.65 c-0.54-0.43-0.81-0.99-0.81-1.66c0-0.56,0.19-1.13,0.57-1.7c0.38-0.57,0.57-0.87,0.57-0.9c0-0.19-0.12-0.37-0.36-0.54 c-0.24-0.17-0.51-0.25-0.82-0.25c-1.08,0-2.07,0.5-2.98,1.51c-0.91,1-1.68,2.44-2.3,4.3c-0.71,2.17-1.27,4.41-1.69,6.72 c-0.42,2.31-0.63,4.23-0.63,5.74c0,1.4,0.27,2.47,0.8,3.22c0.53,0.75,1.29,1.12,2.27,1.12c1.03,0,2.09-0.45,3.18-1.36 c1.09-0.91,2.23-2.28,3.42-4.13l2.77,0.17c-1.49,2.81-3.09,4.91-4.8,6.28c-1.7,1.37-3.56,2.06-5.57,2.06 c-1.57,0-2.83-0.38-3.77-1.13C533.66,198.87,533.09,197.79,532.9,196.4z"/></g></svg>
+            </span>
+          </a>
+        </div>
+        
+        <div class="flex flex-1 justify-end gap-4 items-center">
+          <!-- Active Tenant Display (for all roles) -->
+          <div id="tenantDisplayBadge" class="hidden items-center gap-2 px-3 py-2 rounded-lg bg-surface-dark/50 border border-border-dark">
+            <span class="material-symbols-outlined text-primary text-sm">business</span>
+            <span id="tenantDisplayName" class="text-white text-sm font-medium truncate max-w-[200px]">Empresa</span>
+          </div>
+          <!-- Tenant Selector (SOLO para Administrador) -->
+          <select id="adminClienteSelector" class="hidden min-w-[180px] max-w-[280px] cursor-pointer rounded-lg h-10 px-4 bg-surface-dark border border-border-dark hover:bg-border-dark transition-colors text-white text-sm font-bold">
+            <option value="">Seleccionar cliente...</option>
+          </select>
+          
+          <div class="flex items-center gap-3 pl-4 border-l border-border-dark relative">
+            <div class="hidden sm:flex flex-col items-end">
+              <span id="userDisplayName" class="text-sm font-bold text-white leading-none">Usuario</span>
+              <span id="userDisplayRole" class="text-xs text-text-secondary leading-none mt-1">Rol</span>
+            </div>
+            <button id="userMenuBtn" class="bg-primary/20 rounded-full size-10 flex items-center justify-center border-2 border-primary/20 text-primary font-bold overflow-hidden cursor-pointer hover:border-primary transition-colors">
+              <span id="userAvatarIcon" class="material-symbols-outlined">person</span>
+              <img id="userAvatarImg" src="" alt="" class="hidden w-full h-full object-cover" />
+            </button>
+            
+            <div id="userDropdown" class="hidden absolute right-0 top-full mt-2 w-56 bg-[#1E1818] rounded-xl border border-[#392828] shadow-xl overflow-hidden z-50">
+              <div class="px-4 py-3 border-b border-[#392828]">
+                <p id="dropdownUserName" class="text-white font-semibold text-sm truncate">Usuario</p>
+                <p id="dropdownUserEmail" class="text-text-secondary text-xs truncate">email@example.com</p>
+              </div>
+              <div class="py-1">
+                <button id="openProfileBtn" class="w-full flex items-center gap-3 px-4 py-2.5 text-left text-text-secondary hover:text-white hover:bg-[#271c1c] transition-colors">
+                  <span class="material-symbols-outlined text-lg">account_circle</span>
+                  <span class="text-sm">Mi Perfil</span>
+                </button>
+                <button id="logoutBtn" class="w-full flex items-center gap-3 px-4 py-2.5 text-left text-red-400 hover:text-red-300 hover:bg-red-900/20 transition-colors">
+                  <span class="material-symbols-outlined text-lg">logout</span>
+                  <span class="text-sm">Cerrar Sesión</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+      
+      <!-- Navigation Tabs -->
+      <nav class="border-b border-border-dark bg-background-dark px-4 md:px-10" id="navTabs">
+        <div class="flex gap-8 overflow-x-auto no-scrollbar">
+          <button class="tab flex flex-col items-center justify-center border-b-[3px] border-b-primary text-white pb-3 pt-4 px-2 min-w-fit" data-tab="eventos">
+            <span class="text-sm font-bold leading-normal tracking-tight">Eventos</span>
+          </button>
+          <button class="tab flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-text-secondary hover:text-white transition-colors pb-3 pt-4 px-2 min-w-fit" data-tab="mayor">
+            <span class="text-sm font-bold leading-normal tracking-tight">Mayor</span>
+          </button>
+          <button class="tab flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-text-secondary hover:text-white transition-colors pb-3 pt-4 px-2 min-w-fit" data-tab="balance">
+            <span class="text-sm font-bold leading-normal tracking-tight">Balance</span>
+          </button>
+          <button class="tab hidden flex-col items-center justify-center border-b-[3px] border-b-transparent text-text-secondary hover:text-white transition-colors pb-3 pt-4 px-2 min-w-fit" data-tab="admin" id="adminTabBtn">
+            <span class="text-sm font-bold leading-normal tracking-tight">Administración</span>
+          </button>
+        </div>
+      </nav>
+      
+      <!-- Main Content -->
+      <main class="flex-1 w-full px-4 md:px-8 py-4 md:py-8">
+        
+        <!-- EVENTOS TAB -->
+        <section id="eventosTab" class="tab-content">
+          <!-- Dashboard KPI Cards -->
+          <div id="dashboardKPI" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 max-w-[1400px]">
+            <div class="bg-surface-dark rounded-xl p-5 border border-border-dark flex items-center gap-4">
+              <div class="w-12 h-12 rounded-xl bg-green-900/30 flex items-center justify-center">
+                <span class="material-symbols-outlined text-green-400 text-2xl">inventory_2</span>
+              </div>
+              <div>
+                <p class="text-text-secondary text-xs uppercase tracking-wider font-medium">Stock Total</p>
+                <p id="kpiStockTotal" class="text-white text-2xl font-bold">-</p>
+                <p class="text-text-secondary text-xs">cabezas</p>
+              </div>
+            </div>
+            <div class="bg-surface-dark rounded-xl p-5 border border-border-dark flex items-center gap-4">
+              <div class="w-12 h-12 rounded-xl bg-blue-900/30 flex items-center justify-center">
+                <span class="material-symbols-outlined text-blue-400 text-2xl">event_note</span>
+              </div>
+              <div>
+                <p class="text-text-secondary text-xs uppercase tracking-wider font-medium">Actividad Reciente</p>
+                <p id="kpiEventosMes" class="text-white text-2xl font-bold">-</p>
+                <p class="text-text-secondary text-xs">eventos este mes</p>
+              </div>
+            </div>
+            <div class="bg-surface-dark rounded-xl p-5 border border-border-dark flex items-center gap-4">
+              <div class="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                <span class="material-symbols-outlined text-green-400 text-2xl">check_circle</span>
+              </div>
+              <div>
+                <p class="text-text-secondary text-xs uppercase tracking-wider font-medium">Estado</p>
+                <p id="kpiEstado" class="text-green-400 text-lg font-bold flex items-center gap-1">
+                  <span class="w-2 h-2 rounded-full bg-green-400"></span>
+                  Al día
+                </p>
+                <p class="text-text-secondary text-xs">sistema operativo</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Page Header -->
+          <div class="flex flex-wrap justify-between items-center gap-4 py-4 mb-6">
+            <div class="flex flex-col gap-1">
+              <h1 class="text-white text-3xl sm:text-4xl font-black leading-tight tracking-tight">Lista de Eventos</h1>
+              <p class="text-text-secondary text-sm">Gestiona y audita los movimientos de tu ganado.</p>
+            </div>
+            <button id="showEventFormBtn" class="flex min-w-[140px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-12 px-6 bg-primary hover:bg-red-700 transition-colors text-white text-base font-bold leading-normal tracking-tight shadow-lg shadow-primary/20">
+              <span class="material-symbols-outlined mr-2">add_circle</span>
+              <span class="truncate">Registrar evento</span>
+            </button>
+          </div>
+          
+          <!-- Event Form (hidden by default) -->
+          <div id="eventFormContainer" class="hidden mb-8">
+            <div class="bg-surface-dark rounded-xl p-6 md:p-8 shadow-sm border border-border-dark">
+              <div class="flex justify-between items-center mb-6 pb-4 border-b border-border-dark">
+                <div>
+                  <h2 class="text-white text-xl font-bold">Registrar Nuevo Evento</h2>
+                  <p class="text-text-secondary text-sm mt-1">Complete los detalles del movimiento para mantener el inventario actualizado.</p>
+                </div>
+                <button id="closeEventFormBtn" class="text-text-secondary hover:text-white transition-colors">
+                  <span class="material-symbols-outlined">close</span>
+                </button>
+              </div>
+              
+              <form id="eventForm" class="flex flex-col gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <label class="flex flex-col gap-2">
+                    <span class="text-white text-sm font-medium">Fecha del Evento <span class="text-primary">*</span></span>
+                    <input type="date" id="fecha" name="fecha" required class="form-input w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 text-white focus:ring-primary focus:border-primary h-12" />
+                  </label>
+                  <label class="flex flex-col gap-2">
+                    <span class="text-white text-sm font-medium">Tipo de Evento <span class="text-primary">*</span></span>
+                    <div class="relative">
+                      <select id="tipoEvento" name="tipoEvento" required class="form-select w-full bg-[#271c1c] border-[#543b3b] rounded-xl text-white focus:ring-primary focus:border-primary h-12 pr-10 cursor-pointer"></select>
+                      <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">expand_more</span>
+                    </div>
+                  </label>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <label class="flex flex-col gap-2">
+                    <span class="text-white text-sm font-medium">Campo <span class="text-primary">*</span></span>
+                    <div class="relative">
+                      <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">location_on</span>
+                      <select id="campo" name="campo" required class="form-select w-full bg-[#271c1c] border-[#543b3b] rounded-xl text-white focus:ring-primary focus:border-primary h-12 pl-10 pr-10"></select>
+                      <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">expand_more</span>
+                    </div>
+                  </label>
+                  <label id="categoriaSimpleField" class="flex flex-col gap-2">
+                    <span class="text-white text-sm font-medium">Categoría Animal <span class="text-primary">*</span></span>
+                    <div class="relative">
+                      <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">pets</span>
+                      <select id="categoria" name="categoria" required class="form-select w-full bg-[#271c1c] border-[#543b3b] rounded-xl text-white focus:ring-primary focus:border-primary h-12 pl-10 pr-10"></select>
+                      <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">expand_more</span>
+                    </div>
+                  </label>
+                </div>
+                
+                <!-- Origen/Destino Fields (hidden by default) -->
+                <div id="origenDestinoFields" class="hidden p-5 rounded-xl bg-[#1f1515] border-l-2 border-primary">
+                  <div class="mb-4">
+                    <h3 id="origenDestinoTitle" class="text-white text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+                      <span class="material-symbols-outlined text-primary text-xl">swap_horiz</span>
+                      Origen / Destino
+                    </h3>
+                  </div>
+                  
+                  <!-- Campos de Actividad (solo para CAMBIO_ACTIVIDAD) -->
+                  <div id="actividadOrigenDestinoFields" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                    <label class="flex flex-col gap-2">
+                      <span class="text-text-secondary text-sm font-medium">Actividad Origen <span class="text-primary">*</span></span>
+                      <select id="actividadOrigen" name="actividadOrigen" class="form-select w-full bg-[#271c1c] border-[#543b3b] rounded-xl text-white focus:ring-primary focus:border-primary h-11"></select>
+                    </label>
+                    <label class="flex flex-col gap-2">
+                      <span class="text-text-secondary text-sm font-medium">Actividad Destino <span class="text-primary">*</span></span>
+                      <select id="actividadDestino" name="actividadDestino" class="form-select w-full bg-[#271c1c] border-[#543b3b] rounded-xl text-white focus:ring-primary focus:border-primary h-11"></select>
+                    </label>
+                  </div>
+                  
+                  <!-- Campos de Categoría (solo para CAMBIO_CATEGORIA) -->
+                  <div id="categoriaOrigenDestinoFields" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <label class="flex flex-col gap-2">
+                      <span class="text-text-secondary text-sm font-medium">Categoría Origen <span class="text-primary">*</span></span>
+                      <select id="categoriaOrigen" name="categoriaOrigen" class="form-select w-full bg-[#271c1c] border-[#543b3b] rounded-xl text-white focus:ring-primary focus:border-primary h-11"></select>
+                    </label>
+                    <label class="flex flex-col gap-2">
+                      <span class="text-text-secondary text-sm font-medium">Categoría Destino <span class="text-primary">*</span></span>
+                      <select id="categoriaDestino" name="categoriaDestino" class="form-select w-full bg-[#271c1c] border-[#543b3b] rounded-xl text-white focus:ring-primary focus:border-primary h-11"></select>
+                    </label>
+                  </div>
+                </div>
+                
+                <!-- Campo Destino (hidden by default) -->
+                <div id="campoDestinoField" class="hidden">
+                  <label class="flex flex-col gap-2">
+                    <span class="text-white text-sm font-medium">Campo Destino <span class="text-primary">*</span></span>
+                    <select id="campoDestino" name="campoDestino" required class="form-select w-full bg-[#271c1c] border-[#543b3b] rounded-xl text-white focus:ring-primary focus:border-primary h-12"></select>
+                  </label>
+                </div>
+                
+                
+                <!-- Quantitative Data -->
+                <div class="p-5 rounded-xl bg-surface-darker border border-border-dark flex flex-col gap-4">
+                  <h3 class="text-white text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-lg">analytics</span>
+                    Detalle Cuantitativo
+                  </h3>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <label class="flex flex-col gap-2">
+                      <span id="labelCabezas" class="text-text-secondary text-xs font-bold uppercase tracking-wide">Cabezas <span class="text-primary">*</span></span>
+                      <input type="number" id="cabezas" name="cabezas" min="0" step="1" required class="w-full bg-background-dark border border-border-input rounded-xl px-4 py-3 text-white font-mono text-lg font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all h-14" placeholder="0" />
+                    </label>
+                    <label class="flex flex-col gap-2">
+                      <span id="labelKgCabeza" class="text-text-secondary text-xs font-bold uppercase tracking-wide">Kg Promedio / Cabeza <span class="text-primary">*</span></span>
+                      <div class="relative">
+                        <input type="number" id="kgCabeza" name="kgCabeza" min="0" step="0.01" required class="w-full bg-background-dark border border-border-input rounded-xl px-4 py-3 text-white font-mono text-lg font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all h-14 pr-12" placeholder="0.00" />
+                        <span class="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary font-medium text-sm">Kg</span>
+                      </div>
+                    </label>
+                    <label id="labelKgTotalesContainer" class="flex flex-col gap-2 opacity-80">
+                      <span id="labelKgTotales" class="text-text-secondary text-xs font-bold uppercase tracking-wide flex items-center gap-1">
+                        Kg Totales <span class="material-symbols-outlined text-sm">lock</span>
+                      </span>
+                      <div class="relative">
+                        <input type="number" id="kgTotales" name="kgTotales" step="0.01" readonly class="w-full bg-border-dark border border-border-dark rounded-xl px-4 py-3 text-text-secondary font-mono text-lg font-medium h-14 pr-12 cursor-not-allowed" placeholder="0.00" />
+                        <span class="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary font-medium text-sm">Kg</span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+                
+                <!-- Observations -->
+                <label class="flex flex-col gap-2">
+                  <span class="text-white text-sm font-medium">Observaciones</span>
+                  <textarea id="observaciones" name="observaciones" rows="3" class="w-full bg-surface-darker border border-border-input rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none" placeholder="Detalles adicionales sobre el evento..."></textarea>
+                </label>
+                
+                <!-- Actions -->
+                <div class="flex justify-end gap-4 pt-4 border-t border-border-dark">
+                  <button type="button" id="cancelEventBtn" class="h-12 px-6 rounded-lg border border-border-dark text-white font-medium hover:bg-surface-darker transition-colors">Cancelar</button>
+                  <button type="submit" id="submitEventBtn" class="h-12 px-6 rounded-lg bg-primary hover:bg-red-700 text-white font-bold shadow-lg shadow-primary/20 transition-colors flex items-center gap-2">
+                    <span class="material-symbols-outlined">save</span>
+                    Guardar Evento
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+          
+          <!-- Events Table -->
+          <div class="flex flex-col flex-1 overflow-hidden rounded-xl border border-border-dark bg-background-dark shadow-sm">
+            <div id="eventosRecientes" class="overflow-x-auto">
+              <p class="p-8 text-center text-text-secondary">Cargando eventos...</p>
+            </div>
+          </div>
+        </section>
+        
+        <!-- MAYOR TAB -->
+        <section id="mayorTab" class="tab-content hidden">
+          <!-- Header -->
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-border-dark pb-6 mb-6">
+            <div class="flex flex-col gap-1">
+              <h1 class="text-white text-3xl md:text-4xl font-black tracking-tight">Mayor Contable</h1>
+              <p class="text-text-secondary text-base font-normal">Auditoría detallada de movimientos y balances</p>
+            </div>
+            <div class="flex gap-3">
+              <button id="exportMayorCSVBtn" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#271c1c] border border-[#392828] text-white hover:bg-[#392828] transition-colors text-sm font-medium">
+                <span class="material-symbols-outlined text-lg">download</span>
+                Exportar CSV
+              </button>
+              <button id="nuevoAsientoBtn" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary hover:bg-red-700 text-white font-bold transition-colors shadow-lg shadow-primary/20">
+                <span class="material-symbols-outlined text-lg">add</span>
+                Nuevo Asiento
+              </button>
+            </div>
+          </div>
+          
+          <!-- Filters -->
+          <div class="bg-[#1E1818] rounded-xl border border-[#392828] p-5 shadow-sm mb-6">
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+              <label class="flex flex-col gap-2">
+                <span class="text-text-secondary text-xs font-bold uppercase tracking-wider">Mes / Período</span>
+                <div class="relative">
+                  <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">calendar_month</span>
+                  <select id="mayorMes" class="form-select w-full rounded-lg bg-[#271c1c] border-[#543b3b] text-white pl-10 h-11 focus:ring-primary focus:border-primary text-sm">
+                    <option value="">Todos</option>
+                  </select>
+                </div>
+              </label>
+              <label class="flex flex-col gap-2">
+                <span class="text-text-secondary text-xs font-bold uppercase tracking-wider">Campo</span>
+                <div class="relative">
+                  <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">landscape</span>
+                  <select id="mayorCampo" class="form-select w-full rounded-lg bg-[#271c1c] border-[#543b3b] text-white pl-10 h-11 focus:ring-primary focus:border-primary text-sm">
+                    <option value="">Todos los campos</option>
+                  </select>
+                </div>
+              </label>
+              <label class="flex flex-col gap-2">
+                <span class="text-text-secondary text-xs font-bold uppercase tracking-wider">Vista Categoría</span>
+                <div class="flex rounded-lg overflow-hidden border border-[#543b3b]">
+                  <button id="btnMayorVistaCliente" class="flex-1 px-3 py-2.5 text-sm font-medium bg-primary text-white">Cliente</button>
+                  <button id="btnMayorVistaGestor" class="flex-1 px-3 py-2.5 text-sm font-medium bg-[#271c1c] text-text-secondary hover:text-white transition-colors">Gestor</button>
+                </div>
+              </label>
+              <label class="flex flex-col gap-2">
+                <span class="text-text-secondary text-xs font-bold uppercase tracking-wider">Categoría</span>
+                <div class="relative">
+                  <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">pets</span>
+                  <select id="mayorCategoria" class="form-select w-full min-w-[180px] rounded-lg bg-[#271c1c] border-[#543b3b] text-white pl-10 h-11 focus:ring-primary focus:border-primary text-sm truncate">
+                    <option value="">Todas las categorías</option>
+                  </select>
+                </div>
+              </label>
+              <label class="flex flex-col gap-2">
+                <span class="text-text-secondary text-xs font-bold uppercase tracking-wider">Cuenta Contable</span>
+                <div class="relative">
+                  <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">account_balance</span>
+                  <select id="mayorCuenta" class="form-select w-full rounded-lg bg-[#271c1c] border-[#543b3b] text-white pl-10 h-11 focus:ring-primary focus:border-primary text-sm">
+                    <option value="">Todas las cuentas</option>
+                  </select>
+                </div>
+              </label>
+              <div class="flex flex-col gap-2 justify-end">
+                <button id="aplicarFiltrosMayorBtn" class="inline-flex items-center justify-center gap-2 px-4 h-11 rounded-lg bg-[#271c1c] border border-[#392828] text-white hover:bg-[#392828] transition-colors text-sm font-medium">
+                  <span class="material-symbols-outlined text-lg">filter_list</span>
+                  Filtrar
+                </button>
+              </div>
+              <div class="flex flex-col gap-2 justify-end">
+                <button id="limpiarFiltrosMayorBtn" class="inline-flex items-center justify-center gap-2 w-11 h-11 rounded-lg bg-[#271c1c] border border-[#392828] text-text-secondary hover:text-white hover:bg-[#392828] transition-colors">
+                  <span class="material-symbols-outlined text-lg">refresh</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Mayor Table -->
+          <div class="flex flex-col bg-[#1E1818] rounded-xl border border-[#392828] shadow-md overflow-hidden">
+            <div class="overflow-x-auto w-full">
+              <table class="w-full min-w-[1000px]">
+                <thead>
+                  <tr class="bg-[#271c1c]">
+                    <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-[#392828]">Fecha</th>
+                    <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-[#392828]">Campo</th>
+                    <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-[#392828]">Cuenta Contable</th>
+                    <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-[#392828]">Categoría</th>
+                    <th colspan="2" class="px-4 py-2 text-center text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-[#392828] border-l border-l-[#392828]">Movimiento de Cabezas</th>
+                    <th colspan="2" class="px-4 py-2 text-center text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-[#392828] border-l border-l-[#392828]">Movimiento de Kilos</th>
+                    <th rowspan="2" class="px-4 py-3 text-right text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-[#392828] border-l border-l-[#392828]">Kg/Cab</th>
+                    <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-[#392828]">Referencia</th>
+                  </tr>
+                  <tr class="bg-[#271c1c]">
+                    <th class="px-4 py-2 text-right text-xs font-semibold text-green-500 uppercase tracking-wider border-b border-[#392828] border-l border-l-[#392828]">Debe</th>
+                    <th class="px-4 py-2 text-right text-xs font-semibold text-red-500 uppercase tracking-wider border-b border-[#392828]">Haber</th>
+                    <th class="px-4 py-2 text-right text-xs font-semibold text-green-500 uppercase tracking-wider border-b border-[#392828] border-l border-l-[#392828]">Debe (Kg)</th>
+                    <th class="px-4 py-2 text-right text-xs font-semibold text-red-500 uppercase tracking-wider border-b border-[#392828]">Haber (Kg)</th>
+                  </tr>
+                </thead>
+                <tbody id="mayorTableBody" class="divide-y divide-[#392828]">
+                  <tr><td colspan="11" class="px-4 py-8 text-center text-text-secondary">Cargando asientos...</td></tr>
+                </tbody>
+                <tfoot id="mayorTableFooter" class="bg-[#1a1313] border-t-2 border-[#392828]">
+                  <tr>
+                    <td colspan="5" class="px-4 py-4 text-right text-white font-bold uppercase">Totales del Período</td>
+                    <td class="px-4 py-4 text-right font-bold text-green-500 font-mono">0</td>
+                    <td class="px-4 py-4 text-right font-bold text-red-500 font-mono">0</td>
+                    <td class="px-4 py-4 text-right font-bold text-green-500 font-mono">0</td>
+                    <td class="px-4 py-4 text-right font-bold text-red-500 font-mono">0</td>
+                    <td colspan="2"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            
+            <!-- Pagination -->
+            <div class="px-5 py-4 border-t border-[#392828] flex items-center justify-between bg-[#1a1313]">
+              <span id="mayorPaginationInfo" class="text-text-secondary text-sm">Mostrando 0 de 0 registros</span>
+              <div class="flex items-center gap-2">
+                <button id="prevMayorPage" class="w-8 h-8 rounded-lg bg-[#271c1c] border border-[#392828] text-text-secondary hover:text-white hover:border-[#543b3b] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+                  <span class="material-symbols-outlined text-sm">chevron_left</span>
+                </button>
+                <span id="mayorPageNums" class="flex items-center gap-1"></span>
+                <button id="nextMayorPage" class="w-8 h-8 rounded-lg bg-[#271c1c] border border-[#392828] text-text-secondary hover:text-white hover:border-[#543b3b] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+                  <span class="material-symbols-outlined text-sm">chevron_right</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Audit Notification -->
+          <div id="auditNotification" class="hidden fixed bottom-4 right-4 bg-[#1E1818] border border-[#392828] rounded-xl px-4 py-3 shadow-lg flex items-center gap-3 z-40">
+            <span class="material-symbols-outlined text-primary">info</span>
+            <div>
+              <div class="text-white font-semibold text-sm">Auditoría Activa</div>
+              <div class="text-text-secondary text-xs">Los cambios se registran en el log de eventos.</div>
+            </div>
+            <button id="closeAuditNotificationBtn" class="ml-2 text-text-secondary hover:text-white">
+              <span class="material-symbols-outlined text-base">close</span>
+            </button>
+          </div>
+        </section>
+        
+        <!-- BALANCE TAB -->
+        <section id="balanceTab" class="tab-content hidden">
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[#392828] pb-6 mb-6">
+            <div class="flex flex-col gap-1">
+              <h1 class="text-white text-3xl md:text-4xl font-black tracking-tight">Balance Contable</h1>
+              <p class="text-text-secondary text-base font-normal">Saldos contables por plan, centro de costo, cuenta y categoría. Stock solo en Activo.</p>
+            </div>
+            <div class="flex gap-3">
+              <button id="printBalanceBtn" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#271c1c] border border-[#392828] text-white hover:bg-[#392828] transition-colors text-sm font-medium">
+                <span class="material-symbols-outlined text-lg">print</span>
+                Imprimir
+              </button>
+              <button id="exportBalanceCSVBtn" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#271c1c] border border-[#392828] text-white hover:bg-[#392828] transition-colors text-sm font-medium">
+                <span class="material-symbols-outlined text-lg">download</span>
+                Exportar CSV
+              </button>
+            </div>
+          </div>
+          
+          <!-- Filters -->
+          <div class="bg-[#1E1818] rounded-xl border border-[#392828] p-5 shadow-sm mb-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <label class="flex flex-col gap-2">
+                <span class="text-text-secondary text-xs font-bold uppercase tracking-wider">Periodo Contable</span>
+                <div class="relative">
+                  <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">calendar_month</span>
+                  <select id="balanceMes" class="form-select w-full rounded-lg bg-[#271c1c] border-[#543b3b] text-white pl-10 h-11 focus:ring-primary focus:border-primary text-sm">
+                    <option value="">Todos los periodos</option>
+                  </select>
+                </div>
+              </label>
+              <label class="flex flex-col gap-2">
+                <span class="text-text-secondary text-xs font-bold uppercase tracking-wider">Modalidad de Visualización</span>
+                <div class="flex rounded-lg overflow-hidden border border-[#543b3b]">
+                  <button id="btnMovMes" class="flex-1 px-3 py-2.5 text-sm font-medium bg-[#271c1c] text-text-secondary hover:text-white transition-colors">
+                    Movimientos Mes
+                  </button>
+                  <button id="btnAcumulado" class="flex-1 px-3 py-2.5 text-sm font-medium bg-primary text-white">
+                    Acumulado
+                  </button>
+                </div>
+              </label>
+              <label class="flex flex-col gap-2">
+                <span class="text-text-secondary text-xs font-bold uppercase tracking-wider">Buscar</span>
+                <div class="relative">
+                  <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">search</span>
+                  <input type="text" id="balanceSearch" placeholder="Buscar cuenta, campo o categoría..." class="form-input w-full rounded-lg bg-[#271c1c] border-[#543b3b] text-white pl-10 h-11 focus:ring-primary focus:border-primary text-sm placeholder-text-secondary">
+                </div>
+              </label>
+              <label class="flex flex-col gap-2">
+                <span class="text-text-secondary text-xs font-bold uppercase tracking-wider">Campo</span>
+                <div class="relative">
+                  <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">landscape</span>
+                  <select id="balanceCampo" class="form-select w-full rounded-lg bg-[#271c1c] border-[#543b3b] text-white pl-10 h-11 focus:ring-primary focus:border-primary text-sm">
+                    <option value="">Todos</option>
+                  </select>
+                </div>
+              </label>
+              <label class="flex flex-col gap-2">
+                <span class="text-text-secondary text-xs font-bold uppercase tracking-wider">Vista Categoría</span>
+                <div class="flex rounded-lg overflow-hidden border border-[#543b3b]">
+                  <button id="btnBalanceVistaCliente" class="flex-1 px-3 py-2.5 text-sm font-medium bg-primary text-white">Cliente</button>
+                  <button id="btnBalanceVistaGestor" class="flex-1 px-3 py-2.5 text-sm font-medium bg-[#271c1c] text-text-secondary hover:text-white transition-colors">Gestor</button>
+                </div>
+              </label>
+            </div>
+          </div>
+          
+          <!-- Balance Tree -->
+          <div class="flex flex-col rounded-xl border border-[#392828] overflow-hidden bg-[#1E1818]">
+            <div id="balanceTree" class="overflow-x-auto">
+              <p class="p-8 text-center text-text-secondary">Cargando balance...</p>
+            </div>
+          </div>
+          
+          <!-- Legend -->
+          <div class="flex items-center gap-6 mt-4 text-sm text-text-secondary">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-primary"></span>
+              <span>Categoría (Nivel final)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-sm bg-[#392828]"></span>
+              <span>Centro de Costo</span>
+            </div>
+          </div>
+        </section>
+        
+        <!-- ADMIN TAB -->
+        <section id="adminTab" class="tab-content hidden">
+          <!-- Admin Header -->
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[#392828] pb-6 mb-6">
+            <div class="flex flex-col gap-1">
+              <h1 class="text-white text-3xl md:text-4xl font-black tracking-tight">Administración</h1>
+              <p class="text-text-secondary text-base font-normal">Configuración y parametrización del sistema</p>
+            </div>
+          </div>
+          
+          <!-- Admin Navigation Pills -->
+          <div class="bg-[#1E1818] rounded-xl border border-[#392828] p-4 mb-6">
+            <div class="flex flex-wrap gap-2">
+              <button class="admin-tab items-center gap-2 rounded-full bg-primary text-white px-5 py-2.5 text-sm font-bold shadow-md shadow-primary/20 transition-all" data-admin="campos">
+                <span class="material-symbols-outlined text-lg">landscape</span>
+                <span>Campos</span>
+              </button>
+              <button class="admin-tab items-center gap-2 rounded-full bg-[#271c1c] border border-[#392828] text-text-secondary hover:bg-[#392828] hover:text-white px-5 py-2.5 text-sm font-bold transition-all" data-admin="actividades">
+                <span class="material-symbols-outlined text-lg">work</span>
+                <span>Actividades</span>
+              </button>
+              <button class="admin-tab items-center gap-2 rounded-full bg-[#271c1c] border border-[#392828] text-text-secondary hover:bg-[#392828] hover:text-white px-5 py-2.5 text-sm font-bold transition-all" data-admin="categorias">
+                <span class="material-symbols-outlined text-lg">pets</span>
+                <span>Categorías</span>
+              </button>
+              <button class="admin-tab items-center gap-2 rounded-full bg-[#271c1c] border border-[#392828] text-text-secondary hover:bg-[#392828] hover:text-white px-5 py-2.5 text-sm font-bold transition-all" data-admin="categoriasMapeo" id="tabCategoriasMapeo">
+                <span class="material-symbols-outlined text-lg">sync_alt</span>
+                <span>Mapeo</span>
+              </button>
+              <button class="admin-tab items-center gap-2 rounded-full bg-[#271c1c] border border-[#392828] text-text-secondary hover:bg-[#392828] hover:text-white px-5 py-2.5 text-sm font-bold transition-all" data-admin="tiposEvento">
+                <span class="material-symbols-outlined text-lg">event</span>
+                <span>Tipos Evento</span>
+              </button>
+              <button class="admin-tab items-center gap-2 rounded-full bg-[#271c1c] border border-[#392828] text-text-secondary hover:bg-[#392828] hover:text-white px-5 py-2.5 text-sm font-bold transition-all" data-admin="cuentas">
+                <span class="material-symbols-outlined text-lg">account_balance</span>
+                <span>Cuentas</span>
+              </button>
+              <button class="admin-tab items-center gap-2 rounded-full bg-[#271c1c] border border-[#392828] text-text-secondary hover:bg-[#392828] hover:text-white px-5 py-2.5 text-sm font-bold transition-all" data-admin="planescuenta">
+                <span class="material-symbols-outlined text-lg">account_tree</span>
+                <span>Planes</span>
+              </button>
+              <button class="admin-tab admin-only hidden items-center gap-2 rounded-full bg-[#271c1c] border border-[#392828] text-text-secondary hover:bg-[#392828] hover:text-white px-5 py-2.5 text-sm font-bold transition-all" data-admin="clientes" id="tabClientes">
+                <span class="material-symbols-outlined text-lg">business</span>
+                <span>Empresas</span>
+              </button>
+              <button class="admin-tab superadmin-only hidden items-center gap-2 rounded-full bg-[#271c1c] border border-[#392828] text-text-secondary hover:bg-[#392828] hover:text-white px-5 py-2.5 text-sm font-bold transition-all" data-admin="auditores" id="tabAuditores">
+                <span class="material-symbols-outlined text-lg">verified_user</span>
+                <span>Auditores</span>
+              </button>
+              <button class="admin-tab superadmin-only hidden items-center gap-2 rounded-full bg-[#271c1c] border border-[#392828] text-text-secondary hover:bg-[#392828] hover:text-white px-5 py-2.5 text-sm font-bold transition-all" data-admin="usuarios" id="tabUsuarios">
+                <span class="material-symbols-outlined text-lg">group</span>
+                <span>Usuarios</span>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Admin Empresas -->
+          <div id="adminClientes" class="admin-content admin-only hidden">
+            <div class="bg-[#1E1818] rounded-xl p-6 md:p-8 border border-[#392828]">
+              <div class="flex items-center gap-3 mb-2">
+                <span class="material-symbols-outlined text-primary text-2xl">business</span>
+                <h2 class="text-white text-xl font-bold">Gestión de Empresas</h2>
+              </div>
+              <p class="text-text-secondary text-sm mb-6">Las empresas son establecimientos que agrupan usuarios, campos y configuraciones de integración.</p>
+              <div id="clientesList" class="mb-8 overflow-x-auto"></div>
+              <div class="border-t border-[#392828] pt-6">
+                <h3 class="text-white text-lg font-bold mb-4 flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary">add_circle</span>
+                  Crear Empresa
+                </h3>
+                <form id="createClienteForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input type="text" id="nuevoClienteNombre" required placeholder="Nombre de la empresa" class="form-input bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 focus:ring-primary focus:border-primary" />
+                  <input type="text" id="nuevoClienteDescripcion" placeholder="Descripción opcional" class="form-input bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 focus:ring-primary focus:border-primary" />
+                  <button type="submit" class="md:col-span-2 h-12 bg-primary hover:bg-red-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20">
+                    <span class="material-symbols-outlined">save</span>
+                    Crear Empresa
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Admin Campos -->
+          <div id="adminCampos" class="admin-content">
+            <div class="bg-[#1E1818] rounded-xl p-6 md:p-8 border border-[#392828]">
+              <div class="flex items-center gap-3 mb-2">
+                <span class="material-symbols-outlined text-primary text-2xl">landscape</span>
+                <h2 class="text-white text-xl font-bold">Gestión de Campos (Centros de Costo)</h2>
+              </div>
+              <p class="text-text-secondary text-sm mb-6">Los campos son las unidades productivas donde se realiza la actividad ganadera.</p>
+              <div id="camposList" class="mb-8 overflow-x-auto"></div>
+              <div class="border-t border-[#392828] pt-6">
+                <h3 class="text-white text-lg font-bold mb-4 flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary">add_circle</span>
+                  Crear Campo
+                </h3>
+                <form id="createCampoForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input type="text" id="nuevoCampoNombre" required placeholder="Nombre del campo" class="form-input bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 focus:ring-primary focus:border-primary" />
+                  <input type="text" id="nuevoCampoDesc" placeholder="Descripción" class="form-input bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 focus:ring-primary focus:border-primary" />
+                  <select id="nuevoCampoCliente" class="form-select bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 focus:ring-primary focus:border-primary">
+                    <option value="">Sin asignar (cliente)</option>
+                  </select>
+                  <div id="nuevoCampoActividades" class="flex flex-wrap gap-2 items-center p-3 bg-[#271c1c] border border-[#543b3b] rounded-xl min-h-[48px]"></div>
+                  <button type="submit" class="md:col-span-2 h-12 bg-primary hover:bg-red-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20">
+                    <span class="material-symbols-outlined">save</span>
+                    Crear Campo
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Admin Categorias -->
+          <div id="adminCategorias" class="admin-content hidden">
+            <div class="bg-[#1E1818] rounded-xl p-6 md:p-8 border border-[#392828]">
+              <div class="flex items-center gap-3 mb-2">
+                <span class="material-symbols-outlined text-primary text-2xl">pets</span>
+                <h2 class="text-white text-xl font-bold">Gestión de Categorías de Hacienda</h2>
+              </div>
+              <p class="text-text-secondary text-sm mb-6">Categorías de animales según tipo, edad y sexo.</p>
+              <div id="categoriasList" class="mb-8 overflow-x-auto"></div>
+              <div class="border-t border-[#392828] pt-6">
+                <h3 class="text-white text-lg font-bold mb-4 flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary">add_circle</span>
+                  Crear Categoría
+                </h3>
+                <form id="createCategoriaForm" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <input type="text" id="nuevaCategoriaNombre" required placeholder="Nombre" class="form-input bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 focus:ring-primary focus:border-primary" />
+                  <select id="nuevaCategoriaActividad" required class="form-select bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 focus:ring-primary focus:border-primary"></select>
+                  <input type="number" id="nuevaCategoriaPeso" step="0.01" min="0" placeholder="Peso estándar (Kg)" class="form-input bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 focus:ring-primary focus:border-primary" />
+                  <button type="submit" class="h-12 bg-primary hover:bg-red-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20">
+                    <span class="material-symbols-outlined">save</span>
+                    Crear
+                  </button>
+                </form>
+              </div>
+              
+              <div class="border-t border-[#392828] pt-6 mt-6">
+                <h3 class="text-white text-lg font-bold mb-4 flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary">upload_file</span>
+                  Importar Categorías desde CSV/Excel
+                </h3>
+                <div class="bg-[#271c1c] rounded-xl p-4 border border-[#392828] mb-4">
+                  <p class="text-text-secondary text-sm mb-3">Suba un archivo CSV o Excel con las columnas: <code class="text-primary">Nombre, Actividad, Peso estandar</code></p>
+                  <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="md:col-span-2">
+                      <input type="file" id="fileCategoriasCliente" accept=".csv,.xlsx,.xls" class="form-input bg-[#1a1313] border-[#543b3b] rounded-xl text-white h-12 focus:ring-primary focus:border-primary w-full file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-red-700" />
+                    </div>
+                    <div class="flex gap-2 md:col-span-2">
+                      <a href="/api/admin/categorias-cliente/plantilla" download class="h-12 px-4 bg-[#1a3a1a] hover:bg-[#2a4a2a] text-green-400 font-medium rounded-xl transition-colors flex items-center justify-center gap-2 border border-green-700">
+                        <span class="material-symbols-outlined">download</span>
+                        Plantilla
+                      </a>
+                      <button id="btnPreviewCategoriasCliente" class="flex-1 h-12 bg-[#392828] hover:bg-[#4a3535] text-white font-medium rounded-xl transition-colors flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined">preview</span>
+                        Previsualizar
+                      </button>
+                      <button id="btnImportCategoriasCliente" class="flex-1 h-12 bg-primary hover:bg-red-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20">
+                        <span class="material-symbols-outlined">cloud_upload</span>
+                        Importar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div id="importCategoriasClienteSummary" class="hidden mb-4"></div>
+                <div id="importCategoriasClienteErrors" class="hidden"></div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Admin Categorias Mapeo -->
+          <div id="adminCategoriasMapeo" class="admin-content hidden">
+            <div class="bg-[#1E1818] rounded-xl p-6 md:p-8 border border-[#392828]">
+              <div class="flex items-center gap-3 mb-2">
+                <span class="material-symbols-outlined text-primary text-2xl">sync_alt</span>
+                <h2 class="text-white text-xl font-bold">Mapeo de Categorías</h2>
+              </div>
+              <p class="text-text-secondary text-sm mb-4">Asigne categorías del cliente a categorías de consolidación (Gestor) para reportes unificados.</p>
+              
+              <!-- Status Cards -->
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-[#271c1c] rounded-xl p-4 border border-[#392828]">
+                  <div class="text-text-secondary text-xs uppercase tracking-wider mb-1">Total Cliente</div>
+                  <div id="mapTotalCliente" class="text-white text-2xl font-bold">0</div>
+                </div>
+                <div class="bg-[#271c1c] rounded-xl p-4 border border-[#392828]">
+                  <div class="text-text-secondary text-xs uppercase tracking-wider mb-1">Mapeadas</div>
+                  <div id="mapMapeadas" class="text-green-400 text-2xl font-bold">0</div>
+                </div>
+                <div class="bg-[#271c1c] rounded-xl p-4 border border-[#392828]">
+                  <div class="text-text-secondary text-xs uppercase tracking-wider mb-1">Sin Mapear</div>
+                  <div id="mapSinMapear" class="text-amber-400 text-2xl font-bold">0</div>
+                </div>
+              </div>
+              
+              <!-- Lista de Mapeos -->
+              <div id="categoriasMapeoList" class="mb-8 overflow-x-auto"></div>
+              
+              <!-- Formulario de Asignación -->
+              <div class="border-t border-[#392828] pt-6">
+                <h3 class="text-white text-lg font-bold mb-4 flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary">add_circle</span>
+                  Asignar Mapeo
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <select id="mapClienteCategoria" class="form-select bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 focus:ring-primary focus:border-primary">
+                    <option value="">-- Categoría Cliente --</option>
+                  </select>
+                  <select id="mapGestorCategoria" class="form-select bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 focus:ring-primary focus:border-primary">
+                    <option value="">-- Categoría Gestor --</option>
+                  </select>
+                  <button id="btnAsignarMapeo" class="h-12 bg-primary hover:bg-red-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20">
+                    <span class="material-symbols-outlined">link</span>
+                    Asignar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Admin Actividades -->
+          <div id="adminActividades" class="admin-content hidden">
+            <div class="bg-[#1E1818] rounded-xl p-6 md:p-8 border border-[#392828]">
+              <div class="flex items-center gap-3 mb-2">
+                <span class="material-symbols-outlined text-primary text-2xl">work</span>
+                <h2 class="text-white text-xl font-bold">Gestión de Actividades</h2>
+              </div>
+              <p class="text-text-secondary text-sm mb-6">Tipos de actividad productiva (Cría, Recría, Feedlot, etc.)</p>
+              <div id="actividadesList" class="mb-8 overflow-x-auto"></div>
+              <div class="border-t border-[#392828] pt-6">
+                <h3 class="text-white text-lg font-bold mb-4 flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary">add_circle</span>
+                  Crear Actividad
+                </h3>
+                <form id="createActividadForm" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <input type="text" id="nuevaActividadNombre" required placeholder="Nombre (ej: CRIA, RECRIA)" class="form-input bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 focus:ring-primary focus:border-primary" />
+                  <input type="text" id="nuevaActividadDesc" placeholder="Descripción" class="form-input bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 focus:ring-primary focus:border-primary" />
+                  <button type="submit" class="h-12 bg-primary hover:bg-red-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20">
+                    <span class="material-symbols-outlined">save</span>
+                    Crear
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Admin Tipos Evento -->
+          <div id="adminTiposEvento" class="admin-content hidden">
+            <div class="bg-[#1E1818] rounded-xl p-6 md:p-8 border border-[#392828]">
+              <div class="flex items-center gap-3 mb-2">
+                <span class="material-symbols-outlined text-primary text-2xl">event</span>
+                <h2 class="text-white text-xl font-bold">Gestión de Tipos de Evento</h2>
+              </div>
+              <p class="text-text-secondary text-sm mb-6">Configuración de eventos con sus cuentas contables asociadas.</p>
+              <div id="tiposEventoList" class="mb-8 overflow-x-auto"></div>
+              <div class="border-t border-[#392828] pt-6">
+                <h3 class="text-white text-lg font-bold mb-4 flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary">add_circle</span>
+                  Crear Tipo de Evento
+                </h3>
+                <form id="createTipoEventoForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input type="text" id="nuevoTipoEventoCodigo" required placeholder="Código (ej: VENTA)" class="form-input bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 focus:ring-primary focus:border-primary" />
+                  <input type="text" id="nuevoTipoEventoNombre" required placeholder="Nombre descriptivo" class="form-input bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 focus:ring-primary focus:border-primary" />
+                  <select id="nuevoTipoEventoCuentaDebe" class="form-select bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 focus:ring-primary focus:border-primary"></select>
+                  <select id="nuevoTipoEventoCuentaHaber" class="form-select bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 focus:ring-primary focus:border-primary"></select>
+                  <label class="flex items-center gap-3 text-white bg-[#271c1c] border border-[#543b3b] rounded-xl px-4 h-12">
+                    <input type="checkbox" id="nuevoTipoEventoOrigenDestino" class="form-checkbox rounded border-[#543b3b] bg-[#1f1515] text-primary focus:ring-primary" />
+                    <span class="text-sm">Requiere Origen/Destino</span>
+                  </label>
+                  <label class="flex items-center gap-3 text-white bg-[#271c1c] border border-[#543b3b] rounded-xl px-4 h-12">
+                    <input type="checkbox" id="nuevoTipoEventoCampoDestino" class="form-checkbox rounded border-[#543b3b] bg-[#1f1515] text-primary focus:ring-primary" />
+                    <span class="text-sm">Requiere Campo Destino</span>
+                  </label>
+                  <button type="submit" class="md:col-span-2 h-12 bg-primary hover:bg-red-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20">
+                    <span class="material-symbols-outlined">save</span>
+                    Crear Tipo de Evento
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Admin Cuentas -->
+          <div id="adminCuentas" class="admin-content hidden">
+            <div class="bg-[#1E1818] rounded-xl p-6 md:p-8 border border-[#392828]">
+              <div class="flex items-center gap-3 mb-2">
+                <span class="material-symbols-outlined text-primary text-2xl">account_balance</span>
+                <h2 class="text-white text-xl font-bold">Gestión de Cuentas Contables</h2>
+              </div>
+              <p class="text-text-secondary text-sm mb-6">Plan de cuentas para la contabilidad ganadera.</p>
+              <div id="cuentasList" class="mb-8 overflow-x-auto"></div>
+              <div class="border-t border-[#392828] pt-6">
+                <h3 class="text-white text-lg font-bold mb-4 flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary">add_circle</span>
+                  Crear Cuenta
+                </h3>
+                <form id="createCuentaForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <input type="text" id="nuevaCuentaCodigo" required placeholder="Código (ej: 1.1.01)" class="form-input bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 focus:ring-primary focus:border-primary" />
+                  <input type="text" id="nuevaCuentaNombre" required placeholder="Nombre de la cuenta" class="form-input bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 focus:ring-primary focus:border-primary" />
+                  <select id="nuevaCuentaPlan" required class="form-select bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 focus:ring-primary focus:border-primary"></select>
+                  <select id="nuevaCuentaTipoNormal" required class="form-select bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 focus:ring-primary focus:border-primary">
+                    <option value="DEBE">DEBE (Deudora)</option>
+                    <option value="HABER">HABER (Acreedora)</option>
+                  </select>
+                  <button type="submit" class="lg:col-span-4 h-12 bg-primary hover:bg-red-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20">
+                    <span class="material-symbols-outlined">save</span>
+                    Crear Cuenta
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Admin Planes Cuenta -->
+          <div id="adminPlanescuenta" class="admin-content hidden">
+            <div class="bg-[#1E1818] rounded-xl p-6 md:p-8 border border-[#392828]">
+              <div class="flex items-center gap-3 mb-2">
+                <span class="material-symbols-outlined text-primary text-2xl">account_tree</span>
+                <h2 class="text-white text-xl font-bold">Gestión de Planes de Cuenta</h2>
+              </div>
+              <p class="text-text-secondary text-sm mb-6">Clasificación principal de cuentas (Activo, Patrimonio Neto, Resultado).</p>
+              <div id="planesCuentaList" class="mb-8 overflow-x-auto"></div>
+              <div class="border-t border-[#392828] pt-6">
+                <h3 class="text-white text-lg font-bold mb-4 flex items-center gap-2">
+                  <span class="material-symbols-outlined text-primary">add_circle</span>
+                  Crear Plan de Cuenta
+                </h3>
+                <form id="createPlanCuentaForm" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <input type="text" id="nuevoPlanCodigo" required placeholder="Código (ej: ACT, PN, RES)" class="form-input bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 focus:ring-primary focus:border-primary" />
+                  <input type="text" id="nuevoPlanNombre" required placeholder="Nombre del plan" class="form-input bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 focus:ring-primary focus:border-primary" />
+                  <button type="submit" class="h-12 bg-primary hover:bg-red-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-primary/20">
+                    <span class="material-symbols-outlined">save</span>
+                    Crear
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Admin Auditores - Asignación de Clientes -->
+          <div id="adminAuditores" class="admin-content superadmin-only hidden">
+            <!-- Breadcrumb -->
+            <div class="flex items-center gap-2 text-sm text-text-secondary mb-4">
+              <span>Inicio</span>
+              <span class="material-symbols-outlined text-xs">chevron_right</span>
+              <span>Administración</span>
+              <span class="material-symbols-outlined text-xs">chevron_right</span>
+              <span class="text-white">Asignación de Clientes</span>
+            </div>
+            
+            <!-- Header -->
+            <div class="mb-6">
+              <h1 class="text-white text-2xl md:text-3xl font-bold mb-2">Asignación de Clientes a Auditor</h1>
+              <p class="text-text-secondary">Seleccione un auditor de la lista para gestionar sus permisos y vincular las cuentas de ganadería correspondientes.</p>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <!-- Left Panel - Auditor Selection -->
+              <div class="lg:col-span-4 space-y-4">
+                <!-- Auditor Selector -->
+                <div class="bg-[#1E1818] rounded-xl p-5 border border-[#392828]">
+                  <div class="flex items-center gap-2 mb-4">
+                    <span class="material-symbols-outlined text-primary">person_search</span>
+                    <span class="text-white font-semibold">Seleccionar Auditor</span>
+                  </div>
+                  <select id="auditorSelector" class="w-full form-select bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 focus:ring-primary focus:border-primary">
+                    <option value="">Buscar auditor...</option>
+                  </select>
+                </div>
+                
+                <!-- Auditor Details -->
+                <div id="auditorDetails" class="bg-[#1E1818] rounded-xl p-5 border border-[#392828] hidden">
+                  <h3 class="text-text-secondary text-xs uppercase tracking-wider mb-4">Detalles del Auditor</h3>
+                  <div class="flex items-center gap-3 mb-4">
+                    <div id="auditorInitials" class="w-12 h-12 rounded-full bg-[#271c1c] flex items-center justify-center text-white font-bold text-lg border border-[#392828]">CM</div>
+                    <div>
+                      <div id="auditorNombre" class="text-white font-semibold">Carlos Méndez</div>
+                      <div id="auditorRol" class="text-text-secondary text-sm">Auditor</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2 text-text-secondary text-sm">
+                    <span class="material-symbols-outlined text-base">mail</span>
+                    <span id="auditorEmail">auditor@ejemplo.com</span>
+                  </div>
+                </div>
+                
+                <!-- Assigned Count -->
+                <div id="auditorStats" class="bg-[#1E1818] rounded-xl p-5 border border-[#392828] hidden">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <div class="text-text-secondary text-sm mb-1">Clientes Asignados</div>
+                      <div id="clientesAsignadosCount" class="text-white text-3xl font-bold">0</div>
+                    </div>
+                    <div class="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                      <span class="material-symbols-outlined text-primary">check_box</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Right Panel - Clients List -->
+              <div class="lg:col-span-8">
+                <div class="bg-[#1E1818] rounded-xl border border-[#392828] overflow-hidden">
+                  <!-- Header -->
+                  <div class="p-5 border-b border-[#392828]">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div>
+                        <h2 class="text-white font-semibold">Lista de Clientes Disponibles</h2>
+                        <p class="text-text-secondary text-sm">Marque las casillas para asignar acceso.</p>
+                      </div>
+                      <div class="relative">
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary">search</span>
+                        <input type="text" id="buscarClienteAuditor" placeholder="Buscar cliente, ubicación..." class="form-input bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-10 pl-10 pr-4 w-full md:w-64 focus:ring-primary focus:border-primary text-sm" />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Select All -->
+                  <div class="px-5 py-3 border-b border-[#392828] flex items-center justify-between bg-[#1a1313]">
+                    <label class="flex items-center gap-3 cursor-pointer">
+                      <input type="checkbox" id="selectAllClientes" class="w-5 h-5 rounded bg-[#271c1c] border-[#543b3b] text-primary focus:ring-primary focus:ring-offset-0" />
+                      <span class="text-white text-sm">Seleccionar todo</span>
+                    </label>
+                    <button id="filterClientesBtn" class="flex items-center gap-1 text-text-secondary hover:text-white text-sm transition-colors">
+                      <span class="material-symbols-outlined text-base">filter_list</span>
+                      Filtrar
+                    </button>
+                  </div>
+                  
+                  <!-- Clients List -->
+                  <div id="clientesAsignacionList" class="divide-y divide-[#392828] max-h-[400px] overflow-y-auto">
+                    <p class="p-8 text-center text-text-secondary">Seleccione un auditor para ver los clientes disponibles</p>
+                  </div>
+                  
+                  <!-- Pagination -->
+                  <div class="px-5 py-3 border-t border-[#392828] flex items-center justify-between bg-[#1a1313]">
+                    <span id="clientesPaginationInfo" class="text-text-secondary text-sm">Mostrando 0 de 0 clientes</span>
+                    <div class="flex items-center gap-2">
+                      <button id="prevClientesPage" class="w-8 h-8 rounded-lg bg-[#271c1c] border border-[#392828] text-text-secondary hover:text-white hover:border-[#543b3b] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+                        <span class="material-symbols-outlined text-sm">chevron_left</span>
+                      </button>
+                      <span id="clientesPageNum" class="text-white text-sm px-2">1</span>
+                      <button id="nextClientesPage" class="w-8 h-8 rounded-lg bg-[#271c1c] border border-[#392828] text-text-secondary hover:text-white hover:border-[#543b3b] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+                        <span class="material-symbols-outlined text-sm">chevron_right</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Footer Bar -->
+            <div id="asignacionFooter" class="hidden fixed bottom-0 left-0 right-0 bg-[#1E1818] border-t border-[#392828] px-6 py-4 z-40">
+              <div class="max-w-7xl mx-auto flex items-center justify-between">
+                <div class="flex items-center gap-2 text-sm">
+                  <span class="material-symbols-outlined text-primary text-base">info</span>
+                  <span class="text-text-secondary">Se asignarán <strong id="clientesPendientes" class="text-primary">0 clientes</strong> al auditor <strong id="auditorNombreFooter" class="text-white">-</strong></span>
+                </div>
+                <div class="flex items-center gap-3">
+                  <button id="cancelarAsignacion" class="px-5 py-2 text-white hover:bg-[#271c1c] rounded-lg transition-colors">Cancelar</button>
+                  <button id="guardarAsignaciones" class="px-5 py-2 bg-primary hover:bg-red-700 text-white font-bold rounded-lg transition-colors flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base">save</span>
+                    Guardar asignaciones
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Admin Usuarios - Gestión Completa -->
+          <div id="adminUsuarios" class="admin-content superadmin-only hidden">
+            <!-- Breadcrumb -->
+            <div class="flex items-center gap-2 text-sm text-text-secondary mb-4">
+              <span>Inicio</span>
+              <span class="material-symbols-outlined text-xs">chevron_right</span>
+              <span>Administración</span>
+              <span class="material-symbols-outlined text-xs">chevron_right</span>
+              <span class="text-white">Usuarios</span>
+            </div>
+            
+            <!-- Header -->
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+              <div>
+                <h1 class="text-white text-2xl md:text-3xl font-bold mb-2">Gestión de Usuarios</h1>
+                <p class="text-text-secondary">Administre los roles de acceso y los permisos de los usuarios del sistema. Asegure que los usuarios de tipo <span class="text-primary font-semibold">CLIENTE</span> estén correctamente vinculados a un Tenant ID único para fines de auditoría.</p>
+              </div>
+              <button id="nuevoUsuarioBtn" class="flex items-center gap-2 px-5 py-3 bg-primary hover:bg-red-700 text-white font-bold rounded-xl transition-colors shadow-lg shadow-primary/20">
+                <span class="material-symbols-outlined">person_add</span>
+                Nuevo Usuario
+              </button>
+            </div>
+            
+            
+            <!-- Search and Filters -->
+            <div class="bg-[#1E1818] rounded-xl p-4 border border-[#392828] mb-6">
+              <div class="flex flex-col md:flex-row gap-4">
+                <!-- Search -->
+                <div class="relative flex-1">
+                  <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary">search</span>
+                  <input type="text" id="buscarUsuario" placeholder="Buscar por nombre, email o Tenant ID..." class="form-input bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 pl-10 pr-4 w-full focus:ring-primary focus:border-primary" />
+                </div>
+                <!-- Role Filters -->
+                <div class="flex items-center gap-2 flex-wrap">
+                  <button class="usuario-filter px-4 py-2 rounded-full bg-primary text-white font-semibold text-sm transition-colors" data-filter="todos">Todos</button>
+                  <button class="usuario-filter px-4 py-2 rounded-full bg-[#271c1c] border border-[#392828] text-text-secondary hover:text-white font-medium text-sm transition-colors" data-filter="administrador">
+                    <span class="inline-block w-2 h-2 rounded-full bg-blue-500 mr-2"></span>Administrador
+                  </button>
+                  <button class="usuario-filter px-4 py-2 rounded-full bg-[#271c1c] border border-[#392828] text-text-secondary hover:text-white font-medium text-sm transition-colors" data-filter="auditor">
+                    <span class="inline-block w-2 h-2 rounded-full bg-purple-500 mr-2"></span>Auditor
+                  </button>
+                  <button class="usuario-filter px-4 py-2 rounded-full bg-[#271c1c] border border-[#392828] text-text-secondary hover:text-white font-medium text-sm transition-colors" data-filter="cliente">
+                    <span class="inline-block w-2 h-2 rounded-full bg-green-500 mr-2"></span>Cliente
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Users Table -->
+            <div class="bg-[#1E1818] rounded-xl border border-[#392828] overflow-hidden">
+              <div class="overflow-x-auto">
+                <table class="w-full">
+                  <thead>
+                    <tr class="bg-[#271c1c] border-b border-[#392828]">
+                      <th class="px-5 py-4 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider">Usuario</th>
+                      <th class="px-5 py-4 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider">Rol</th>
+                      <th class="px-5 py-4 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider">Tenant ID</th>
+                      <th class="px-5 py-4 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider">Estado</th>
+                      <th class="px-5 py-4 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider">Último Acceso</th>
+                      <th class="px-5 py-4 text-right text-xs font-semibold text-text-secondary uppercase tracking-wider">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="usuariosTableBody" class="divide-y divide-[#392828]">
+                    <tr><td colspan="6" class="px-5 py-8 text-center text-text-secondary">Cargando usuarios...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              
+              <!-- Pagination -->
+              <div class="px-5 py-4 border-t border-[#392828] flex items-center justify-between bg-[#1a1313]">
+                <span id="usuariosPaginationInfo" class="text-text-secondary text-sm">Mostrando 0 de 0 usuarios</span>
+                <div class="flex items-center gap-2">
+                  <button id="prevUsuariosPage" class="w-8 h-8 rounded-lg bg-[#271c1c] border border-[#392828] text-text-secondary hover:text-white hover:border-[#543b3b] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+                    <span class="material-symbols-outlined text-sm">chevron_left</span>
+                  </button>
+                  <span id="usuariosPageNums" class="text-white text-sm px-2">1</span>
+                  <button id="nextUsuariosPage" class="w-8 h-8 rounded-lg bg-[#271c1c] border border-[#392828] text-text-secondary hover:text-white hover:border-[#543b3b] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+                    <span class="material-symbols-outlined text-sm">chevron_right</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Invitar Usuario Modal -->
+            <div id="invitarUsuarioModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+              <div class="bg-[#1E1818] rounded-2xl border border-[#392828] w-full max-w-lg">
+                <div class="px-6 py-4 border-b border-[#392828] flex items-center justify-between">
+                  <h3 class="text-white text-lg font-bold">Invitar Nuevo Usuario</h3>
+                  <button id="cerrarInvitarModal" class="w-8 h-8 rounded-lg hover:bg-[#271c1c] flex items-center justify-center text-text-secondary hover:text-white transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                  </button>
+                </div>
+                <form id="invitarUsuarioForm" class="p-6 space-y-4">
+                  <p class="text-text-secondary text-sm mb-4">Ingrese el email del usuario para invitarlo al sistema. Cuando inicie sesión con Replit Auth, se vinculará automáticamente.</p>
+                  <label class="block">
+                    <span class="text-white text-sm font-medium mb-1 block">Email *</span>
+                    <input type="email" id="invitarEmail" required class="form-input w-full bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-11 focus:ring-primary focus:border-primary" placeholder="usuario@gmail.com" />
+                  </label>
+                  <label class="block">
+                    <span class="text-white text-sm font-medium mb-1 block">Nombre *</span>
+                    <input type="text" id="invitarNombre" required class="form-input w-full bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-11 focus:ring-primary focus:border-primary" placeholder="Nombre del usuario" />
+                  </label>
+                  <label class="block">
+                    <span class="text-white text-sm font-medium mb-1 block">Rol</span>
+                    <select id="invitarRol" class="form-select w-full bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-11 focus:ring-primary focus:border-primary">
+                      <option value="3">Cliente</option>
+                      <option value="2">Auditor</option>
+                      <option value="1">Administrador</option>
+                    </select>
+                  </label>
+                  <label class="block">
+                    <span class="text-white text-sm font-medium mb-1 block">Cliente (Tenant)</span>
+                    <select id="invitarTenant" class="form-select w-full bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-11 focus:ring-primary focus:border-primary">
+                      <option value="">Sin asignar</option>
+                    </select>
+                  </label>
+                  <div class="flex gap-3 pt-4">
+                    <button type="button" id="cancelarInvitar" class="flex-1 h-11 rounded-lg border border-[#392828] text-white font-medium hover:bg-[#271c1c] transition-colors">Cancelar</button>
+                    <button type="submit" class="flex-1 h-11 rounded-lg bg-primary hover:bg-red-700 text-white font-bold transition-colors">Invitar Usuario</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+            
+            <!-- Vincular Usuario Modal -->
+            <div id="vincularUsuarioModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+              <div class="bg-[#1E1818] rounded-2xl border border-[#392828] w-full max-w-lg">
+                <div class="px-6 py-4 border-b border-[#392828] flex items-center justify-between">
+                  <h3 class="text-white text-lg font-bold">Vincular Usuario</h3>
+                  <button id="cerrarVincularModal" class="w-8 h-8 rounded-lg hover:bg-[#271c1c] flex items-center justify-center text-text-secondary hover:text-white transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                  </button>
+                </div>
+                <form id="vincularUsuarioForm" class="p-6 space-y-4">
+                  <input type="hidden" id="vincularReplitId" />
+                  <div>
+                    <label class="block text-text-secondary text-sm mb-2">Email</label>
+                    <input type="text" id="vincularEmail" readonly class="form-input bg-[#271c1c] border-[#392828] rounded-xl text-text-secondary h-12 w-full cursor-not-allowed" />
+                  </div>
+                  <div>
+                    <label class="block text-text-secondary text-sm mb-2">Nombre del usuario</label>
+                    <input type="text" id="vincularNombre" required placeholder="Nombre completo" class="form-input bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 w-full focus:ring-primary focus:border-primary" />
+                  </div>
+                  <div>
+                    <label class="block text-text-secondary text-sm mb-2">Rol</label>
+                    <select id="vincularRol" required class="form-select bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 w-full focus:ring-primary focus:border-primary">
+                      <option value="">Seleccionar rol...</option>
+                    </select>
+                  </div>
+                  <div id="vincularTenantGroup">
+                    <label class="block text-text-secondary text-sm mb-2">Tenant (Cliente)</label>
+                    <select id="vincularTenant" class="form-select bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 w-full focus:ring-primary focus:border-primary">
+                      <option value="">Sin tenant (para admin/auditor)</option>
+                    </select>
+                  </div>
+                  <div class="flex gap-3 pt-4">
+                    <button type="button" id="cancelarVincular" class="flex-1 h-12 border border-[#392828] text-white font-bold rounded-xl hover:bg-[#271c1c] transition-colors">Cancelar</button>
+                    <button type="submit" class="flex-1 h-12 bg-primary hover:bg-red-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2">
+                      <span class="material-symbols-outlined">link</span>
+                      Vincular
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <div id="editarUsuarioModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+              <div class="bg-[#1E1818] rounded-2xl border border-[#392828] w-full max-w-lg">
+                <div class="px-6 py-4 border-b border-[#392828] flex items-center justify-between">
+                  <h3 class="text-white text-lg font-bold">Editar Usuario</h3>
+                  <button id="cerrarEditarModal" class="w-8 h-8 rounded-lg hover:bg-[#271c1c] flex items-center justify-center text-text-secondary hover:text-white transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                  </button>
+                </div>
+                <form id="editarUsuarioForm" class="p-6 space-y-4">
+                  <input type="hidden" id="editarUsuarioId" />
+                  <div>
+                    <label class="block text-text-secondary text-sm mb-2">Email</label>
+                    <input type="text" id="editarEmail" readonly class="form-input bg-[#271c1c] border-[#392828] rounded-xl text-text-secondary h-12 w-full cursor-not-allowed" />
+                  </div>
+                  <div>
+                    <label class="block text-text-secondary text-sm mb-2">Nombre</label>
+                    <input type="text" id="editarNombre" required placeholder="Nombre completo" class="form-input bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 w-full focus:ring-primary focus:border-primary" />
+                  </div>
+                  <div>
+                    <label class="block text-text-secondary text-sm mb-2">Rol</label>
+                    <select id="editarRol" required class="form-select bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 w-full focus:ring-primary focus:border-primary">
+                      <option value="">Seleccionar rol...</option>
+                    </select>
+                  </div>
+                  <div id="editarTenantGroup">
+                    <label class="block text-text-secondary text-sm mb-2">Tenant (Cliente)</label>
+                    <select id="editarTenant" class="form-select bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 w-full focus:ring-primary focus:border-primary">
+                      <option value="">Sin tenant (para admin/auditor)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-text-secondary text-sm mb-2">Estado</label>
+                    <select id="editarActivo" class="form-select bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 w-full focus:ring-primary focus:border-primary">
+                      <option value="true">Activo</option>
+                      <option value="false">Inactivo</option>
+                    </select>
+                  </div>
+                  <div class="flex gap-3 pt-4">
+                    <button type="button" id="cancelarEditar" class="flex-1 h-12 border border-[#392828] text-white font-bold rounded-xl hover:bg-[#271c1c] transition-colors">Cancelar</button>
+                    <button type="submit" class="flex-1 h-12 bg-primary hover:bg-red-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2">
+                      <span class="material-symbols-outlined">save</span>
+                      Guardar
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+  
+  <!-- Gestor Max Config Modal -->
+  <div id="gestorConfigModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-[#1E1818] rounded-2xl border border-[#392828] w-full max-w-lg">
+      <div class="px-6 py-4 border-b border-[#392828] flex items-center justify-between">
+        <h3 class="text-white text-lg font-bold flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary">cloud_sync</span>
+          Configurar Gestor Max
+        </h3>
+        <button id="cerrarGestorConfigModal" class="w-8 h-8 rounded-lg hover:bg-[#271c1c] flex items-center justify-center text-text-secondary hover:text-white transition-colors">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <form id="gestorConfigForm" class="p-6 space-y-4">
+        <input type="hidden" id="gestorConfigClienteId" />
+        <div id="gestorConfigEmpresaNombre" class="text-text-secondary text-sm mb-2"></div>
+        <div id="gestorSecretWarning" class="hidden bg-yellow-900/30 border border-yellow-600/50 rounded-xl p-3 text-yellow-200 text-sm">
+          <span class="material-symbols-outlined text-yellow-400 align-middle mr-1">warning</span>
+          <strong>Secret requerido:</strong> Crear el secret <code class="bg-black/30 px-1 rounded">APP_ENCRYPTION_KEY_B64</code> con un valor base64 de 32 bytes y reiniciar el servidor. (En terminal: <code class="bg-black/30 px-1 rounded">openssl rand -base64 32</code>)
+        </div>
+        <div>
+          <label class="block text-text-secondary text-sm mb-2">Database ID</label>
+          <input type="number" id="gestorDatabaseId" required min="1" placeholder="ID de base de datos" class="form-input bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 w-full focus:ring-primary focus:border-primary" />
+        </div>
+        <div>
+          <label class="block text-text-secondary text-sm mb-2">API Key</label>
+          <input type="password" id="gestorApiKey" required minlength="20" placeholder="API Key de Gestor Max" class="form-input bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 w-full focus:ring-primary focus:border-primary" />
+          <p class="text-text-secondary text-xs mt-1">La key se almacena encriptada. Mínimo 20 caracteres.</p>
+        </div>
+        <div>
+          <label class="block text-text-secondary text-sm mb-2">URL Base</label>
+          <input type="url" id="gestorBaseUrl" placeholder="https://api.gestormax.com" class="form-input bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 w-full focus:ring-primary focus:border-primary" />
+          <p id="gestorBaseUrlError" class="hidden text-red-400 text-xs mt-1">URL Base debe ser solo dominio (ej: https://api.gestormax.com), sin paths como /v3/...</p>
+          <p class="text-text-secondary text-xs mt-1">Solo el dominio base, sin rutas. El sistema agrega /v3/GestorG4/... automáticamente.</p>
+        </div>
+        <div>
+          <label class="block text-text-secondary text-sm mb-2">Esquema de Autenticación</label>
+          <select id="gestorAuthScheme" class="form-select bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 w-full focus:ring-primary focus:border-primary">
+            <option value="bearer">Bearer Token</option>
+            <option value="x-api-key">X-API-Key Header</option>
+          </select>
+        </div>
+        <div class="flex gap-3 pt-4">
+          <button type="button" id="cancelarGestorConfig" class="flex-1 h-12 border border-[#392828] text-white font-bold rounded-xl hover:bg-[#271c1c] transition-colors">Cancelar</button>
+          <button type="submit" class="flex-1 h-12 bg-primary hover:bg-red-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined">save</span>
+            Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <!-- Editar Empresa Modal -->
+  <div id="editarEmpresaModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-[#1E1818] rounded-2xl border border-[#392828] w-full max-w-lg">
+      <div class="px-6 py-4 border-b border-[#392828] flex items-center justify-between">
+        <h3 class="text-white text-lg font-bold">Editar Empresa</h3>
+        <button id="cerrarEditarEmpresaModal" class="w-8 h-8 rounded-lg hover:bg-[#271c1c] flex items-center justify-center text-text-secondary hover:text-white transition-colors">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <form id="editarEmpresaForm" class="p-6 space-y-4">
+        <input type="hidden" id="editarEmpresaId" />
+        <div>
+          <label class="block text-text-secondary text-sm mb-2">Nombre</label>
+          <input type="text" id="editarEmpresaNombre" required placeholder="Nombre de la empresa" class="form-input bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 w-full focus:ring-primary focus:border-primary" />
+        </div>
+        <div>
+          <label class="block text-text-secondary text-sm mb-2">Descripción</label>
+          <input type="text" id="editarEmpresaDescripcion" placeholder="Descripción opcional" class="form-input bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 w-full focus:ring-primary focus:border-primary" />
+        </div>
+        <div>
+          <label class="block text-text-secondary text-sm mb-2">Estado</label>
+          <select id="editarEmpresaActivo" class="form-select bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 w-full focus:ring-primary focus:border-primary">
+            <option value="true">Activa</option>
+            <option value="false">Inactiva</option>
+          </select>
+        </div>
+        <div class="flex gap-3 pt-4">
+          <button type="button" id="cancelarEditarEmpresa" class="flex-1 h-12 border border-[#392828] text-white font-bold rounded-xl hover:bg-[#271c1c] transition-colors">Cancelar</button>
+          <button type="submit" class="flex-1 h-12 bg-primary hover:bg-red-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined">save</span>
+            Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <!-- Profile Modal -->
+  <div id="profileModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-[#1E1818] rounded-2xl border border-[#392828] w-full max-w-lg">
+      <div class="px-6 py-4 border-b border-[#392828] flex items-center justify-between">
+        <h3 class="text-white text-lg font-bold">Mi Perfil</h3>
+        <button id="cerrarProfileModal" class="w-8 h-8 rounded-lg hover:bg-[#271c1c] flex items-center justify-center text-text-secondary hover:text-white transition-colors">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <form id="profileForm" class="p-6 space-y-5">
+        <div class="flex flex-col items-center gap-4">
+          <div id="profileAvatarPreview" class="w-24 h-24 rounded-full bg-primary/20 border-4 border-primary/30 flex items-center justify-center overflow-hidden">
+            <span id="profileAvatarIcon" class="material-symbols-outlined text-5xl text-primary">person</span>
+            <img id="profileAvatarImgPreview" src="" alt="" class="hidden w-full h-full object-cover" />
+          </div>
+          <div class="flex gap-2">
+            <label class="cursor-pointer px-4 py-2 text-sm font-medium text-white bg-[#271c1c] border border-[#543b3b] rounded-lg hover:bg-[#392828] transition-colors flex items-center gap-2">
+              <span class="material-symbols-outlined text-base">photo_camera</span>
+              Cambiar Foto
+              <input type="file" id="profilePhotoInput" accept="image/*" class="hidden" />
+            </label>
+            <button type="button" id="removePhotoBtn" class="hidden px-4 py-2 text-sm font-medium text-red-400 bg-red-900/20 border border-red-900/50 rounded-lg hover:bg-red-900/30 transition-colors">
+              Quitar
+            </button>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-text-secondary text-sm mb-2">Nombre</label>
+            <input type="text" id="profileFirstName" required placeholder="Tu nombre" class="form-input bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 w-full focus:ring-primary focus:border-primary" />
+          </div>
+          <div>
+            <label class="block text-text-secondary text-sm mb-2">Apellido</label>
+            <input type="text" id="profileLastName" placeholder="Tu apellido" class="form-input bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 w-full focus:ring-primary focus:border-primary" />
+          </div>
+        </div>
+        
+        <div>
+          <label class="block text-text-secondary text-sm mb-2">Email</label>
+          <input type="email" id="profileEmail" readonly class="form-input bg-[#271c1c] border-[#392828] rounded-xl text-text-secondary h-12 w-full cursor-not-allowed" />
+        </div>
+        
+        <div>
+          <label class="block text-text-secondary text-sm mb-2">Teléfono</label>
+          <input type="tel" id="profilePhone" placeholder="+54 11 1234-5678" class="form-input bg-[#271c1c] border-[#543b3b] rounded-xl text-white h-12 w-full focus:ring-primary focus:border-primary" />
+        </div>
+        
+        <div class="flex gap-3 pt-4">
+          <button type="button" id="cancelarProfile" class="flex-1 h-12 border border-[#392828] text-white font-bold rounded-xl hover:bg-[#271c1c] transition-colors">Cancelar</button>
+          <button type="submit" class="flex-1 h-12 bg-primary hover:bg-red-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined">save</span>
+            Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Notification -->
+  <div id="notification" class="hidden fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg font-medium"></div>
+  
+  <script src="script.js?v=1736455000"></script>
+</body>
+</html>

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Gestor Ganadero - Registrar Evento</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec1313",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#181111", // Matching provided component bg
+                        "surface-dark": "#271c1c", // Slightly lighter than background
+                        "surface-darker": "#1f1515",
+                        "border-dark": "#392828",
+                        "border-input": "#543b3b",
+                        "text-secondary": "#b99d9d",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for dark theme */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #181111; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #392828; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #543b3b; 
+        }
+        
+        /* Remove number input spinners */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display transition-colors duration-200">
+<div class="relative flex h-screen w-full flex-col overflow-hidden">
+<!-- Header -->
+<header class="flex flex-none items-center justify-between whitespace-nowrap border-b border-solid border-border-dark bg-background-dark px-10 py-3 z-20">
+<div class="flex items-center gap-4 text-white">
+<div class="size-8 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[32px]">pets</span>
+</div>
+<h2 class="text-white text-lg font-bold leading-tight tracking-[-0.015em]">Gestor Ganadero</h2>
+</div>
+<div class="flex gap-2">
+<button class="flex size-10 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-border-dark hover:bg-surface-dark transition-colors text-white">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="flex size-10 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-border-dark hover:bg-surface-dark transition-colors text-white">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<button class="flex size-10 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-border-dark hover:bg-surface-dark transition-colors text-white">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto bg-background-light dark:bg-background-dark">
+<div class="layout-container flex h-full grow flex-col items-center py-8 px-4 md:px-10 lg:px-40">
+<div class="layout-content-container flex flex-col max-w-[960px] w-full flex-1 gap-6">
+<!-- Page Heading -->
+<div class="flex flex-wrap justify-between items-start gap-4 pb-2 border-b border-border-dark/50">
+<div class="flex flex-col gap-2">
+<h1 class="text-slate-900 dark:text-white tracking-tight text-[32px] font-bold leading-tight">Registrar Nuevo Evento</h1>
+<p class="text-slate-500 dark:text-text-secondary text-sm font-normal">
+                                Complete los detalles del movimiento para mantener el inventario actualizado.
+                            </p>
+</div>
+<div class="flex items-center gap-2">
+<span class="flex items-center gap-1 text-xs font-medium text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
+<span class="material-symbols-outlined text-[16px]">info</span>
+                                Auditoría activa
+                            </span>
+</div>
+</div>
+<!-- Form Container -->
+<div class="bg-white dark:bg-surface-dark rounded-xl p-6 md:p-8 shadow-sm border border-slate-200 dark:border-border-dark">
+<form class="flex flex-col gap-8">
+<!-- Section 1: Basic Info -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<label class="flex flex-col gap-2">
+<span class="text-slate-700 dark:text-white text-sm font-medium">Fecha del Evento <span class="text-primary">*</span></span>
+<div class="relative">
+<input class="w-full bg-slate-50 dark:bg-surface-darker border border-slate-300 dark:border-border-input rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder-slate-400 dark:placeholder-text-secondary h-12 appearance-none" required="" type="date"/>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-text-secondary pointer-events-none">calendar_today</span>
+</div>
+</label>
+<label class="flex flex-col gap-2">
+<span class="text-slate-700 dark:text-white text-sm font-medium">Tipo de Evento <span class="text-primary">*</span></span>
+<div class="relative">
+<select class="w-full appearance-none bg-slate-50 dark:bg-surface-darker border border-slate-300 dark:border-border-input rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all h-12 pr-10 cursor-pointer" required="">
+<option disabled="" selected="" value="">Seleccione el tipo de evento...</option>
+<optgroup label="Entradas">
+<option value="compra">Compra</option>
+<option value="nacimiento">Nacimiento</option>
+<option value="entrada_traslado">Entrada por Traslado</option>
+</optgroup>
+<optgroup label="Salidas">
+<option value="venta">Venta</option>
+<option value="muerte">Muerte / Pérdida</option>
+<option value="consumo">Consumo Interno</option>
+<option value="salida_traslado">Salida por Traslado</option>
+</optgroup>
+<optgroup label="Movimientos Internos">
+<option value="cambio_categoria">Cambio de Categoría</option>
+<option value="cambio_lote">Cambio de Lote</option>
+</optgroup>
+<optgroup label="Ajustes">
+<option value="diferencia_inventario">Diferencia de Inventario (Conteo)</option>
+</optgroup>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-text-secondary pointer-events-none">expand_more</span>
+</div>
+</label>
+</div>
+<!-- Section 2: Location & Classification -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<label class="flex flex-col gap-2">
+<span class="text-slate-700 dark:text-white text-sm font-medium">Campo <span class="text-primary">*</span></span>
+<div class="relative">
+<select class="w-full appearance-none bg-slate-50 dark:bg-surface-darker border border-slate-300 dark:border-border-input rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all h-12 pr-10">
+<option disabled="" selected="" value="">Seleccionar Campo</option>
+<option value="la_esperanza">La Esperanza</option>
+<option value="el_roble">El Roble</option>
+<option value="san_pedro">San Pedro</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-text-secondary pointer-events-none">location_on</span>
+</div>
+</label>
+<label class="flex flex-col gap-2">
+<span class="text-slate-700 dark:text-white text-sm font-medium">Lote <span class="text-primary">*</span></span>
+<div class="relative">
+<select class="w-full appearance-none bg-slate-50 dark:bg-surface-darker border border-slate-300 dark:border-border-input rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all h-12 pr-10">
+<option disabled="" selected="" value="">Seleccionar Lote</option>
+<option value="lote_a1">Lote A-1 (Cría)</option>
+<option value="lote_b2">Lote B-2 (Engorde)</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-text-secondary pointer-events-none">grid_view</span>
+</div>
+</label>
+<label class="flex flex-col gap-2">
+<span class="text-slate-700 dark:text-white text-sm font-medium">Categoría Animal <span class="text-primary">*</span></span>
+<div class="relative">
+<select class="w-full appearance-none bg-slate-50 dark:bg-surface-darker border border-slate-300 dark:border-border-input rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all h-12 pr-10">
+<option disabled="" selected="" value="">Seleccionar Categoría</option>
+<option value="ternero">Ternero</option>
+<option value="novillo">Novillo</option>
+<option value="vaquillona">Vaquillona</option>
+<option value="vaca">Vaca</option>
+<option value="toro">Toro</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-text-secondary pointer-events-none">pets</span>
+</div>
+</label>
+</div>
+<!-- Section 3: Quantitative Data -->
+<div class="p-5 rounded-xl bg-slate-50 dark:bg-surface-darker border border-slate-200 dark:border-border-dark flex flex-col gap-4">
+<h3 class="text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">analytics</span>
+                                    Detalle Cuantitativo
+                                </h3>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<label class="flex flex-col gap-2">
+<span class="text-slate-700 dark:text-text-secondary text-xs font-bold uppercase tracking-wide">Cabezas <span class="text-primary">*</span></span>
+<input class="w-full bg-white dark:bg-surface-dark border border-slate-300 dark:border-border-input rounded-xl px-4 py-3 text-slate-900 dark:text-white font-mono text-lg font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all h-14" placeholder="0" required="" type="number"/>
+</label>
+<label class="flex flex-col gap-2">
+<span class="text-slate-700 dark:text-text-secondary text-xs font-bold uppercase tracking-wide">Kg Promedio / Cabeza <span class="text-primary">*</span></span>
+<div class="relative">
+<input class="w-full bg-white dark:bg-surface-dark border border-slate-300 dark:border-border-input rounded-xl px-4 py-3 text-slate-900 dark:text-white font-mono text-lg font-medium focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all h-14 pr-12" placeholder="0.00" required="" step="0.01" type="number"/>
+<span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-text-secondary font-medium text-sm">Kg</span>
+</div>
+</label>
+<label class="flex flex-col gap-2 opacity-80 cursor-not-allowed">
+<span class="text-slate-700 dark:text-text-secondary text-xs font-bold uppercase tracking-wide flex items-center gap-1">
+                                            Kg Totales <span class="material-symbols-outlined text-[14px]">lock</span>
+</span>
+<div class="relative">
+<input class="w-full bg-slate-100 dark:bg-[#2c2222] border border-slate-300 dark:border-border-dark rounded-xl px-4 py-3 text-slate-500 dark:text-text-secondary font-mono text-lg font-medium focus:outline-none h-14 pr-12 pointer-events-none" placeholder="0.00" readonly="" type="number"/>
+<span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-text-secondary font-medium text-sm">Kg</span>
+</div>
+</label>
+</div>
+</div>
+<!-- Conditional Section (Example shown as visible for context) -->
+<div class="hidden flex-col gap-4 border-l-2 border-primary pl-4 md:pl-6 py-2 transition-all duration-300 animate-in fade-in slide-in-from-top-4">
+<h3 class="text-white text-sm font-bold uppercase tracking-wider">Información de Traslado</h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<label class="flex flex-col gap-2">
+<span class="text-white text-sm font-medium">Lote de Destino <span class="text-primary">*</span></span>
+<select class="w-full bg-surface-darker border border-border-input rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all h-12">
+<option disabled="" selected="" value="">Seleccionar destino</option>
+<option value="lote_b2">Lote B-2 (Engorde)</option>
+<option value="lote_c3">Lote C-3 (Cuarentena)</option>
+</select>
+</label>
+<label class="flex flex-col gap-2">
+<span class="text-white text-sm font-medium">Guía de Transporte</span>
+<input class="w-full bg-surface-darker border border-border-input rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all h-12" placeholder="N° de guía" type="text"/>
+</label>
+</div>
+</div>
+<!-- Notes Field -->
+<label class="flex flex-col gap-2">
+<span class="text-slate-700 dark:text-white text-sm font-medium">Observaciones</span>
+<textarea class="w-full bg-slate-50 dark:bg-surface-darker border border-slate-300 dark:border-border-input rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all min-h-[100px] resize-y placeholder-slate-400 dark:placeholder-text-secondary" placeholder="Detalles adicionales sobre el evento..."></textarea>
+</label>
+<!-- Actions -->
+<div class="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4 border-t border-slate-200 dark:border-border-dark">
+<button class="w-full sm:w-auto h-12 px-8 rounded-full border border-slate-300 dark:border-border-input text-slate-700 dark:text-white font-bold hover:bg-slate-100 dark:hover:bg-surface-darker transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-slate-500" type="button">
+                                    Cancelar
+                                </button>
+<button class="w-full sm:w-auto h-12 px-8 rounded-full bg-primary hover:bg-red-600 text-white font-bold shadow-lg shadow-primary/20 transition-all hover:shadow-primary/40 focus:ring-2 focus:ring-offset-2 focus:ring-primary flex items-center justify-center gap-2 group" type="submit">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform">save</span>
+                                    Guardar Evento
+                                </button>
+</div>
+</form>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

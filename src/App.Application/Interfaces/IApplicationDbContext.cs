@@ -18,6 +18,7 @@ public interface IApplicationDbContext
     DbSet<Account> Accounts { get; }
     DbSet<PlanCuenta> PlanesCuenta { get; }
     DbSet<GestorMaxConfig> GestorMaxConfigs { get; }
+    DbSet<ErpConcept> ErpConcepts { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

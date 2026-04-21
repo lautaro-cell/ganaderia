@@ -1,0 +1,157 @@
+/*
+  Tema y estilos generales para una apariencia moderna 2025.
+  Colores principales: rojo brillante y blanco.
+*/
+
+/* Variables para colores */
+:root {
+  --primary-color: #c62828; /* rojo oscuro para elementos destacados */
+  --accent-color: #ffebee;  /* fondo rosado claro */
+  --text-color: #333333;
+  --card-background: #ffffff;
+  --button-gradient-start: #ef5350;
+  --button-gradient-end: #c62828;
+}
+
+body {
+  font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  margin: 0;
+  padding: 1rem;
+  background: var(--accent-color);
+  color: var(--text-color);
+}
+
+h1 {
+  margin-bottom: 0.75rem;
+  font-size: 2rem;
+  color: var(--primary-color);
+}
+
+h2 {
+  margin-top: 0;
+  color: var(--primary-color);
+  font-size: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+/* Tarjeta contenedora de formularios y secciones */
+form, .card {
+  background: var(--card-background);
+  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1rem;
+  max-width: 100%;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+form:hover, .card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.field-group {
+  margin-bottom: 0.75rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.field-group label {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: var(--primary-color);
+}
+
+.field-group input,
+.field-group select {
+  padding: 0.6rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.field-group input:focus,
+.field-group select:focus {
+  border-color: var(--primary-color);
+}
+
+button {
+  background: linear-gradient(90deg, var(--button-gradient-start), var(--button-gradient-end));
+  color: #fff;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: background 0.3s ease, transform 0.2s ease;
+  margin-right: 0.5rem;
+  min-width: 140px;
+}
+
+button:hover {
+  background: linear-gradient(90deg, var(--button-gradient-end), var(--button-gradient-start));
+  transform: translateY(-1px);
+}
+
+.actions {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Secciones ocultas y animaciones */
+.hidden {
+  display: none;
+}
+
+.visible {
+  display: block;
+  animation: fadeInUp 0.4s ease forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  background: var(--card-background);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+th,
+td {
+  padding: 0.6rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+  font-size: 0.9rem;
+}
+
+tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+/* Gráfico de balance */
+#balanceChart {
+  width: 100%;
+  max-width: 100%;
+  height: 300px;
+  margin-top: 0.5rem;
+}
+

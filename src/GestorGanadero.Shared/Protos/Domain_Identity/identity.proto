@@ -12,6 +12,21 @@ service IdentityService {
   rpc InviteUser (InviteUserRequest) returns (common.v1.ActionResponse);
   rpc UpdateUser (UserMessage) returns (common.v1.ActionResponse);
   rpc DeleteUser (common.v1.DeleteEntityRequest) returns (common.v1.ActionResponse);
+
+  // Tenant Management
+  rpc GetAllTenants (google.protobuf.Empty) returns (TenantList);
+  rpc UpdateTenant (TenantMessage) returns (common.v1.ActionResponse);
+}
+
+message TenantMessage {
+  string id = 1;
+  string name = 2;
+  string gestor_max_database_id = 3;
+  string gestor_max_api_key = 4;
+}
+
+message TenantList {
+  repeated TenantMessage tenants = 1;
 }
 
 message UserProfile {
@@ -22,13 +37,6 @@ message UserProfile {
   string active_tenant_id = 5;
   string profile_image_url = 6;
 }
-
-message TenantMessage {
-  string id = 1;
-  string name = 2;
-}
-
-message TenantList { repeated TenantMessage tenants = 1; }
 
 message InviteUserRequest {
   string email = 1;

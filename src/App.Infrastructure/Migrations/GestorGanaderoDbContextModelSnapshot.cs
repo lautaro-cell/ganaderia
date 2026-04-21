@@ -206,7 +206,7 @@ namespace App.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
-                    b.Property<DateTimeOffset?>("LastSyncedAt")
+                    b.Property<Instant?>("LastSyncedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Name")
@@ -273,6 +273,59 @@ namespace App.Infrastructure.Migrations
                     b.HasIndex("TenantId");
 
                     b.ToTable("CategoryMappings");
+                });
+
+            modelBuilder.Entity("App.Domain.Entities.ErpConcept", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Instant>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ExternalErpId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("GrupoConcepto")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("LastSyncDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<double>("Stock")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("SubGrupoConcepto")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UnitA")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UnitB")
+                        .HasColumnType("text");
+
+                    b.Property<Instant?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("ErpConcepts");
                 });
 
             modelBuilder.Entity("App.Domain.Entities.EventTemplate", b =>
@@ -603,8 +656,10 @@ namespace App.Infrastructure.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
 
-                    b.Property<string>("ErpTenantId")
-                        .IsRequired()
+                    b.Property<string>("GestorMaxApiKeyEncrypted")
+                        .HasColumnType("text");
+
+                    b.Property<string>("GestorMaxDatabaseId")
                         .HasColumnType("text");
 
                     b.Property<string>("Name")
@@ -758,6 +813,17 @@ namespace App.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("CategoriaCliente");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("App.Domain.Entities.ErpConcept", b =>
+                {
+                    b.HasOne("App.Domain.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Tenant");
                 });

@@ -32,6 +32,7 @@ public class GestorGanaderoDbContext : DbContext, IApplicationDbContext
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<PlanCuenta> PlanesCuenta => Set<PlanCuenta>();
     public DbSet<GestorMaxConfig> GestorMaxConfigs => Set<GestorMaxConfig>();
+    public DbSet<ErpConcept> ErpConcepts => Set<ErpConcept>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -41,6 +42,15 @@ public class GestorGanaderoDbContext : DbContext, IApplicationDbContext
         modelBuilder.Entity<ExternalCatalog>()
             .Property(e => e.Data)
             .HasColumnType("jsonb");
+
+        // --- ErpConcept Table Mapping ---
+        modelBuilder.Entity<ErpConcept>(b =>
+        {
+            b.HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
+            b.HasOne(e => e.Tenant)
+                .WithMany()
+                .HasForeignKey(e => e.TenantId);
+        });
 
         // --- Decimal precision: HasPrecision(18, 2) for all numeric fields ---
         modelBuilder.Entity<AccountingDraft>(b =>

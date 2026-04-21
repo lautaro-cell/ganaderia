@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Administración - Usuarios | Gestor Ganadero</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec1313",
+                        "primary-dark": "#b90e0e",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221010",
+                        "surface-dark": "#2c1515",
+                        "surface-light": "#ffffff",
+                        "burgundy": "#482323",
+                        "burgundy-light": "#c99292",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24
+        }
+        /* Custom scrollbar for dark theme consistency */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #221010; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #482323; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ec1313; 
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display antialiased min-h-screen flex flex-col overflow-x-hidden">
+<!-- Top Navigation Bar -->
+<header class="sticky top-0 z-50 bg-surface-light dark:bg-surface-dark border-b border-gray-200 dark:border-burgundy px-6 py-3 shadow-md">
+<div class="max-w-[1440px] mx-auto flex items-center justify-between whitespace-nowrap">
+<div class="flex items-center gap-4 text-slate-900 dark:text-white">
+<div class="size-8 text-primary">
+<svg class="w-full h-full" fill="currentColor" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M44 11.2727C44 14.0109 39.8386 16.3957 33.69 17.6364C39.8386 18.877 44 21.2618 44 24C44 26.7382 39.8386 29.123 33.69 30.3636C39.8386 31.6043 44 33.9891 44 36.7273C44 40.7439 35.0457 44 24 44C12.9543 44 4 40.7439 4 36.7273C4 33.9891 8.16144 31.6043 14.31 30.3636C8.16144 29.123 4 26.7382 4 24C4 21.2618 8.16144 18.877 14.31 17.6364C8.16144 16.3957 4 14.0109 4 11.2727C4 7.25611 12.9543 4 24 4C35.0457 4 44 7.25611 44 11.2727Z"></path>
+</svg>
+</div>
+<h2 class="text-lg font-bold leading-tight tracking-[-0.015em]">Gestor Ganadero</h2>
+</div>
+<nav class="hidden md:flex flex-1 justify-center gap-8 px-8">
+<a class="text-slate-500 dark:text-burgundy-light hover:text-primary dark:hover:text-white text-sm font-medium transition-colors" href="#">Dashboard</a>
+<a class="text-slate-500 dark:text-burgundy-light hover:text-primary dark:hover:text-white text-sm font-medium transition-colors" href="#">Eventos</a>
+<a class="text-slate-500 dark:text-burgundy-light hover:text-primary dark:hover:text-white text-sm font-medium transition-colors" href="#">Contabilidad</a>
+<a class="text-primary font-bold border-b-2 border-primary pb-0.5 text-sm leading-normal" href="#">Administración</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="relative text-slate-500 dark:text-burgundy-light hover:text-primary transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-0 right-0 size-2 bg-primary rounded-full"></span>
+</button>
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-10 ring-2 ring-primary/20 cursor-pointer" data-alt="Portrait of a user" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDAr6LxaJaNnt9JvEenj5vOaA1MiQlvsSUZYTaMCO9V-x_oR98KpI6F9eKAO1bYIf3DQg0cXb3_yTHmPM-yniXKW1Ta5T2jQRMzvskofhBWEyg_noo3SjQN0VyrhRKC_iOVdX2t3jksACBq7HhvY7mjvN_xpJ6NVh4XIZCSP_WdhsqNoqdjKvrCfYJabDMMqMHltkhETBjNW9WHjFwqQIHx4Kl6otbtQEQguiFVXdBBYtz4K3MB678ZcDjtMsjwb_Rw8-O0T4zEhw");'></div>
+</div>
+</div>
+</header>
+<main class="flex-1 w-full max-w-[1440px] mx-auto p-6 md:p-8 lg:px-12">
+<!-- Breadcrumbs -->
+<div class="flex flex-wrap items-center gap-2 mb-6 text-sm">
+<a class="text-slate-500 dark:text-burgundy-light hover:text-primary transition-colors" href="#">Inicio</a>
+<span class="material-symbols-outlined text-slate-400 dark:text-burgundy-light text-[16px]">chevron_right</span>
+<a class="text-slate-500 dark:text-burgundy-light hover:text-primary transition-colors" href="#">Administración</a>
+<span class="material-symbols-outlined text-slate-400 dark:text-burgundy-light text-[16px]">chevron_right</span>
+<span class="text-slate-900 dark:text-white font-medium">Usuarios</span>
+</div>
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8 border-b border-gray-200 dark:border-burgundy pb-6">
+<div class="max-w-2xl">
+<h1 class="text-3xl md:text-4xl font-black tracking-tight text-slate-900 dark:text-white mb-2">Gestión de Usuarios</h1>
+<p class="text-slate-600 dark:text-burgundy-light text-base leading-relaxed">
+                    Administre los roles de acceso y los permisos de los usuarios del sistema. Asegure que los usuarios de tipo <span class="font-bold text-primary">CLIENTE</span> estén correctamente vinculados a un Tenant ID único para fines de auditoría.
+                </p>
+</div>
+<button class="flex items-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium py-3 px-5 rounded-lg shadow-lg shadow-primary/20 transition-all transform hover:scale-[1.02]">
+<span class="material-symbols-outlined">person_add</span>
+                Nuevo Usuario
+            </button>
+</div>
+<!-- Filters and Search -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6">
+<!-- Search -->
+<div class="lg:col-span-5">
+<label class="relative block w-full">
+<span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 dark:text-burgundy-light">
+<span class="material-symbols-outlined">search</span>
+</span>
+<input class="block w-full rounded-lg border-gray-200 dark:border-burgundy bg-white dark:bg-surface-dark text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-burgundy-light py-3 pl-10 pr-4 focus:ring-2 focus:ring-primary focus:border-transparent shadow-sm" placeholder="Buscar por nombre, email o Tenant ID..." type="text"/>
+</label>
+</div>
+<!-- Role Filter Chips -->
+<div class="lg:col-span-7 flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
+<button class="flex shrink-0 items-center gap-2 rounded-lg bg-primary text-white px-4 py-2 text-sm font-medium shadow-md shadow-primary/20 transition-colors">
+                    Todos
+                </button>
+<button class="flex shrink-0 items-center gap-2 rounded-lg bg-white dark:bg-surface-dark border border-gray-200 dark:border-burgundy text-slate-600 dark:text-burgundy-light hover:bg-gray-50 dark:hover:bg-burgundy/50 px-4 py-2 text-sm font-medium transition-colors">
+<span class="size-2 rounded-full bg-purple-500"></span>
+                    Administrador
+                </button>
+<button class="flex shrink-0 items-center gap-2 rounded-lg bg-white dark:bg-surface-dark border border-gray-200 dark:border-burgundy text-slate-600 dark:text-burgundy-light hover:bg-gray-50 dark:hover:bg-burgundy/50 px-4 py-2 text-sm font-medium transition-colors">
+<span class="size-2 rounded-full bg-blue-500"></span>
+                    Staff
+                </button>
+<button class="flex shrink-0 items-center gap-2 rounded-lg bg-white dark:bg-surface-dark border border-gray-200 dark:border-burgundy text-slate-600 dark:text-burgundy-light hover:bg-gray-50 dark:hover:bg-burgundy/50 px-4 py-2 text-sm font-medium transition-colors">
+<span class="size-2 rounded-full bg-orange-500"></span>
+                    Cliente
+                </button>
+</div>
+</div>
+<!-- Users Table -->
+<div class="bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-gray-200 dark:border-burgundy overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full text-left text-sm whitespace-nowrap">
+<thead class="bg-gray-50 dark:bg-[#361a1a] text-slate-500 dark:text-burgundy-light uppercase tracking-wider font-semibold border-b border-gray-200 dark:border-burgundy">
+<tr>
+<th class="px-6 py-4" scope="col">Usuario</th>
+<th class="px-6 py-4" scope="col">Rol</th>
+<th class="px-6 py-4" scope="col">Tenant ID</th>
+<th class="px-6 py-4" scope="col">Estado</th>
+<th class="px-6 py-4" scope="col">Último Acceso</th>
+<th class="px-6 py-4 text-right" scope="col">Acciones</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-gray-200 dark:divide-burgundy">
+<!-- Row 1: Admin -->
+<tr class="hover:bg-gray-50 dark:hover:bg-burgundy/20 transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-cover bg-center" data-alt="Profile picture of Roberto Gomez" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDMbWVnUqgF1u3KPJm99Lhsaze-G6L6lgxAYgBh1wOntyBNzzhAGy3M6mUc-VWbdIkMP3U2-uDnQutG1-nLQlEt9gCqM3sltxogTVC7oc6T918LLvZcOoyD-Y8kDmI-soCfVg5PK6XBFgLOJGSsbkne0XwP2F7nJPDxUl0ekG60qDKkcnrwnzsujE9qwVRfBxpX_YMl7GXXDvNrqsrSgMrgAZiT1SqSHzlx_QIHHhR5yEmfLgL8KAHWZnJ9VYiX5AkdEF1zd3ufuA");'></div>
+<div>
+<div class="font-bold text-slate-900 dark:text-white">Roberto Gómez</div>
+<div class="text-xs text-slate-500 dark:text-burgundy-light">roberto.gomez@ganadero.app</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+<span class="size-1.5 rounded-full bg-purple-500"></span>
+                                    Administrador
+                                </span>
+</td>
+<td class="px-6 py-4">
+<span class="text-slate-400 dark:text-gray-500 italic">-- Global --</span>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">
+                                    Activo
+                                </span>
+</td>
+<td class="px-6 py-4 text-slate-500 dark:text-burgundy-light">
+                                Hace 2 horas
+                            </td>
+<td class="px-6 py-4 text-right">
+<div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-burgundy text-slate-500 dark:text-burgundy-light hover:text-primary dark:hover:text-primary transition-colors" title="Editar">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-burgundy text-slate-500 dark:text-burgundy-light hover:text-red-500 transition-colors" title="Eliminar">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2: Staff -->
+<tr class="hover:bg-gray-50 dark:hover:bg-burgundy/20 transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-cover bg-center" data-alt="Profile picture of Maria Rodriguez" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBnx0Lwps129LIo6-pajISReMhsOJ7n-xudkGJuZFuuMNsX-R4PcDb-NnvZ89avUnx8a0B7Aae3y9TyEZ6eYPLQIHJZ9YmA8QvBmA0kIKDXppe3F69L8Y7PNi9Q_otad_ri7LWo2QD6ax9rM64KOsDi-SI3v70sWZf_HPbcT2phy25_WkMyuguXYnbUwLeZsNR3WjW3HB1ULgZUFjOJ3aVvDHO4KzkP0_yshuDiBPqMMLZXAIbRKmAHVJTc3YkFe3jO9PQMOuZ8Ig");'></div>
+<div>
+<div class="font-bold text-slate-900 dark:text-white">María Rodríguez</div>
+<div class="text-xs text-slate-500 dark:text-burgundy-light">maria.rod@ganadero.app</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+<span class="size-1.5 rounded-full bg-blue-500"></span>
+                                    Staff
+                                </span>
+</td>
+<td class="px-6 py-4">
+<span class="text-slate-400 dark:text-gray-500 italic">-- Interno --</span>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">
+                                    Activo
+                                </span>
+</td>
+<td class="px-6 py-4 text-slate-500 dark:text-burgundy-light">
+                                Ayer
+                            </td>
+<td class="px-6 py-4 text-right">
+<div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-burgundy text-slate-500 dark:text-burgundy-light hover:text-primary dark:hover:text-primary transition-colors" title="Editar">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-burgundy text-slate-500 dark:text-burgundy-light hover:text-red-500 transition-colors" title="Eliminar">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3: Cliente (Highlighted Tenant ID) -->
+<tr class="hover:bg-gray-50 dark:hover:bg-burgundy/20 transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-cover bg-center" data-alt="Profile picture of Carlos Mendez" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCa37EfBrPFAUgfM6cEVrjq_tv1iVWQW76bo60lAtwUh80_4SLBsMiDT5J1vkQbmN-1lClcWE7hRvf_atmyT6DGNh5AoD1U349K35rcmxED2FjpokBiEIqkZwk3FUFTsNaog_U_A8OZxTJA_GnZHzpoUGHkxWonGgXG9mYBHZcIQ5Ggr9JZFEMz_xayMUVgsLWs5F3HfVP7PVxZAoMUPTPQ8-0eqImGueDBXuOvGNdPLY41ppsMYL6hfSeF3mxb3BuN5IKqIEBipw");'></div>
+<div>
+<div class="font-bold text-slate-900 dark:text-white">Carlos Méndez</div>
+<div class="text-xs text-slate-500 dark:text-burgundy-light">ganadera.mendez@gmail.com</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800">
+<span class="size-1.5 rounded-full bg-orange-500"></span>
+                                    Cliente
+                                </span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="font-mono text-xs bg-gray-100 dark:bg-[#221111] border border-gray-300 dark:border-[#482323] px-2 py-1 rounded text-slate-700 dark:text-gray-300">
+                                        #TEN-0042
+                                    </span>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">
+                                    Activo
+                                </span>
+</td>
+<td class="px-6 py-4 text-slate-500 dark:text-burgundy-light">
+                                Hace 5 mins
+                            </td>
+<td class="px-6 py-4 text-right">
+<div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-burgundy text-slate-500 dark:text-burgundy-light hover:text-primary dark:hover:text-primary transition-colors" title="Editar">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-burgundy text-slate-500 dark:text-burgundy-light hover:text-red-500 transition-colors" title="Eliminar">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4: Cliente (Another) -->
+<tr class="hover:bg-gray-50 dark:hover:bg-burgundy/20 transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-cover bg-center" data-alt="Profile picture of Hacienda La Esperanza" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCy99gZqh2KpmLlnaSYB4OfP4dEUpLVx67b-Y6_wYY3VyQNVS236JN8OS85_DuNml-gEN4I-lSxltqoq9CSqZyEJUqXxoxHq-OO9sYUMxjp4byZ9NUYIqWj9WdBH8ZddUDLTmyHU_-3NxOBGLF7PxSZF0KP-rPISiRZuU8_sX6DZlXI2V6Rn5cclofqWnJV3Je5labRea37CbKcYBr-dIQ8AvGTDDnFguzNA894MGXizgx-eVAL0eoBIjKl_kmQ20Lat6rSMTJGZQ");'></div>
+<div>
+<div class="font-bold text-slate-900 dark:text-white">Hacienda La Esperanza</div>
+<div class="text-xs text-slate-500 dark:text-burgundy-light">admin@esperanza.com</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800">
+<span class="size-1.5 rounded-full bg-orange-500"></span>
+                                    Cliente
+                                </span>
+</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="font-mono text-xs bg-gray-100 dark:bg-[#221111] border border-gray-300 dark:border-[#482323] px-2 py-1 rounded text-slate-700 dark:text-gray-300">
+                                        #TEN-0089
+                                    </span>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800">
+                                    Inactivo
+                                </span>
+</td>
+<td class="px-6 py-4 text-slate-500 dark:text-burgundy-light">
+                                20 Oct 2023
+                            </td>
+<td class="px-6 py-4 text-right">
+<div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-burgundy text-slate-500 dark:text-burgundy-light hover:text-primary dark:hover:text-primary transition-colors" title="Editar">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-burgundy text-slate-500 dark:text-burgundy-light hover:text-red-500 transition-colors" title="Eliminar">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="px-6 py-4 flex items-center justify-between border-t border-gray-200 dark:border-burgundy bg-gray-50 dark:bg-surface-dark/50">
+<div class="text-sm text-slate-500 dark:text-burgundy-light">
+                    Mostrando <span class="font-medium">1</span> a <span class="font-medium">4</span> de <span class="font-medium">28</span> usuarios
+                </div>
+<div class="flex gap-2">
+<button class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-burgundy text-slate-500 dark:text-burgundy-light disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined text-[20px]">chevron_left</span>
+</button>
+<button class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-burgundy text-slate-500 dark:text-burgundy-light">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<!-- Side Drawer / Modal (Concept for "Nuevo Usuario") -->
+<!-- Ideally this would be hidden/toggled via JS, visualized here as a static sidebar for demo purposes -->
+<!-- For this single page request, I'll place it as if it's "opening" or show it within a layout context on the right if space permits, but typically a modal covers. Let's make it a floating card on the bottom right to hint at the interaction. -->
+<div class="fixed inset-y-0 right-0 w-full md:w-[480px] bg-surface-light dark:bg-surface-dark shadow-2xl transform transition-transform duration-300 translate-x-full border-l border-gray-200 dark:border-burgundy z-[60]" id="userDrawer">
+<!-- Drawer content would go here. Hidden by default for the snapshot unless requested specifically open. -->
+</div>
+<!-- Floating Action Button for Mobile -->
+<button class="fixed md:hidden bottom-6 right-6 size-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center hover:bg-primary-dark transition-colors z-40">
+<span class="material-symbols-outlined">add</span>
+</button>
+</body></html>

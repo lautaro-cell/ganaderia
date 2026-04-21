@@ -1,11 +1,11 @@
 -- =====================================================
 -- TENANTS (3 Distintos modelos de negocio)
 -- =====================================================
-INSERT INTO "Tenants" ("Id","Name","ErpTenantId","CreatedAt")
+INSERT INTO "Tenants" ("Id","Name","GestorMaxDatabaseId","CreatedAt")
 VALUES 
-('11111111-1111-1111-1111-111111111111','Estancia El Ombú (Cría)','OMBU-001',now()),
-('22222222-2222-2222-2222-222222222222','Cabaña San Marcos (Cabaña)','MARCOS-002',now()),
-('33333333-3333-3333-3333-333333333333','Feedlot Las Lilas (Engorde)','LILAS-003',now());
+('11111111-1111-1111-1111-111111111111','Estancia El Ombú (Cría)','101',now()),
+('22222222-2222-2222-2222-222222222222','Cabaña San Marcos (Cabaña)','102',now()),
+('33333333-3333-3333-3333-333333333333','Feedlot Las Lilas (Engorde)','103',now());
 
 -- =====================================================
 -- USERS

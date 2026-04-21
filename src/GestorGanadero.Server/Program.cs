@@ -58,6 +58,8 @@ builder.Services.AddScoped<ICatalogService, CatalogService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<ISyncCatalogService, SyncCatalogService>();
+builder.Services.AddScoped<IEncryptionService, EncryptionService>();
+builder.Services.AddScoped<IErpSyncService, ErpSyncService>();
 builder.Services.AddHttpClient<IERPProvider, GestorMaxProvider>();
 builder.Services.AddTransient<App.Domain.Services.AccountingEntryGenerator>();
 

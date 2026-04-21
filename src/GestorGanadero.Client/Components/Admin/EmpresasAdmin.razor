@@ -1,63 +1,216 @@
 @using GestorGanadero.Services.Common.Contracts
+@using GestorGanadero.Services.Identity.Contracts
 @using GestorGanadero.Client.Services
+@using Google.Protobuf.WellKnownTypes
 @inject AppStateContainer State
+@inject IdentityService.IdentityServiceClient IdentityClient
 @inject IJSRuntime JS
 
 <div class="flex flex-col gap-6">
+    <!-- Breadcrumbs -->
+    <div class="flex items-center gap-2 text-[11px] font-medium text-text-secondary uppercase tracking-widest opacity-60">
+        <a href="/" class="hover:text-white transition-colors no-underline">Inicio</a>
+        <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+        <span class="cursor-default">Administración</span>
+        <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+        <span class="text-primary font-bold">Empresas</span>
+    </div>
+
     <!-- Header -->
     <div class="flex items-center gap-3">
         <span class="material-symbols-outlined text-primary text-2xl">business</span>
         <h2 class="text-white text-xl font-bold">Gestión de Empresas</h2>
     </div>
-    <p class="text-text-secondary text-sm -mt-4">Las empresas son establecimientos que agrupan usuarios, campos y configuraciones de integración.</p>
+    <p class="text-text-secondary text-sm -mt-4">Administre los establecimientos y sus credenciales de integración con GestorMax.</p>
 
     <!-- Table -->
     <div class="bg-background-main border border-border-dark rounded-2xl overflow-hidden shadow-xl shadow-black/20">
         <table class="w-full text-left text-sm">
-            <thead class="bg-surface-darker text-text-secondary uppercase text-[10px] tracking-widest">
+            <thead class="bg-surface-darker text-text-secondary uppercase text-[10px] tracking-widest border-b border-border-dark">
                 <tr>
                     <th class="px-6 py-4">Nombre</th>
-                    <th class="px-6 py-4">Descripción</th>
-                    <th class="px-6 py-4">Usuarios</th>
-                    <th class="px-6 py-4">Campos</th>
-                    <th class="px-6 py-4">Gestor DB</th>
-                    <th class="px-6 py-4">Gestor Key</th>
-                    <th class="px-6 py-4">Último Test</th>
+                    <th class="px-6 py-4 text-center">Gestor DB ID</th>
                     <th class="px-6 py-4 text-right">Acciones</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-border-dark">
-                <!-- Mock Data to match design -->
-                <tr class="hover:bg-surface-dark transition-colors">
-                    <td class="px-6 py-4 text-white font-bold">Dolores Herrera Vegas SRL</td>
-                    <td class="px-6 py-4 text-text-body">cliente prueba</td>
-                    <td class="px-6 py-4 text-text-body">3</td>
-                    <td class="px-6 py-4 text-text-body">2</td>
-                    <td class="px-6 py-4 text-text-body font-mono">846</td>
-                    <td class="px-6 py-4 text-text-body font-mono">****0uA=</td>
-                    <td class="px-6 py-4 text-emerald-500 text-xs font-bold">20/3/2026</td>
-                    <td class="px-6 py-4 text-right flex items-center justify-end gap-2">
-                        <button class="p-1.5 text-text-secondary hover:text-white rounded-lg transition-colors"><span class="material-symbols-outlined text-[18px]">settings</span></button>
-                        <button class="p-1.5 text-text-secondary hover:text-white rounded-lg transition-colors"><span class="material-symbols-outlined text-[18px]">wifi</span></button>
-                        <button class="p-1.5 text-text-secondary hover:text-white rounded-lg transition-colors"><span class="material-symbols-outlined text-[18px]">refresh</span></button>
-                        <button class="bg-surface-darker border border-border-dark hover:border-red-900/50 text-red-500 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ml-2">Eliminar</button>
-                    </td>
-                </tr>
+            <tbody class="divide-y divide-border-dark/30">
+                @if (_tenants == null)
+                {
+                    <tr>
+                        <td colspan="3" class="px-6 py-12 text-center">
+                            <div class="flex flex-col items-center gap-3">
+                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                <p class="text-text-secondary text-sm font-medium">Cargando empresas...</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                else if (!_tenants.Any())
+                {
+                    <tr>
+                        <td colspan="3" class="px-6 py-12 text-center text-text-disabled">No hay empresas registradas.</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var t in _tenants)
+                    {
+                        <tr class="hover:bg-white/5 transition-colors group">
+                            <td class="px-6 py-4">
+                                <span class="text-white font-bold text-sm">@t.Name</span>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="font-mono text-xs text-text-secondary bg-surface-darker px-3 py-1 rounded border border-border-dark/50">
+                                    @(string.IsNullOrEmpty(t.GestorMaxDatabaseId) ? "No configurado" : t.GestorMaxDatabaseId)
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <div class="flex items-center justify-end gap-2">
+                                    <button class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-surface-darker border border-border-dark text-text-secondary hover:text-white hover:border-text-secondary transition-all text-xs font-bold" 
+                                            @onclick="() => Edit(t)">
+                                        <span class="material-symbols-outlined text-sm">settings</span>
+                                        Configurar
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
             </tbody>
         </table>
     </div>
 
-    <!-- Create Form -->
-    <div class="bg-background-main rounded-2xl border border-border-dark p-6">
-        <h3 class="text-white font-bold flex items-center gap-2 mb-6">
-            <span class="material-symbols-outlined text-primary">add_circle</span> Crear Empresa
-        </h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input type="text" class="w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 py-3 text-white focus:ring-primary outline-none" placeholder="Nombre de la empresa" />
-            <input type="text" class="w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 py-3 text-white focus:ring-primary outline-none" placeholder="Descripción opcional" />
-            <button class="md:col-span-2 w-full bg-primary hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
-                <span class="material-symbols-outlined text-[20px]">save</span> Crear Empresa
-            </button>
+    @if (_showModal)
+    {
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" @onclick="() => _showModal = false">
+            <div class="w-full max-w-md bg-surface-dark border border-border-dark rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200" @onclick:stopPropagation>
+                <div class="flex items-center justify-between px-6 py-4 border-b border-border-dark bg-surface-darker/50">
+                    <h3 class="text-lg font-bold text-white">Configurar Empresa</h3>
+                    <button class="text-text-secondary hover:text-white transition-colors" @onclick="() => _showModal = false">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                
+                <div class="p-6 flex flex-col gap-5">
+                    <div class="flex flex-col gap-2">
+                        <label class="text-xs font-bold text-text-secondary uppercase tracking-wider">Nombre</label>
+                        <input type="text" @bind="_model.Name" class="w-full bg-surface-darker border border-border-dark rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-primary" />
+                    </div>
+                    
+                    <div class="flex flex-col gap-2">
+                        <label class="text-xs font-bold text-text-secondary uppercase tracking-wider">GestorMax Database ID</label>
+                        <input type="text" @bind="_model.GestorMaxDatabaseId" class="w-full bg-surface-darker border border-border-dark rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-primary font-mono" placeholder="Ej: 101" />
+                    </div>
+                    
+                    <div class="flex flex-col gap-2">
+                        <label class="text-xs font-bold text-text-secondary uppercase tracking-wider">GestorMax API Key</label>
+                        <div class="relative">
+                            <input type="@(_showKey ? "text" : "password")" @bind="_model.GestorMaxApiKey" class="w-full bg-surface-darker border border-border-dark rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-primary font-mono pr-10" placeholder="••••••••••••••••" />
+                            <button class="absolute right-3 top-1/2 -translate-y-1/2 text-text-disabled hover:text-white transition-colors" @onclick="() => _showKey = !_showKey">
+                                <span class="material-symbols-outlined text-sm">@(_showKey ? "visibility_off" : "visibility")</span>
+                            </button>
+                        </div>
+                        <p class="text-[10px] text-text-disabled italic mt-1">La clave se encriptará de forma segura antes de guardarse.</p>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(_msg))
+                {
+                    <div class="mx-6 mb-4 p-3 rounded-lg @(_ok ? "bg-green-500/10 text-green-400 border border-green-500/20" : "bg-red-500/10 text-red-400 border border-red-500/20") text-xs">
+                        @_msg
+                    </div>
+                }
+
+                <div class="px-6 py-4 bg-surface-darker/50 border-t border-border-dark flex justify-end gap-3">
+                    <button class="px-5 py-2 rounded-lg text-sm font-bold text-text-secondary hover:text-white transition-colors" @onclick="() => _showModal = false">
+                        Cancelar
+                    </button>
+                    <button class="flex items-center justify-center min-w-[120px] px-5 py-2 rounded-lg text-sm font-bold text-white bg-primary hover:bg-red-700 transition-colors shadow-lg shadow-primary/20 disabled:opacity-50" 
+                            @onclick="Save" disabled="@_saving">
+                        @if (_saving)
+                        {
+                            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        }
+                        <span>Guardar Cambios</span>
+                    </button>
+                </div>
+            </div>
         </div>
-    </div>
+    }
 </div>
+
+@code {
+    private List<TenantMessage>? _tenants;
+    private TenantMessage _model = new();
+    private bool _showModal;
+    private bool _saving;
+    private bool _showKey;
+    private string _msg = "";
+    private bool _ok;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        try
+        {
+            var res = await IdentityClient.GetAllTenantsAsync(new Empty());
+            _tenants = res.Tenants.ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading tenants: {ex.Message}");
+        }
+    }
+
+    private void Edit(TenantMessage t)
+    {
+        _model = new TenantMessage { 
+            Id = t.Id, 
+            Name = t.Name, 
+            GestorMaxDatabaseId = t.GestorMaxDatabaseId,
+            GestorMaxApiKey = "" // Don't send encrypted key to client
+        };
+        _msg = "";
+        _showKey = false;
+        _showModal = true;
+    }
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(_model.Name)) return;
+        
+        _saving = true;
+        _msg = "Guardando...";
+        _ok = true;
+        StateHasChanged();
+
+        try
+        {
+            var res = await IdentityClient.UpdateTenantAsync(_model);
+            if (res.Success)
+            {
+                _msg = "Empresa actualizada.";
+                _ok = true;
+                await Load();
+                await Task.Delay(1000);
+                _showModal = false;
+            }
+            else
+            {
+                _msg = res.Message;
+                _ok = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _msg = $"Error: {ex.Message}";
+            _ok = false;
+        }
+        finally
+        {
+            _saving = false;
+            StateHasChanged();
+        }
+    }
+}

@@ -13,11 +13,13 @@ public class UserService : IUserService
 {
     private readonly IApplicationDbContext _context;
     private readonly ITenantProvider _tenantProvider;
+    private readonly IEncryptionService _encryptionService;
 
-    public UserService(IApplicationDbContext context, ITenantProvider tenantProvider)
+    public UserService(IApplicationDbContext context, ITenantProvider tenantProvider, IEncryptionService encryptionService)
     {
         _context = context;
         _tenantProvider = tenantProvider;
+        _encryptionService = encryptionService;
     }
 
     public async Task<UserDto> GetMyProfileAsync()
@@ -35,7 +37,7 @@ public class UserService : IUserService
         // En una implementación real, esto consultaría a qué Tenants tiene acceso el usuario (vía tabla intermedia)
         // Por ahora devolvemos todos los Tenants como simplificación para el MVP de migración.
         return await _context.Tenants
-            .Select(t => new TenantDto(t.Id, t.Name, t.ErpTenantId, t.CreatedAt))
+            .Select(t => new TenantDto(t.Id, t.Name, t.GestorMaxDatabaseId ?? "", t.CreatedAt))
             .ToListAsync();
     }
 
@@ -75,6 +77,22 @@ public class UserService : IUserService
         user.Email = dto.Email;
         user.Role = dto.Role;
         // TODO: Manejar actualización de contraseña si es necesario
+
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task UpdateTenantAsync(TenantDto dto)
+    {
+        var tenant = await _context.Tenants.FindAsync(dto.Id);
+        if (tenant == null) throw new KeyNotFoundException("Empresa no encontrada");
+
+        tenant.Name = dto.Name;
+        tenant.GestorMaxDatabaseId = dto.GestorMaxDatabaseId;
+        
+        if (!string.IsNullOrEmpty(dto.GestorMaxApiKey))
+        {
+            tenant.GestorMaxApiKeyEncrypted = _encryptionService.Encrypt(dto.GestorMaxApiKey);
+        }
 
         await _context.SaveChangesAsync();
     }

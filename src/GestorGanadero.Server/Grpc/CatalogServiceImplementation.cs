@@ -205,5 +205,23 @@ public class CatalogServiceImplementation : CatalogService.CatalogServiceBase
         await _catalogService.DeleteAccountAsync(Guid.Parse(request.Id));
         return new ActionResponse { Success = true };
     }
+
+    public override async Task<ErpConceptList> GetErpConcepts(GetCatalogRequest request, ServerCallContext context)
+    {
+        var concepts = await _catalogService.GetErpConceptsAsync(Guid.Parse(request.TenantId));
+        var response = new ErpConceptList();
+        response.Concepts.AddRange(concepts.Select(c => new ErpConceptMessage
+        {
+            Id = c.Id.ToString(),
+            Description = c.Description,
+            Stock = c.Stock,
+            UnitA = c.UnitA ?? "",
+            UnitB = c.UnitB ?? "",
+            Grupo = c.Grupo ?? "",
+            Subgrupo = c.Subgrupo ?? "",
+            ExternalId = c.ExternalId ?? ""
+        }));
+        return response;
+    }
 }
 

@@ -16,15 +16,38 @@ public class SyncServiceImplementation : SyncService.SyncServiceBase
     private readonly ILivestockEventService _livestockEventService;
     private readonly IERPProvider _erpProvider;
     private readonly ITenantProvider _tenantProvider;
+    private readonly IErpSyncService _erpSyncService;
     private readonly ILogger<SyncServiceImplementation> _logger;
 
-    public SyncServiceImplementation(ILivestockEventService livestockEventService, IERPProvider erpProvider, ITenantProvider tenantProvider, ILogger<SyncServiceImplementation> logger)
+    public SyncServiceImplementation(
+        ILivestockEventService livestockEventService, 
+        IERPProvider erpProvider, 
+        ITenantProvider tenantProvider, 
+        IErpSyncService erpSyncService,
+        ILogger<SyncServiceImplementation> logger)
     {
         _livestockEventService = livestockEventService;
         _erpProvider = erpProvider;
         _tenantProvider = tenantProvider;
+        _erpSyncService = erpSyncService;
         _logger = logger;
     }
+
+    public override async Task<SyncCatalogResponse> SyncCatalog(SyncCatalogRequest request, ServerCallContext context)
+    {
+        try
+        {
+            var tenantId = string.IsNullOrEmpty(request.TenantId) ? _tenantProvider.TenantId : Guid.Parse(request.TenantId);
+            await _erpSyncService.SyncCatalogAsync(tenantId, context.CancellationToken);
+            return new SyncCatalogResponse { Success = true, Message = "Sincronización completada exitosamente." };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error syncing catalog from gRPC");
+            return new SyncCatalogResponse { Success = false, Message = $"Error: {ex.Message}" };
+        }
+    }
+
 
     public override async Task<PendingSyncList> GetPendingSyncEvents(PendingSyncFilter request, ServerCallContext context)
     {

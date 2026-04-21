@@ -5,133 +5,249 @@
 @inject CatalogService.CatalogServiceClient GrpcClient
 @inject IJSRuntime JS
 
-<div class="flex flex-col md:flex-row h-full">
-    <!-- Master Panel -->
-    <div class="w-full md:w-80 border-r border-border-dark flex flex-col bg-[#1A1A1A]">
-        <div class="p-4 border-b border-border-dark flex justify-between items-center bg-[#222222]">
-            <h3 class="text-white font-bold">Actividades</h3>
-            <button class="bg-primary hover:bg-primary-dark text-white rounded-lg px-3 py-1.5 text-xs font-bold transition-colors flex items-center gap-1" @onclick="New">
-                <span class="material-symbols-outlined text-[16px]">add</span> Nueva
-            </button>
-        </div>
-        <div class="flex-1 overflow-y-auto p-2">
-            @if (_items == null)
-            {
-                <div class="flex justify-center p-8">
-                    <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-                </div>
-            }
-            else
-            {
-                <div class="flex flex-col gap-1">
-                    @foreach (var a in _items)
+<div class="flex flex-col gap-6">
+    <!-- Breadcrumbs -->
+    <div class="flex items-center gap-2 text-[11px] font-medium text-text-secondary uppercase tracking-widest opacity-60">
+        <a href="/" class="hover:text-white transition-colors no-underline">Inicio</a>
+        <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+        <span class="cursor-default">Administración</span>
+        <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+        <span class="text-primary font-bold">Actividades</span>
+    </div>
+
+    <!-- Header Section -->
+    <div class="flex flex-col gap-1">
+        <h2 class="text-white text-2xl font-bold tracking-tight flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">work</span>
+            Gestión de Actividades
+        </h2>
+        <p class="text-text-secondary text-sm">Tipos de actividad productiva (Cría, Recría, Feedlot, etc.)</p>
+    </div>
+
+    <!-- Activities Table -->
+    <div class="overflow-hidden rounded-xl border border-border-dark bg-surface-dark shadow-xl">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-surface-darker/50 border-b border-border-dark">
+                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-text-secondary">Nombre</th>
+                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-text-secondary">Descripción</th>
+                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-text-secondary text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border-dark/30">
+                    @if (_items == null)
                     {
-                        <button class="w-full text-left p-3 rounded-xl transition-all border @(_sel?.Id == a.Id ? "bg-primary/10 border-primary/30" : "border-transparent hover:bg-[#2C2C2C]")" @onclick="() => Sel(a)">
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm font-bold @(_sel?.Id == a.Id ? "text-primary" : "text-white")">@a.Name</span>
-                                @if (a.IsGlobal) { <span class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-blue-500/20 text-blue-400">Global</span> }
-                            </div>
-                        </button>
+                        <tr>
+                            <td colspan="3" class="px-6 py-10 text-center">
+                                <div class="flex flex-col items-center gap-3">
+                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                    <p class="text-text-secondary text-sm font-medium">Cargando actividades...</p>
+                                </div>
+                            </td>
+                        </tr>
                     }
-                </div>
-            }
+                    else if (!_items.Any())
+                    {
+                        <tr>
+                            <td colspan="3" class="px-6 py-10 text-center text-text-disabled">
+                                No hay actividades registradas.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var a in _items)
+                        {
+                            <tr class="hover:bg-white/5 transition-colors group">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-white font-bold text-sm uppercase">@a.Name</span>
+                                        @if (a.IsGlobal)
+                                        {
+                                            <span class="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 font-black tracking-tighter">GLOBAL</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="text-text-secondary text-sm">-</span>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <button class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-surface-darker border border-border-dark text-text-secondary hover:text-white hover:border-text-secondary transition-all text-xs font-bold" @onclick="() => Edit(a)">
+                                            <span class="material-symbols-outlined text-sm">edit</span>
+                                            Editar
+                                        </button>
+                                        @if (!a.IsGlobal)
+                                        {
+                                            <button class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all text-xs font-bold" @onclick="() => Delete(a)">
+                                                <span class="material-symbols-outlined text-sm">delete</span>
+                                                Eliminar
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
         </div>
     </div>
 
-    <!-- Detail Panel -->
-    <div class="flex-1 p-6 lg:p-10 bg-surface-dark overflow-y-auto">
-        @if (_sel == null)
+    <!-- Create/Edit Form Section -->
+    <div class="mt-4 flex flex-col gap-4">
+        <h3 class="text-white text-lg font-bold flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">@(string.IsNullOrEmpty(_model.Id) ? "add_circle" : "edit_square")</span>
+            @(string.IsNullOrEmpty(_model.Id) ? "Crear Actividad" : "Editar Actividad")
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-2">
+                <input type="text" @bind="_model.Name" class="w-full bg-surface-darker border border-border-dark rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary transition-colors" 
+                       placeholder="Nombre (ej: CRIA, RECRIA)" />
+            </div>
+            <div class="flex flex-col gap-2">
+                <input type="text" class="w-full bg-surface-darker border border-border-dark rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary transition-colors opacity-50 cursor-not-allowed" 
+                       placeholder="Descripción" disabled />
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_msg))
         {
-            <div class="h-full flex flex-col items-center justify-center text-center opacity-50">
-                <span class="material-symbols-outlined text-6xl mb-4">assignment</span>
-                <p class="text-lg font-bold text-white">Selecciona una actividad</p>
-                <p class="text-sm text-text-secondary">O crea una nueva para empezar.</p>
+            <div class="flex items-center gap-2 p-3 rounded-lg @(_ok ? "bg-green-500/10 text-green-400 border border-green-500/20" : "bg-red-500/10 text-red-400 border border-red-500/20") text-sm">
+                <span class="material-symbols-outlined text-lg">@(_ok ? "check_circle" : "error")</span>
+                <span>@_msg</span>
             </div>
         }
-        else
+
+        <button class="flex items-center justify-center gap-2 w-full h-12 bg-primary hover:bg-red-700 transition-colors text-white font-bold rounded-xl shadow-lg shadow-primary/20 disabled:opacity-50" 
+                @onclick="Save" disabled="@_saving">
+            @if (_saving)
+            {
+                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+            }
+            else
+            {
+                <span class="material-symbols-outlined">save</span>
+            }
+            <span>@(string.IsNullOrEmpty(_model.Id) ? "Crear" : "Guardar Cambios")</span>
+        </button>
+        
+        @if (!string.IsNullOrEmpty(_model.Id))
         {
-            <div class="max-w-2xl mx-auto">
-                <h3 class="text-2xl font-bold text-white mb-8 border-b border-border-dark pb-4">@(string.IsNullOrEmpty(_sel.Id) ? "Nueva Actividad" : "Editar Actividad")</h3>
-                
-                <div class="flex flex-col gap-6">
-                    <label class="flex flex-col gap-2">
-                        <span class="text-white text-sm font-medium">Nombre de la actividad <span class="text-primary">*</span></span>
-                        <input type="text" @bind="_sel.Name" class="form-input w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 text-white focus:ring-primary focus:border-primary h-12 outline-none" placeholder="Ej: Cría, Invernada..." />
-                    </label>
-
-                    <label class="flex items-center gap-3 cursor-pointer mt-2 p-4 rounded-xl border border-border-dark bg-[#222222] hover:bg-[#271c1c] transition-colors w-fit">
-                        <input type="checkbox" @bind="_sel.IsGlobal" class="w-5 h-5 rounded bg-[#1A1A1A] border-[#595959] text-primary focus:ring-primary focus:ring-offset-[#2C2C2C]" />
-                        <span class="text-white text-sm font-medium">Actividad Global (Disponible para todos)</span>
-                    </label>
-
-                    @if (!string.IsNullOrEmpty(_msg))
-                    {
-                        <div class="flex items-center gap-2 p-4 rounded-xl @(_ok ? "bg-green-500/10 border-green-500/20 text-green-400" : "bg-red-500/10 border-red-500/20 text-red-400") border mt-4">
-                            <span class="material-symbols-outlined text-xl">@(_ok ? "check_circle" : "error")</span>
-                            <span class="text-sm">@_msg</span>
-                        </div>
-                    }
-
-                    <div class="flex justify-between items-center mt-8 pt-6 border-t border-border-dark">
-                        @if (!string.IsNullOrEmpty(_sel.Id) && !_sel.IsGlobal)
-                        {
-                            <button class="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors font-bold text-sm" @onclick="Del">
-                                <span class="material-symbols-outlined text-[18px]">delete</span> Eliminar
-                            </button>
-                        }
-                        else
-                        {
-                            <div></div>
-                        }
-                        
-                        <button class="flex items-center gap-2 px-8 py-3 rounded-xl bg-primary hover:bg-red-700 transition-colors text-white font-bold shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed" @onclick="Save" disabled="@_saving">
-                            @if (_saving)
-                            {
-                                <div class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
-                                <span>Guardando...</span>
-                            }
-                            else
-                            {
-                                <span class="material-symbols-outlined text-[20px]">save</span>
-                                <span>Guardar</span>
-                            }
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <button class="text-text-secondary hover:text-white text-xs font-bold uppercase tracking-widest transition-colors mt-1" @onclick="CancelEdit">
+                Cancelar Edición
+            </button>
         }
     </div>
 </div>
 
 @code {
     private List<ActivityMessage>? _items;
-    private ActivityMessage? _sel;
-    private bool _saving; private string _msg = ""; private bool _ok;
+    private ActivityMessage _model = new() { IsGlobal = false };
+    private bool _saving;
+    private string _msg = "";
+    private bool _ok;
 
-    protected override async Task OnInitializedAsync() => await Load();
+    protected override async Task OnInitializedAsync()
+    {
+        _model.TenantId = State.ActiveTenantId;
+        await Load();
+    }
+
     private async Task Load()
     {
         if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
-        try { var r = await GrpcClient.GetActivitiesAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId }); _items = r.Activities.ToList(); } catch { }
-    }
-    private void New() { _sel = new ActivityMessage { TenantId = State.ActiveTenantId }; _msg = ""; }
-    private void Sel(ActivityMessage a) { _sel = new ActivityMessage { Id = a.Id, Name = a.Name, IsGlobal = a.IsGlobal, TenantId = a.TenantId }; _msg = ""; }
-    private async Task Save()
-    {
-        if (_sel == null || string.IsNullOrWhiteSpace(_sel.Name)) return;
-        _saving = true; _msg = ""; StateHasChanged();
         try
         {
-            var r = string.IsNullOrEmpty(_sel.Id) ? await GrpcClient.CreateActivityAsync(_sel) : await GrpcClient.UpdateActivityAsync(_sel);
-            if (r.Success) { _ok = true; _msg = "Guardado."; await Load(); } else { _ok = false; _msg = r.Message; }
+            var r = await GrpcClient.GetActivitiesAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
+            _items = r.Activities.ToList();
         }
-        catch (Exception ex) { _ok = false; _msg = $"Error: {ex.Message}"; }
-        finally { _saving = false; StateHasChanged(); }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading activities: {ex.Message}");
+        }
     }
-    private async Task Del()
+
+    private void Edit(ActivityMessage a)
     {
-        if (_sel == null || string.IsNullOrEmpty(_sel.Id)) return;
-        if (!await JS.InvokeAsync<bool>("confirm", $"Eliminar '{_sel.Name}'?")) return;
-        try { var r = await GrpcClient.DeleteActivityAsync(new DeleteEntityRequest { Id = _sel.Id, TenantId = State.ActiveTenantId }); if (r.Success) { _sel = null; await Load(); } } catch (Exception ex) { _ok = false; _msg = $"Error: {ex.Message}"; }
+        _model = new ActivityMessage { 
+            Id = a.Id, 
+            Name = a.Name, 
+            IsGlobal = a.IsGlobal, 
+            TenantId = a.TenantId 
+        };
+        _msg = "";
+    }
+
+    private void CancelEdit()
+    {
+        _model = new ActivityMessage { IsGlobal = false, TenantId = State.ActiveTenantId };
+        _msg = "";
+    }
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(_model.Name))
+        {
+            _ok = false;
+            _msg = "El nombre es obligatorio.";
+            return;
+        }
+
+        _saving = true;
+        _msg = "";
+        StateHasChanged();
+
+        try
+        {
+            var r = string.IsNullOrEmpty(_model.Id) 
+                ? await GrpcClient.CreateActivityAsync(_model) 
+                : await GrpcClient.UpdateActivityAsync(_model);
+
+            if (r.Success)
+            {
+                _ok = true;
+                _msg = string.IsNullOrEmpty(_model.Id) ? "Actividad creada correctamente." : "Actividad actualizada correctamente.";
+                CancelEdit();
+                await Load();
+            }
+            else
+            {
+                _ok = false;
+                _msg = r.Message;
+            }
+        }
+        catch (Exception ex)
+        {
+            _ok = false;
+            _msg = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            _saving = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task Delete(ActivityMessage a)
+    {
+        if (a.IsGlobal) return;
+        if (!await JS.InvokeAsync<bool>("confirm", $"¿Está seguro que desea eliminar la actividad '{a.Name}'?")) return;
+        try
+        {
+            var r = await GrpcClient.DeleteActivityAsync(new DeleteEntityRequest { Id = a.Id, TenantId = State.ActiveTenantId });
+            if (r.Success)
+            {
+                if (_model.Id == a.Id) CancelEdit();
+                await Load();
+            }
+        }
+        catch (Exception ex)
+        {
+            _ok = false;
+            _msg = $"Error al eliminar: {ex.Message}";
+        }
     }
 }

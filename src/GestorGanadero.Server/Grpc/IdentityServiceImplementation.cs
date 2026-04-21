@@ -69,5 +69,37 @@ public class IdentityServiceImplementation : IdentityService.IdentityServiceBase
         await _userService.DeleteUserAsync(System.Guid.Parse(request.Id));
         return new ActionResponse { Success = true, Message = "Usuario eliminado." };
     }
+
+    public override async Task<TenantList> GetAllTenants(Empty request, ServerCallContext context)
+    {
+        var tenants = await _userService.GetAvailableTenantsAsync();
+        var response = new TenantList();
+        response.Tenants.AddRange(tenants.Select(t => new TenantMessage 
+        { 
+            Id = t.Id.ToString(), 
+            Name = t.Name,
+            GestorMaxDatabaseId = t.GestorMaxDatabaseId ?? ""
+        }));
+        return response;
+    }
+
+    public override async Task<ActionResponse> UpdateTenant(TenantMessage request, ServerCallContext context)
+    {
+        try
+        {
+            await _userService.UpdateTenantAsync(new TenantDto(
+                System.Guid.Parse(request.Id), 
+                request.Name, 
+                request.GestorMaxDatabaseId, 
+                NodaTime.Instant.FromDateTimeUtc(System.DateTime.UtcNow), 
+                request.GestorMaxApiKey));
+            return new ActionResponse { Success = true, Message = "Empresa actualizada correctamente." };
+        }
+        catch (System.Exception ex)
+        {
+            _logger.LogError(ex, "Error actualizando empresa");
+            return new ActionResponse { Success = false, Message = ex.Message };
+        }
+    }
 }
 

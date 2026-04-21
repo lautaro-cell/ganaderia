@@ -35,9 +35,23 @@ service CatalogService {
   rpc DeleteAccount (common.v1.DeleteEntityRequest) returns (common.v1.ActionResponse);
 
   rpc GetPlanes (GetCatalogRequest) returns (PlanCuentaList);
+  rpc GetErpConcepts (GetCatalogRequest) returns (ErpConceptList);
 }
 
 message GetCatalogRequest { string tenant_id = 1; }
+
+message ErpConceptMessage {
+  string id = 1;
+  string description = 2;
+  double stock = 3;
+  string unit_a = 4;
+  string unit_b = 5;
+  string grupo = 6;
+  string subgrupo = 7;
+  string external_id = 8;
+}
+
+message ErpConceptList { repeated ErpConceptMessage concepts = 1; }
 
 message FieldMessage {
   string id = 1;

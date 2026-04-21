@@ -4,7 +4,6 @@ namespace App.Application.DTOs;
 public record TenantDto(
     Guid Id,
     string Name,
-    string ErpTenantId,
-    Instant CreatedAt);
-
-
+    string? GestorMaxDatabaseId,
+    Instant CreatedAt,
+    string? GestorMaxApiKey = null);

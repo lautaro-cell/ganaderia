@@ -278,6 +278,24 @@ public class CatalogService : ICatalogService
             await _context.SaveChangesAsync();
         }
     }
+
+    // --- Erp Concepts ---
+    public async Task<IEnumerable<ErpConceptDto>> GetErpConceptsAsync(Guid tenantId)
+    {
+        return await _context.ErpConcepts
+            .Where(c => c.TenantId == tenantId)
+            .Select(c => new ErpConceptDto(
+                c.Id, 
+                c.Description, 
+                c.Stock, 
+                c.UnitA, 
+                c.UnitB, 
+                c.GrupoConcepto, 
+                c.SubGrupoConcepto, 
+                c.ExternalErpId, 
+                c.TenantId))
+            .ToListAsync();
+    }
 }
 
 
