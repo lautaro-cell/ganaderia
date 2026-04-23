@@ -4,5 +4,8 @@ public record ActivityDto(
     Guid Id,
     string Name,
     bool IsGlobal,
-    Guid? TenantId);
+    Guid? TenantId,
+    string? Description = null,
+    List<Guid>? CategoryIds = null,
+    List<Guid>? EventTypeIds = null);
 

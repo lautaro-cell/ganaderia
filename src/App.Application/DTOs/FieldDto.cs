@@ -5,5 +5,10 @@ public record FieldDto(
     string Name,
     string? Description,
     bool IsActive,
-    Guid TenantId);
+    Guid TenantId,
+    string? LegalName = null,
+    decimal? AreaHectares = null,
+    double? GpsLatitude = null,
+    double? GpsLongitude = null,
+    List<Guid>? ActivityIds = null);
 

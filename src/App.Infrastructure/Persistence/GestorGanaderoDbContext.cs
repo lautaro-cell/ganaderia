@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using App.Domain.Entities;
 using App.Domain.Common;
 using App.Application.Interfaces;
+using App.Infrastructure.Persistence.Configurations;
 using NodaTime;
 
 namespace App.Infrastructure.Persistence;
@@ -16,7 +17,7 @@ public class GestorGanaderoDbContext : DbContext, IApplicationDbContext
         _tenantProvider = tenantProvider;
     }
 
-    // --- Original DbSets ---
+    // --- Core ---
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<User> Users => Set<User>();
     public DbSet<ExternalCatalog> ExternalCatalogs => Set<ExternalCatalog>();
@@ -24,7 +25,7 @@ public class GestorGanaderoDbContext : DbContext, IApplicationDbContext
     public DbSet<LivestockEvent> LivestockEvents => Set<LivestockEvent>();
     public DbSet<AccountingDraft> AccountingDrafts => Set<AccountingDraft>();
 
-    // --- New DbSets (migrated from Node.js) ---
+    // --- Catalog ---
     public DbSet<Field> Fields => Set<Field>();
     public DbSet<Activity> Activities => Set<Activity>();
     public DbSet<AnimalCategory> AnimalCategories => Set<AnimalCategory>();
@@ -33,17 +34,28 @@ public class GestorGanaderoDbContext : DbContext, IApplicationDbContext
     public DbSet<PlanCuenta> PlanesCuenta => Set<PlanCuenta>();
     public DbSet<GestorMaxConfig> GestorMaxConfigs => Set<GestorMaxConfig>();
     public DbSet<ErpConcept> ErpConcepts => Set<ErpConcept>();
+    public DbSet<AccountConfiguration> AccountConfigurations => Set<AccountConfiguration>();
+
+    // --- Join tables ---
+    public DbSet<ActivityEventType> ActivityEventTypes => Set<ActivityEventType>();
+    public DbSet<ActivityAnimalCategory> ActivityAnimalCategories => Set<ActivityAnimalCategory>();
+    public DbSet<FieldActivity> FieldActivities => Set<FieldActivity>();
+    public DbSet<EventTemplateActivity> EventTemplateActivities => Set<EventTemplateActivity>();
+    public DbSet<UserField> UserFields => Set<UserField>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // context7 /dotnet/docs: ApplyConfigurationsFromAssembly registra todos los IEntityTypeConfiguration<T>
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(EventTemplateConfiguration).Assembly);
 
         // --- jsonb for ExternalCatalog (PostgreSQL) ---
         modelBuilder.Entity<ExternalCatalog>()
             .Property(e => e.Data)
             .HasColumnType("jsonb");
 
-        // --- ErpConcept Table Mapping ---
+        // --- ErpConcept ---
         modelBuilder.Entity<ErpConcept>(b =>
         {
             b.HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
@@ -52,7 +64,7 @@ public class GestorGanaderoDbContext : DbContext, IApplicationDbContext
                 .HasForeignKey(e => e.TenantId);
         });
 
-        // --- Decimal precision: HasPrecision(18, 2) for all numeric fields ---
+        // --- Decimal precision ---
         modelBuilder.Entity<AccountingDraft>(b =>
         {
             b.Property(e => e.DebitAmount).HasPrecision(18, 2);
@@ -82,9 +94,40 @@ public class GestorGanaderoDbContext : DbContext, IApplicationDbContext
         modelBuilder.Entity<Field>().HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
         modelBuilder.Entity<GestorMaxConfig>().HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
         modelBuilder.Entity<CategoryMapping>().HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
-        // Activity & AnimalCategory support null TenantId (global), so we filter only tenant-specific or global
+        modelBuilder.Entity<AccountConfiguration>().HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
+        // Activity & AnimalCategory: null = global, con TenantId = específica del cliente
         modelBuilder.Entity<Activity>().HasQueryFilter(e => e.TenantId == null || e.TenantId == _tenantProvider.TenantId);
         modelBuilder.Entity<AnimalCategory>().HasQueryFilter(e => e.TenantId == null || e.TenantId == _tenantProvider.TenantId);
+
+        // --- Field precision ---
+        modelBuilder.Entity<Field>(b =>
+        {
+            b.Property(e => e.AreaHectares).HasPrecision(12, 2);
+        });
+
+        // --- Join: FieldActivity ---
+        modelBuilder.Entity<FieldActivity>(b =>
+        {
+            b.HasKey(fa => new { fa.FieldId, fa.ActivityId });
+            b.HasOne(fa => fa.Field).WithMany(f => f.FieldActivities).HasForeignKey(fa => fa.FieldId);
+            b.HasOne(fa => fa.Activity).WithMany().HasForeignKey(fa => fa.ActivityId);
+        });
+
+        // --- Join: EventTemplateActivity ---
+        modelBuilder.Entity<EventTemplateActivity>(b =>
+        {
+            b.HasKey(eta => new { eta.EventTemplateId, eta.ActivityId });
+            b.HasOne(eta => eta.EventTemplate).WithMany().HasForeignKey(eta => eta.EventTemplateId);
+            b.HasOne(eta => eta.Activity).WithMany().HasForeignKey(eta => eta.ActivityId);
+        });
+
+        // --- Join: UserField ---
+        modelBuilder.Entity<UserField>(b =>
+        {
+            b.HasKey(uf => new { uf.UserId, uf.FieldId });
+            b.HasOne(uf => uf.User).WithMany(u => u.UserFields).HasForeignKey(uf => uf.UserId);
+            b.HasOne(uf => uf.Field).WithMany().HasForeignKey(uf => uf.FieldId);
+        });
 
         // --- Relationships ---
         modelBuilder.Entity<LivestockEvent>()
@@ -100,20 +143,9 @@ public class GestorGanaderoDbContext : DbContext, IApplicationDbContext
 
         modelBuilder.Entity<AccountingDraft>(b =>
         {
-            b.HasOne(d => d.Field)
-                .WithMany()
-                .HasForeignKey(d => d.FieldId)
-                .IsRequired(false);
-            
-            b.HasOne(d => d.Activity)
-                .WithMany()
-                .HasForeignKey(d => d.ActivityId)
-                .IsRequired(false);
-            
-            b.HasOne(d => d.Category)
-                .WithMany()
-                .HasForeignKey(d => d.CategoryId)
-                .IsRequired(false);
+            b.HasOne(d => d.Field).WithMany().HasForeignKey(d => d.FieldId).IsRequired(false);
+            b.HasOne(d => d.Activity).WithMany().HasForeignKey(d => d.ActivityId).IsRequired(false);
+            b.HasOne(d => d.Category).WithMany().HasForeignKey(d => d.CategoryId).IsRequired(false);
         });
     }
 
@@ -134,4 +166,3 @@ public class GestorGanaderoDbContext : DbContext, IApplicationDbContext
         return base.SaveChangesAsync(cancellationToken);
     }
 }
-

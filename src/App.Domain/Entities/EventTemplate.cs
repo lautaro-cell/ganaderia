@@ -16,5 +16,6 @@ public class EventTemplate : BaseAuditableEntity
     public bool IsActive { get; set; } = true;
     
     public Tenant? Tenant { get; set; }
+    public ICollection<EventTemplateActivity> EventTemplateActivities { get; set; } = new List<EventTemplateActivity>();
 }
 

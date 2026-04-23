@@ -9,5 +9,6 @@ public record BalanceItemDto(
     string AccountCode,
     decimal DebitTotal,
     decimal CreditTotal,
-    decimal NetBalance);
-
+    decimal NetBalance,
+    decimal WeightKgMovement,
+    string AccountGroup);

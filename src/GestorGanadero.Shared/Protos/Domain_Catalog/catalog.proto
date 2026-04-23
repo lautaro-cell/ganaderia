@@ -36,6 +36,9 @@ service CatalogService {
 
   rpc GetPlanes (GetCatalogRequest) returns (PlanCuentaList);
   rpc GetErpConcepts (GetCatalogRequest) returns (ErpConceptList);
+
+  // Tarea 2.3: cuentas del ERP para selector en configuración contable
+  rpc GetErpAccounts (GetCatalogRequest) returns (ErpAccountList);
 }
 
 message GetCatalogRequest { string tenant_id = 1; }
@@ -59,6 +62,11 @@ message FieldMessage {
   string description = 3;
   bool is_active = 4;
   string tenant_id = 5;
+  string legal_name = 6;
+  double area_hectares = 7;
+  double gps_latitude = 8;
+  double gps_longitude = 9;
+  repeated string activity_ids = 10;
 }
 
 message ActivityMessage {
@@ -66,6 +74,9 @@ message ActivityMessage {
   string name = 2;
   bool is_global = 3;
   string tenant_id = 4;
+  string description = 5;
+  repeated string category_ids = 6;
+  repeated string event_type_ids = 7;
 }
 
 message AnimalCategoryMessage {
@@ -102,6 +113,7 @@ message EventTypeMessage {
   bool requires_destination_field = 7;
   bool is_active = 8;
   string tenant_id = 9;
+  repeated string activity_ids = 10;
 }
 
 message PlanCuentaMessage {
@@ -121,6 +133,14 @@ message AccountMessage {
   bool is_active = 7;
   string tenant_id = 8;
 }
+
+message ErpAccountMessage {
+  string code = 1;
+  string name = 2;
+  string type = 3;
+}
+
+message ErpAccountList { repeated ErpAccountMessage accounts = 1; }
 
 message FieldList          { repeated FieldMessage fields = 1; }
 message ActivityList       { repeated ActivityMessage activities = 1; }

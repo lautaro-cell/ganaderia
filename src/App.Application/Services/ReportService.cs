@@ -2,7 +2,6 @@ using NodaTime;
 using Microsoft.EntityFrameworkCore;
 using App.Application.DTOs;
 using App.Application.Interfaces;
-using App.Domain.Entities;
 using App.Domain.Enums;
 
 namespace App.Application.Services;
@@ -16,30 +15,42 @@ public class ReportService : IReportService
         _context = context;
     }
 
-    public async Task<IEnumerable<BalanceItemDto>> GetBalanceAsync(Guid? fieldId, Instant? date, string categoryView, Guid tenantId)
+    public async Task<IEnumerable<BalanceItemDto>> GetBalanceAsync(
+        Guid? fieldId,
+        Instant? startDate,
+        Instant? endDate,
+        string categoryView,
+        Guid tenantId,
+        Guid? categoryId)
     {
         var query = _context.AccountingDrafts
             .Where(a => a.TenantId == tenantId)
             .AsQueryable();
 
         if (fieldId.HasValue)
-            query = query.Where(a => a.FieldId == fieldId);
+            query = query.Where(a => a.FieldId == fieldId.Value);
 
-        if (date.HasValue)
-            query = query.Where(a => a.LivestockEvent != null && a.LivestockEvent.EventDate <= date.Value);
+        if (categoryId.HasValue)
+            query = query.Where(a => a.CategoryId == categoryId.Value);
 
-        // Si la vista es "gestor", aplicamos el mapeo en la consulta SQL
+        if (startDate.HasValue)
+            query = query.Where(a => a.LivestockEvent != null && a.LivestockEvent.EventDate >= startDate.Value);
+
+        if (endDate.HasValue)
+            query = query.Where(a => a.LivestockEvent != null && a.LivestockEvent.EventDate <= endDate.Value);
+
         if (categoryView == "gestor")
         {
             var gestorQuery = from a in query
                               join m in _context.CategoryMappings on a.CategoryId equals m.CategoriaClienteId into am
                               from m in am.DefaultIfEmpty()
-                              join gc in _context.AnimalCategories.Where(c => c.Type == CategoryType.Gestor && c.TenantId == tenantId) 
+                              join gc in _context.AnimalCategories.Where(c => c.Type == CategoryType.Gestor && c.TenantId == tenantId)
                                    on m.CategoriaGestorId equals gc.ExternalId into agc
                               from gc in agc.DefaultIfEmpty()
-                              group a by new {
+                              group a by new
+                              {
                                   a.AccountCode,
-                                  FieldName = a.Field != null ? a.Field.Name : "Sin Campo",
+                                  FieldName    = a.Field    != null ? a.Field.Name    : "Sin Campo",
                                   ActivityName = a.Activity != null ? a.Activity.Name : "Sin Actividad",
                                   CategoryName = gc != null ? gc.Name : (a.Category != null ? a.Category.Name : "Sin Categoría")
                               } into g
@@ -52,16 +63,19 @@ public class ReportService : IReportService
                                   g.Key.AccountCode,
                                   g.Sum(a => a.DebitAmount),
                                   g.Sum(a => a.CreditAmount),
-                                  g.Sum(a => a.DebitAmount - a.CreditAmount)
+                                  g.Sum(a => a.DebitAmount - a.CreditAmount),
+                                  g.Sum(a => a.WeightKg ?? 0),
+                                  DeriveGroup(g.Key.AccountCode)
                               );
 
             return await gestorQuery.ToListAsync();
         }
 
         var resultQuery = query
-            .GroupBy(a => new {
+            .GroupBy(a => new
+            {
                 a.AccountCode,
-                FieldName = a.Field != null ? a.Field.Name : "Sin Campo",
+                FieldName    = a.Field    != null ? a.Field.Name    : "Sin Campo",
                 ActivityName = a.Activity != null ? a.Activity.Name : "Sin Actividad",
                 CategoryName = a.Category != null ? a.Category.Name : "Sin Categoría"
             })
@@ -74,16 +88,35 @@ public class ReportService : IReportService
                 g.Key.AccountCode,
                 g.Sum(a => a.DebitAmount),
                 g.Sum(a => a.CreditAmount),
-                g.Sum(a => a.DebitAmount - a.CreditAmount)
+                g.Sum(a => a.DebitAmount - a.CreditAmount),
+                g.Sum(a => a.WeightKg ?? 0),
+                DeriveGroup(g.Key.AccountCode)
             ));
 
         return await resultQuery.ToListAsync();
     }
 
-    public async Task<IEnumerable<LedgerEntryDto>> GetLedgerAsync(Instant? startDate, Instant? endDate, int pageIndex, int pageSize, string searchTerm, Guid tenantId)
+    private static string DeriveGroup(string accountCode)
+    {
+        if (string.IsNullOrEmpty(accountCode)) return "RESULTADO";
+        return accountCode[0] switch
+        {
+            '1' => "ACTIVO",
+            '2' => "PASIVO",
+            _   => "RESULTADO"
+        };
+    }
+
+    public async Task<IEnumerable<LedgerEntryDto>> GetLedgerAsync(
+        Instant? startDate, Instant? endDate,
+        int pageIndex, int pageSize,
+        string searchTerm, Guid tenantId,
+        string? accountCode, Guid? categoryId, Guid? fieldId)
     {
         var query = _context.AccountingDrafts
             .Include(a => a.LivestockEvent)
+            .Include(a => a.Field)
+            .Include(a => a.Category)
             .Where(a => a.TenantId == tenantId)
             .AsQueryable();
 
@@ -95,6 +128,15 @@ public class ReportService : IReportService
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
             query = query.Where(a => a.Concept.Contains(searchTerm) || a.AccountCode.Contains(searchTerm));
+
+        if (!string.IsNullOrWhiteSpace(accountCode))
+            query = query.Where(a => a.AccountCode == accountCode);
+
+        if (categoryId.HasValue)
+            query = query.Where(a => a.CategoryId == categoryId.Value);
+
+        if (fieldId.HasValue)
+            query = query.Where(a => a.FieldId == fieldId.Value);
 
         var entries = await query
             .OrderBy(a => a.LivestockEvent != null ? a.LivestockEvent.EventDate : a.CreatedAt)
@@ -109,7 +151,12 @@ public class ReportService : IReportService
                 a.LivestockEvent != null ? a.LivestockEvent.Status.ToString() : "Draft",
                 a.EntryType,
                 a.HeadCount,
-                a.WeightKg ?? 0
+                a.WeightKg ?? 0,
+                a.LivestockEventId,
+                a.Field    != null ? a.Field.Name    : "",
+                a.Category != null ? a.Category.Name : "",
+                a.DebitAmount,
+                a.CreditAmount
             ))
             .ToListAsync();
 

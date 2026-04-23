@@ -11,4 +11,9 @@ public record LedgerEntryDto(
     string Status,
     string EntryType,
     int HeadCount,
-    decimal WeightKg);
+    decimal WeightKg,
+    Guid LivestockEventId,
+    string FieldName,
+    string CategoryName,
+    decimal DebitAmount,
+    decimal CreditAmount);

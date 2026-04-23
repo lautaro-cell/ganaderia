@@ -113,6 +113,33 @@ public class LivestockEventService : ILivestockEventService
             .ToListAsync();
     }
 
+    public async Task<(IReadOnlyList<LivestockEventResponse> Items, int TotalCount)> GetEventsPagedAsync(
+        Guid? tenantId, Instant? start, Instant? end, int pageIndex, int pageSize)
+    {
+        var query = _context.LivestockEvents
+            .Include(e => e.EventTemplate)
+            .AsQueryable();
+
+        if (start.HasValue) query = query.Where(e => e.EventDate >= start.Value);
+        if (end.HasValue) query = query.Where(e => e.EventDate <= end.Value);
+
+        var total = await query.CountAsync();
+
+        var items = await query
+            .OrderByDescending(e => e.EventDate)
+            .Skip(pageIndex * pageSize)
+            .Take(pageSize)
+            .Select(e => new LivestockEventResponse(
+                e.Id, e.EventTemplateId, e.CostCenterCode, e.HeadCount,
+                e.EstimatedWeightKg, e.TotalAmount, e.Status.ToString(), e.EventDate,
+                e.EventTemplate != null ? e.EventTemplate.Name : "Evento",
+                e.Field != null ? e.Field.Name : "",
+                e.WeightPerHead ?? 0))
+            .ToListAsync();
+
+        return (items, total);
+    }
+
     public async Task<LivestockEventDetailDto> GetEventDetailsAsync(Guid id)
     {
         var e = await _context.LivestockEvents

@@ -60,6 +60,10 @@ builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<ISyncCatalogService, SyncCatalogService>();
 builder.Services.AddScoped<IEncryptionService, EncryptionService>();
 builder.Services.AddScoped<IErpSyncService, ErpSyncService>();
+builder.Services.AddScoped<IAccountConfigurationService, AccountConfigurationService>();
+builder.Services.AddScoped<IErpAccountQueryService, ErpAccountQueryService>();
+builder.Services.AddScoped<ICompanyConfigurationService, CompanyConfigurationService>();
+builder.Services.AddHttpClient<IErpConnectivityService, ErpConnectivityService>();
 builder.Services.AddHttpClient<IERPProvider, GestorMaxProvider>();
 builder.Services.AddTransient<App.Domain.Services.AccountingEntryGenerator>();
 

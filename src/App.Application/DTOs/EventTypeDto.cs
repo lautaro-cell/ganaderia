@@ -9,5 +9,6 @@ public record EventTypeDto(
     bool RequiresOriginDestination,
     bool RequiresDestinationField,
     bool IsActive,
-    Guid TenantId
+    Guid TenantId,
+    List<Guid>? ActivityIds = null
 );

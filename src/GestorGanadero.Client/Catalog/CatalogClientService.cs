@@ -31,6 +31,12 @@ namespace GestorGanadero.Client.Catalog
             try { return AppResult<AnimalCategoryList>.SuccessResult(await _client.GetAnimalCategoriesAsync(req)); }
             catch (RpcException e) { return AppResult<AnimalCategoryList>.Failure(e.Status.Detail); }
         }
+
+        public async Task<AppResult<AccountList>> GetAccountsAsync(GetCatalogRequest req)
+        {
+            try { return AppResult<AccountList>.SuccessResult(await _client.GetAccountsAsync(req)); }
+            catch (RpcException e) { return AppResult<AccountList>.Failure(e.Status.Detail); }
+        }
     }
 }
 

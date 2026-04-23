@@ -44,26 +44,30 @@ public class UserService : IUserService
     public async Task<IEnumerable<UserDto>> GetAllUsersAsync()
     {
         return await _context.Users
-            .Select(u => new UserDto(u.Id, u.Email, u.TenantId, u.Role))
+            .Include(u => u.UserFields)
+            .Select(u => new UserDto(
+                u.Id, u.Email, u.TenantId, u.Role,
+                u.Name, u.IsActive, u.LastLoginAt,
+                u.UserFields.Select(uf => uf.FieldId).ToList()))
             .ToListAsync();
     }
 
     public async Task<Guid> InviteUserAsync(InviteUserRequest request)
     {
         var role = Enum.TryParse<UserRole>(request.RoleName, true, out var r) ? r : UserRole.Guest;
-        
-        // TODO: Enviar correo de invitación para que el usuario establezca su contraseña
-        var defaultPassword = "password123"; // Contraseña temporal, el usuario deberá cambiarla.
+        var defaultPassword = "password123";
         var hashedPassword = BCrypt.Net.BCrypt.HashPassword(defaultPassword);
 
         var user = new User
         {
             Email = request.Email,
+            Name = request.Name,
             PasswordHash = hashedPassword,
             TenantId = request.TenantId,
-            Role = role
+            Role = role,
+            IsActive = false
         };
-        
+
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
         return user.Id;
@@ -73,10 +77,19 @@ public class UserService : IUserService
     {
         var user = await _context.Users.FindAsync(dto.Id);
         if (user == null) throw new KeyNotFoundException("Usuario no encontrado");
-        
+
         user.Email = dto.Email;
+        user.Name = dto.Name;
         user.Role = dto.Role;
-        // TODO: Manejar actualización de contraseña si es necesario
+        user.IsActive = dto.IsActive;
+
+        if (dto.AssignedFieldIds != null)
+        {
+            var existing = await _context.UserFields.Where(uf => uf.UserId == dto.Id).ToListAsync();
+            foreach (var uf in existing) _context.UserFields.Remove(uf);
+            foreach (var fid in dto.AssignedFieldIds)
+                _context.UserFields.Add(new UserField { UserId = dto.Id, FieldId = fid });
+        }
 
         await _context.SaveChangesAsync();
     }

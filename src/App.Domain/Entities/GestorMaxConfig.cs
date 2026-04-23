@@ -25,6 +25,10 @@ public class GestorMaxConfig : BaseAuditableEntity
     public bool? LastTestOk { get; set; }
     public string? LastTestError { get; set; }
 
+    public DateTimeOffset? LastSyncAt { get; set; }
+    public bool? LastSyncOk { get; set; }
+    public string? LastSyncError { get; set; }
+
     public Tenant? Tenant { get; set; }
 }
 

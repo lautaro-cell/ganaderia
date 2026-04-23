@@ -19,6 +19,12 @@ public interface IApplicationDbContext
     DbSet<PlanCuenta> PlanesCuenta { get; }
     DbSet<GestorMaxConfig> GestorMaxConfigs { get; }
     DbSet<ErpConcept> ErpConcepts { get; }
+    DbSet<AccountConfiguration> AccountConfigurations { get; }
+    DbSet<ActivityEventType> ActivityEventTypes { get; }
+    DbSet<ActivityAnimalCategory> ActivityAnimalCategories { get; }
+    DbSet<FieldActivity> FieldActivities { get; }
+    DbSet<EventTemplateActivity> EventTemplateActivities { get; }
+    DbSet<UserField> UserFields { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

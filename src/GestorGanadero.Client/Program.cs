@@ -46,6 +46,7 @@ builder.Services.AddScoped(sp => new SyncService.SyncServiceClient(sp.GetRequire
 
 builder.Services.AddScoped<IdentityClientService>();
 builder.Services.AddScoped<CatalogClientService>();
+builder.Services.AddScoped<CatalogCacheService>();
 builder.Services.AddScoped<OperationsClientService>();
 builder.Services.AddScoped<ReportingClientService>();
 builder.Services.AddScoped<SyncClientService>();

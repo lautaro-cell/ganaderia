@@ -1,66 +1,105 @@
-using NodaTime;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using App.Application.DTOs;
 using App.Application.Interfaces;
 using App.Domain.Entities;
 using App.Domain.Enums;
+using App.Domain.Exceptions;
 
 namespace App.Application.Services;
 
 public class TranslationService : ITranslationService
 {
-    private readonly IApplicationDbContext _context;
+    private const decimal BalanceTolerance = 0.01m;
 
-    public TranslationService(IApplicationDbContext context)
+    private readonly IApplicationDbContext _context;
+    private readonly IAccountConfigurationService _accountConfigService;
+    private readonly ILogger<TranslationService> _logger;
+
+    public TranslationService(
+        IApplicationDbContext context,
+        IAccountConfigurationService accountConfigService,
+        ILogger<TranslationService> logger)
     {
         _context = context;
+        _accountConfigService = accountConfigService;
+        _logger = logger;
     }
 
     public async Task<IEnumerable<AccountingDraftDto>> TranslateEventToDraftAsync(Guid livestockEventId)
     {
-        // 1. Buscar y Validar
         var eventEntity = await _context.LivestockEvents
             .Include(e => e.EventTemplate)
             .FirstOrDefaultAsync(e => e.Id == livestockEventId);
 
         if (eventEntity == null)
-            throw new InvalidOperationException($"LivestockEvent with ID {livestockEventId} not found.");
+            throw new InvalidOperationException($"LivestockEvent con ID {livestockEventId} no encontrado.");
 
         if (eventEntity.Status != LivestockEventStatus.Draft)
-            throw new InvalidOperationException("Only events in 'Draft' status can be translated.");
+            throw new InvalidOperationException("Solo eventos en estado 'Draft' pueden ser traducidos.");
 
         if (eventEntity.EventTemplate == null)
-            throw new InvalidOperationException("The event does not have an associated template.");
+            throw new InvalidOperationException("El evento no tiene un template asociado.");
 
-        // 2. Generar Asientos según tipo de evento
-        var drafts = BuildDrafts(eventEntity).ToList();
+        var tenantId = eventEntity.TenantId;
+        var eventType = eventEntity.EventTemplate.EventType;
 
-        // 3. Persistir si hay asientos o es Recuento (para validar el evento)
-        if (drafts.Any())
+        // BeginScope correlates all log entries for this translation operation (context7: /dotnet/docs logging)
+        using var scope = _logger.BeginScope(new Dictionary<string, object>
+        {
+            ["TranslationId"] = Guid.NewGuid(),
+            ["TenantId"]      = tenantId,
+            ["EventId"]       = livestockEventId,
+            ["EventType"]     = eventType.ToString()
+        });
+
+        List<AccountingDraft> drafts;
+        try
+        {
+            drafts = (await BuildDraftsAsync(eventEntity)).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Translation ERROR | EventType={EventType} Detail={Detail}",
+                eventType, ex.Message);
+            throw;
+        }
+
+        if (drafts.Count > 0)
+            ValidateBalance(drafts);
+
+        if (drafts.Count > 0)
         {
             _context.AccountingDrafts.AddRange(drafts);
             eventEntity.Status = LivestockEventStatus.Validated;
         }
-        else if (eventEntity.EventTemplate.EventType == EventType.Recuento)
+        else if (eventType == EventType.Recuento)
         {
             eventEntity.Status = LivestockEventStatus.Validated;
         }
 
         await _context.SaveChangesAsync();
 
-        // 4. Mapear y Retornar
+        var totalDebit = drafts.Sum(d => d.DebitAmount);
+        var totalCredit = drafts.Sum(d => d.CreditAmount);
+        _logger.LogInformation(
+            "Translation OK | User={User} DEBE={TotalDebit:F2} HABER={TotalCredit:F2}",
+            eventEntity.CreatedBy, totalDebit, totalCredit);
+
         return drafts.Select(d => new AccountingDraftDto(
-            d.Id,
-            d.TenantId,
-            d.LivestockEventId,
-            d.AccountCode,
-            d.Concept,
-            d.DebitAmount,
-            d.CreditAmount
-        ));
+            d.Id, d.TenantId, d.LivestockEventId, d.AccountCode, d.Concept, d.DebitAmount, d.CreditAmount));
     }
 
-    private IEnumerable<AccountingDraft> BuildDrafts(LivestockEvent ev)
+    private static void ValidateBalance(IList<AccountingDraft> drafts)
+    {
+        var totalDebit = drafts.Sum(d => d.DebitAmount);
+        var totalCredit = drafts.Sum(d => d.CreditAmount);
+        if (Math.Abs(totalDebit - totalCredit) > BalanceTolerance)
+            throw new UnbalancedAccountingEntryException(totalDebit, totalCredit);
+    }
+
+    private async Task<IEnumerable<AccountingDraft>> BuildDraftsAsync(LivestockEvent ev)
     {
         var tipo = ev.EventTemplate!.EventType;
         var concept = $"Ref: {ev.EventTemplate.Name} - Campo: {ev.CostCenterCode} - Cabezas: {ev.HeadCount}";
@@ -68,7 +107,6 @@ public class TranslationService : ITranslationService
         var heads = ev.HeadCount;
         var kg = ev.EstimatedWeightKg;
 
-        // Mapa simple: la mayoría de tipos usan el par fijo del template
         var simpleTipos = new HashSet<EventType> {
             EventType.Apertura, EventType.Nacimiento, EventType.Destete,
             EventType.Compra, EventType.Venta, EventType.Mortandad, EventType.Consumo
@@ -79,76 +117,105 @@ public class TranslationService : ITranslationService
 
         return tipo switch
         {
-            EventType.Traslado => BuildTraslado(ev, concept, amount, heads, kg),
-            EventType.CambioActividad => BuildCambioActividad(ev, concept, amount, heads, kg),
-            EventType.CambioCategoria => BuildCambioCategoria(ev, concept, amount, heads, kg),
-            EventType.AjusteKg => BuildAjusteKg(ev, concept, kg),
-            EventType.Recuento => Enumerable.Empty<AccountingDraft>(),
+            EventType.Traslado      => await BuildTrasladoAsync(ev, concept, amount, heads, kg),
+            EventType.CambioActividad => await BuildCambioActividadAsync(ev, concept, amount, heads, kg),
+            EventType.CambioCategoria => await BuildCambioCategoriaAsync(ev, concept, amount, heads, kg),
+            EventType.AjusteKg      => await BuildAjusteKgAsync(ev, concept, kg),
+            EventType.Recuento      => Enumerable.Empty<AccountingDraft>(),
             _ => BuildSimplePair(ev, concept, amount, heads, kg)
         };
     }
 
-    private IEnumerable<AccountingDraft> BuildSimplePair(LivestockEvent ev, string concept, decimal amount, int heads, decimal kg)
+    private IEnumerable<AccountingDraft> BuildSimplePair(
+        LivestockEvent ev, string concept, decimal amount, int heads, decimal kg)
     {
         return new[]
         {
-            MakeDraft(ev, ev.EventTemplate!.DebitAccountCode, concept, amount, 0, heads, kg, "DEBE"),
-            MakeDraft(ev, ev.EventTemplate!.CreditAccountCode, concept, 0, amount, heads, kg, "HABER")
+            MakeDraft(ev, ev.EventTemplate!.DebitAccountCode,  concept, amount, 0,      heads, kg, "DEBE"),
+            MakeDraft(ev, ev.EventTemplate!.CreditAccountCode, concept, 0,      amount, heads, kg, "HABER")
         };
     }
 
-    private IEnumerable<AccountingDraft> BuildTraslado(LivestockEvent ev, string concept, decimal amount, int heads, decimal kg)
+    private async Task<IEnumerable<AccountingDraft>> BuildTrasladoAsync(
+        LivestockEvent ev, string concept, decimal amount, int heads, decimal kg)
     {
+        var (debit, credit) = await _accountConfigService.GetAccountCodesAsync(
+            ev.TenantId, EventType.Traslado,
+            defaultDebitAccountCode: ev.EventTemplate?.DebitAccountCode,
+            defaultCreditAccountCode: ev.EventTemplate?.CreditAccountCode);
+
         return new[]
         {
-            MakeDraft(ev, "ACT001", concept, amount, 0, heads, kg, "DEBE", fieldId: ev.DestinationFieldId),
-            MakeDraft(ev, "ACT001", concept, 0, amount, heads, kg, "HABER", fieldId: ev.FieldId)
+            MakeDraft(ev, debit,  concept, amount, 0,      heads, kg, "DEBE",  fieldId: ev.DestinationFieldId),
+            MakeDraft(ev, credit, concept, 0,      amount, heads, kg, "HABER", fieldId: ev.FieldId)
         };
     }
 
-    private IEnumerable<AccountingDraft> BuildAjusteKg(LivestockEvent ev, string concept, decimal kg)
+    private async Task<IEnumerable<AccountingDraft>> BuildAjusteKgAsync(
+        LivestockEvent ev, string concept, decimal kg)
     {
         var absKg = Math.Abs(kg);
-        return kg >= 0
-            ? new[]
-              {
-                  MakeDraft(ev, "ACT001", concept, absKg, 0, 0, absKg, "DEBE"),
-                  MakeDraft(ev, "RES008", concept, 0, absKg, 0, absKg, "HABER")
-              }
-            : new[]
-              {
-                  MakeDraft(ev, "RES008", concept, absKg, 0, 0, absKg, "DEBE"),
-                  MakeDraft(ev, "ACT001", concept, 0, absKg, 0, absKg, "HABER")
-              };
+        var (debit, credit) = await _accountConfigService.GetAccountCodesAsync(
+            ev.TenantId, EventType.AjusteKg);
+
+        if (kg >= 0)
+        {
+            return new[]
+            {
+                MakeDraft(ev, debit,  concept, absKg, 0,     0, absKg, "DEBE"),
+                MakeDraft(ev, credit, concept, 0,     absKg, 0, absKg, "HABER")
+            };
+        }
+        else
+        {
+            // Ajuste negativo: se invierten las cuentas
+            return new[]
+            {
+                MakeDraft(ev, credit, concept, absKg, 0,     0, absKg, "DEBE"),
+                MakeDraft(ev, debit,  concept, 0,     absKg, 0, absKg, "HABER")
+            };
+        }
     }
 
-    private IEnumerable<AccountingDraft> BuildCambioActividad(LivestockEvent ev, string concept, decimal amount, int heads, decimal kg)
+    private async Task<IEnumerable<AccountingDraft>> BuildCambioActividadAsync(
+        LivestockEvent ev, string concept, decimal amount, int heads, decimal kg)
     {
+        var (debit, credit) = await _accountConfigService.GetAccountCodesAsync(
+            ev.TenantId, EventType.CambioActividad,
+            defaultDebitAccountCode: ev.EventTemplate?.DebitAccountCode,
+            defaultCreditAccountCode: ev.EventTemplate?.CreditAccountCode);
+
         return new[]
         {
-            MakeDraft(ev, "ACT001", concept, amount, 0, heads, kg, "DEBE", activityId: ev.DestinationActivityId),
-            MakeDraft(ev, "ACT001", concept, 0, amount, heads, kg, "HABER", activityId: ev.OriginActivityId)
+            MakeDraft(ev, debit,  concept, amount, 0,      heads, kg, "DEBE",  activityId: ev.DestinationActivityId),
+            MakeDraft(ev, credit, concept, 0,      amount, heads, kg, "HABER", activityId: ev.OriginActivityId)
         };
     }
 
-    private IEnumerable<AccountingDraft> BuildCambioCategoria(LivestockEvent ev, string concept, decimal amount, int heads, decimal kg)
+    private async Task<IEnumerable<AccountingDraft>> BuildCambioCategoriaAsync(
+        LivestockEvent ev, string concept, decimal amount, int heads, decimal kg)
     {
+        var (debit, credit) = await _accountConfigService.GetAccountCodesAsync(
+            ev.TenantId, EventType.CambioCategoria,
+            defaultDebitAccountCode: ev.EventTemplate?.DebitAccountCode,
+            defaultCreditAccountCode: ev.EventTemplate?.CreditAccountCode);
+
         return new[]
         {
-            MakeDraft(ev, "ACT001", concept, amount, 0, heads, kg, "DEBE", categoryId: ev.DestinationCategoryId),
-            MakeDraft(ev, "ACT001", concept, 0, amount, heads, kg, "HABER", categoryId: ev.OriginCategoryId)
+            MakeDraft(ev, debit,  concept, amount, 0,      heads, kg, "DEBE",  categoryId: ev.DestinationCategoryId),
+            MakeDraft(ev, credit, concept, 0,      amount, heads, kg, "HABER", categoryId: ev.OriginCategoryId)
         };
     }
 
-    private AccountingDraft MakeDraft(
-        LivestockEvent ev, 
-        string accountCode, 
-        string concept, 
-        decimal debit, 
-        decimal credit, 
-        int heads, 
-        decimal kg, 
-        string entryType, 
+    private static AccountingDraft MakeDraft(
+        LivestockEvent ev,
+        string accountCode,
+        string concept,
+        decimal debit,
+        decimal credit,
+        int heads,
+        decimal kg,
+        string entryType,
         Guid? fieldId = null,
         Guid? activityId = null,
         Guid? categoryId = null)

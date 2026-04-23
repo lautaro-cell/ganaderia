@@ -20,6 +20,12 @@ message EventTemplate {
   string icon = 3;
   repeated string fields = 4;
   string color_code = 5;
+  bool is_configured = 6;
+  bool requires_origin_destination = 7;
+  bool requires_destination_field = 8;
+  string debit_account_code = 9;
+  string credit_account_code = 10;
+  string code = 11;
 }
 
 message GetTemplatesRequest { string tenant_id = 1; }
@@ -58,6 +64,8 @@ message GetEventsRequest {
   string tenant_id = 1;
   google.protobuf.Timestamp start_date = 2;
   google.protobuf.Timestamp end_date = 3;
+  int32 page_index = 4;
+  int32 page_size = 5;
 }
 
 message EventDetail {
@@ -72,4 +80,7 @@ message EventDetail {
   string type_code = 9;
 }
 
-message EventList { repeated EventDetail events = 1; }
+message EventList {
+  repeated EventDetail events = 1;
+  int32 total_count = 2;
+}

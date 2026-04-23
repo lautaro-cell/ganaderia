@@ -10,10 +10,12 @@ namespace App.Domain.Entities;
 public class Activity : BaseAuditableEntity
 {
     public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
     public Guid? TenantId { get; set; } // null = global (compartida entre tenants)
     public bool IsGlobal { get; set; } = false;
 
     public Tenant? Tenant { get; set; }
     public ICollection<AnimalCategory> AnimalCategories { get; set; } = new List<AnimalCategory>();
+    public ICollection<ActivityAnimalCategory> ActivityAnimalCategories { get; set; } = new List<ActivityAnimalCategory>();
 }
 

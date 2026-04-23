@@ -17,6 +17,9 @@ message LedgerFilter {
   int32 page_size = 4;
   string search_term = 5;
   string tenant_id = 6;
+  string account_code = 7;
+  string category_id = 8;
+  string field_id = 9;
 }
 
 message LedgerEntry {
@@ -29,13 +32,20 @@ message LedgerEntry {
   string entry_type = 7;
   int32 head_count = 8;
   string weight_kg = 9;
+  string livestock_event_id = 10;
+  string field_name = 11;
+  string category_name = 12;
+  double debit_amount = 13;
+  double credit_amount = 14;
 }
 
 message GetBalanceRequest {
   string tenant_id = 1;
-  google.protobuf.Timestamp date = 2;
+  google.protobuf.Timestamp date = 2;       // fecha de corte (end)
   string field_id = 3;
-  string category_view = 4; // "cliente" o "gestor"
+  string category_view = 4;                 // "cliente" o "gestor"
+  string category_id = 5;
+  google.protobuf.Timestamp start_date = 6; // inicio del período
 }
 
 message BalanceItem {
@@ -48,6 +58,8 @@ message BalanceItem {
   double debit_total = 7;
   double credit_total = 8;
   double net_balance = 9;
+  string account_group = 10;        // "ACTIVO" | "PASIVO" | "RESULTADO"
+  double weight_kg_movement = 11;   // KG bruto (suma sin signo)
 }
 
 message BalanceReport {

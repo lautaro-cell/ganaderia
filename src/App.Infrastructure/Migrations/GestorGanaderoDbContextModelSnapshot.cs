@@ -71,6 +71,56 @@ namespace App.Infrastructure.Migrations
                     b.ToTable("Accounts");
                 });
 
+            modelBuilder.Entity("App.Domain.Entities.AccountConfiguration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Instant>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CreditAccountCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("DebitAccountCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("EventType")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Instant?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "EventType")
+                        .IsUnique()
+                        .HasDatabaseName("IX_AccountConfig_Tenant_EventType");
+
+                    b.ToTable("AccountConfigurations", (string)null);
+                });
+
             modelBuilder.Entity("App.Domain.Entities.AccountingDraft", b =>
                 {
                     b.Property<Guid>("Id")
@@ -162,6 +212,9 @@ namespace App.Infrastructure.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
 
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
                     b.Property<bool>("IsGlobal")
                         .HasColumnType("boolean");
 
@@ -183,6 +236,38 @@ namespace App.Infrastructure.Migrations
                     b.HasIndex("TenantId");
 
                     b.ToTable("Activities");
+                });
+
+            modelBuilder.Entity("App.Domain.Entities.ActivityAnimalCategory", b =>
+                {
+                    b.Property<Guid>("ActivityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AnimalCategoryId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("ActivityId", "AnimalCategoryId");
+
+                    b.HasIndex("AnimalCategoryId")
+                        .HasDatabaseName("IX_ActivityAnimalCategories_CategoryId");
+
+                    b.ToTable("ActivityAnimalCategories", (string)null);
+                });
+
+            modelBuilder.Entity("App.Domain.Entities.ActivityEventType", b =>
+                {
+                    b.Property<Guid>("ActivityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("EventType")
+                        .HasColumnType("integer");
+
+                    b.HasKey("ActivityId", "EventType");
+
+                    b.HasIndex("EventType")
+                        .HasDatabaseName("IX_ActivityEventTypes_EventType");
+
+                    b.ToTable("ActivityEventTypes", (string)null);
                 });
 
             modelBuilder.Entity("App.Domain.Entities.AnimalCategory", b =>
@@ -336,7 +421,8 @@ namespace App.Infrastructure.Migrations
 
                     b.Property<string>("Code")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<Instant>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -346,11 +432,13 @@ namespace App.Infrastructure.Migrations
 
                     b.Property<string>("CreditAccountCode")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("DebitAccountCode")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<int>("EventType")
                         .HasColumnType("integer");
@@ -360,7 +448,8 @@ namespace App.Infrastructure.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<bool>("RequiresDestinationField")
                         .HasColumnType("boolean");
@@ -379,9 +468,30 @@ namespace App.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TenantId");
+                    b.HasIndex("TenantId", "Code")
+                        .IsUnique()
+                        .HasDatabaseName("IX_EventTemplate_Tenant_Code");
 
-                    b.ToTable("EventTemplates");
+                    b.HasIndex("TenantId", "EventType")
+                        .IsUnique()
+                        .HasDatabaseName("IX_EventTemplate_Tenant_EventType");
+
+                    b.ToTable("EventTemplates", (string)null);
+                });
+
+            modelBuilder.Entity("App.Domain.Entities.EventTemplateActivity", b =>
+                {
+                    b.Property<Guid>("EventTemplateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ActivityId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("EventTemplateId", "ActivityId");
+
+                    b.HasIndex("ActivityId");
+
+                    b.ToTable("EventTemplateActivities");
                 });
 
             modelBuilder.Entity("App.Domain.Entities.ExternalCatalog", b =>
@@ -427,6 +537,10 @@ namespace App.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<decimal?>("AreaHectares")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
                     b.Property<Instant>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -436,8 +550,17 @@ namespace App.Infrastructure.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("text");
 
+                    b.Property<double?>("GpsLatitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("GpsLongitude")
+                        .HasColumnType("double precision");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("LegalName")
+                        .HasColumnType("text");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -457,6 +580,21 @@ namespace App.Infrastructure.Migrations
                     b.HasIndex("TenantId");
 
                     b.ToTable("Fields");
+                });
+
+            modelBuilder.Entity("App.Domain.Entities.FieldActivity", b =>
+                {
+                    b.Property<Guid>("FieldId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ActivityId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("FieldId", "ActivityId");
+
+                    b.HasIndex("ActivityId");
+
+                    b.ToTable("FieldActivities");
                 });
 
             modelBuilder.Entity("App.Domain.Entities.GestorMaxConfig", b =>
@@ -487,6 +625,15 @@ namespace App.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("LastSyncAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastSyncError")
+                        .HasColumnType("text");
+
+                    b.Property<bool?>("LastSyncOk")
                         .HasColumnType("boolean");
 
                     b.Property<string>("LastTestError")
@@ -693,6 +840,15 @@ namespace App.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<Instant?>("LastLoginAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("text");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("text");
@@ -716,6 +872,21 @@ namespace App.Infrastructure.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("App.Domain.Entities.UserField", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("FieldId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("UserId", "FieldId");
+
+                    b.HasIndex("FieldId");
+
+                    b.ToTable("UserFields");
+                });
+
             modelBuilder.Entity("App.Domain.Entities.Account", b =>
                 {
                     b.HasOne("App.Domain.Entities.PlanCuenta", "Plan")
@@ -731,6 +902,17 @@ namespace App.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Plan");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("App.Domain.Entities.AccountConfiguration", b =>
+                {
+                    b.HasOne("App.Domain.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Tenant");
                 });
@@ -779,6 +961,36 @@ namespace App.Infrastructure.Migrations
                         .HasForeignKey("TenantId");
 
                     b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("App.Domain.Entities.ActivityAnimalCategory", b =>
+                {
+                    b.HasOne("App.Domain.Entities.Activity", "Activity")
+                        .WithMany()
+                        .HasForeignKey("ActivityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("App.Domain.Entities.AnimalCategory", "AnimalCategory")
+                        .WithMany()
+                        .HasForeignKey("AnimalCategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Activity");
+
+                    b.Navigation("AnimalCategory");
+                });
+
+            modelBuilder.Entity("App.Domain.Entities.ActivityEventType", b =>
+                {
+                    b.HasOne("App.Domain.Entities.Activity", "Activity")
+                        .WithMany()
+                        .HasForeignKey("ActivityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Activity");
                 });
 
             modelBuilder.Entity("App.Domain.Entities.AnimalCategory", b =>
@@ -833,10 +1045,29 @@ namespace App.Infrastructure.Migrations
                     b.HasOne("App.Domain.Entities.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("App.Domain.Entities.EventTemplateActivity", b =>
+                {
+                    b.HasOne("App.Domain.Entities.Activity", "Activity")
+                        .WithMany()
+                        .HasForeignKey("ActivityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("App.Domain.Entities.EventTemplate", "EventTemplate")
+                        .WithMany()
+                        .HasForeignKey("EventTemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Activity");
+
+                    b.Navigation("EventTemplate");
                 });
 
             modelBuilder.Entity("App.Domain.Entities.ExternalCatalog", b =>
@@ -859,6 +1090,25 @@ namespace App.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("App.Domain.Entities.FieldActivity", b =>
+                {
+                    b.HasOne("App.Domain.Entities.Activity", "Activity")
+                        .WithMany()
+                        .HasForeignKey("ActivityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("App.Domain.Entities.Field", "Field")
+                        .WithMany("FieldActivities")
+                        .HasForeignKey("FieldId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Activity");
+
+                    b.Navigation("Field");
                 });
 
             modelBuilder.Entity("App.Domain.Entities.GestorMaxConfig", b =>
@@ -931,6 +1181,25 @@ namespace App.Infrastructure.Migrations
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("App.Domain.Entities.UserField", b =>
+                {
+                    b.HasOne("App.Domain.Entities.Field", "Field")
+                        .WithMany()
+                        .HasForeignKey("FieldId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("App.Domain.Entities.User", "User")
+                        .WithMany("UserFields")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Field");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("App.Domain.Entities.Activity", b =>
                 {
                     b.Navigation("AnimalCategories");
@@ -938,6 +1207,8 @@ namespace App.Infrastructure.Migrations
 
             modelBuilder.Entity("App.Domain.Entities.Field", b =>
                 {
+                    b.Navigation("FieldActivities");
+
                     b.Navigation("LivestockEvents");
                 });
 
@@ -949,6 +1220,11 @@ namespace App.Infrastructure.Migrations
             modelBuilder.Entity("App.Domain.Entities.PlanCuenta", b =>
                 {
                     b.Navigation("Accounts");
+                });
+
+            modelBuilder.Entity("App.Domain.Entities.User", b =>
+                {
+                    b.Navigation("UserFields");
                 });
 #pragma warning restore 612, 618
         }

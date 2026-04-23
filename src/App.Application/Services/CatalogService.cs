@@ -22,7 +22,11 @@ public class CatalogService : ICatalogService
     public async Task<IEnumerable<FieldDto>> GetFieldsAsync()
     {
         return await _context.Fields
-            .Select(f => new FieldDto(f.Id, f.Name, f.Description, f.IsActive, f.TenantId))
+            .Include(f => f.FieldActivities)
+            .Select(f => new FieldDto(
+                f.Id, f.Name, f.Description, f.IsActive, f.TenantId,
+                f.LegalName, f.AreaHectares, f.GpsLatitude, f.GpsLongitude,
+                f.FieldActivities.Select(fa => fa.ActivityId).ToList()))
             .ToListAsync();
     }
 
@@ -32,10 +36,20 @@ public class CatalogService : ICatalogService
         {
             Name = dto.Name,
             Description = dto.Description,
+            LegalName = dto.LegalName,
+            AreaHectares = dto.AreaHectares,
+            GpsLatitude = dto.GpsLatitude,
+            GpsLongitude = dto.GpsLongitude,
             TenantId = _tenantProvider.TenantId,
             IsActive = true
         };
         _context.Fields.Add(field);
+        await _context.SaveChangesAsync();
+
+        if (dto.ActivityIds != null)
+            foreach (var aid in dto.ActivityIds)
+                _context.FieldActivities.Add(new FieldActivity { FieldId = field.Id, ActivityId = aid });
+
         await _context.SaveChangesAsync();
         return field.Id;
     }
@@ -44,11 +58,23 @@ public class CatalogService : ICatalogService
     {
         var field = await _context.Fields.FindAsync(dto.Id);
         if (field == null) throw new KeyNotFoundException("Campo no encontrado");
-        
+
         field.Name = dto.Name;
         field.Description = dto.Description;
+        field.LegalName = dto.LegalName;
+        field.AreaHectares = dto.AreaHectares;
+        field.GpsLatitude = dto.GpsLatitude;
+        field.GpsLongitude = dto.GpsLongitude;
         field.IsActive = dto.IsActive;
-        
+
+        if (dto.ActivityIds != null)
+        {
+            var existing = await _context.FieldActivities.Where(fa => fa.FieldId == dto.Id).ToListAsync();
+            foreach (var fa in existing) _context.FieldActivities.Remove(fa);
+            foreach (var aid in dto.ActivityIds)
+                _context.FieldActivities.Add(new FieldActivity { FieldId = dto.Id, ActivityId = aid });
+        }
+
         await _context.SaveChangesAsync();
     }
 
@@ -66,7 +92,11 @@ public class CatalogService : ICatalogService
     public async Task<IEnumerable<ActivityDto>> GetActivitiesAsync()
     {
         return await _context.Activities
-            .Select(a => new ActivityDto(a.Id, a.Name, a.TenantId == null, a.TenantId))
+            .Include(a => a.ActivityAnimalCategories)
+            .Select(a => new ActivityDto(
+                a.Id, a.Name, a.TenantId == null, a.TenantId, a.Description,
+                a.ActivityAnimalCategories.Select(ac => ac.AnimalCategoryId).ToList(),
+                null))
             .ToListAsync();
     }
 
@@ -75,9 +105,20 @@ public class CatalogService : ICatalogService
         var activity = new Activity
         {
             Name = dto.Name,
+            Description = dto.Description,
             TenantId = dto.IsGlobal ? null : _tenantProvider.TenantId
         };
         _context.Activities.Add(activity);
+        await _context.SaveChangesAsync();
+
+        if (dto.CategoryIds != null)
+            foreach (var cid in dto.CategoryIds)
+                _context.ActivityAnimalCategories.Add(new ActivityAnimalCategory { ActivityId = activity.Id, AnimalCategoryId = cid });
+
+        if (dto.EventTypeIds != null)
+            foreach (var etId in dto.EventTypeIds)
+                _context.EventTemplateActivities.Add(new EventTemplateActivity { EventTemplateId = etId, ActivityId = activity.Id });
+
         await _context.SaveChangesAsync();
         return activity.Id;
     }
@@ -87,6 +128,24 @@ public class CatalogService : ICatalogService
         var activity = await _context.Activities.FindAsync(dto.Id);
         if (activity == null) throw new KeyNotFoundException("Actividad no encontrada");
         activity.Name = dto.Name;
+        activity.Description = dto.Description;
+
+        if (dto.CategoryIds != null)
+        {
+            var existing = await _context.ActivityAnimalCategories.Where(ac => ac.ActivityId == dto.Id).ToListAsync();
+            foreach (var ac in existing) _context.ActivityAnimalCategories.Remove(ac);
+            foreach (var cid in dto.CategoryIds)
+                _context.ActivityAnimalCategories.Add(new ActivityAnimalCategory { ActivityId = dto.Id, AnimalCategoryId = cid });
+        }
+
+        if (dto.EventTypeIds != null)
+        {
+            var existing = await _context.EventTemplateActivities.Where(eta => eta.ActivityId == dto.Id).ToListAsync();
+            foreach (var eta in existing) _context.EventTemplateActivities.Remove(eta);
+            foreach (var etId in dto.EventTypeIds)
+                _context.EventTemplateActivities.Add(new EventTemplateActivity { EventTemplateId = etId, ActivityId = dto.Id });
+        }
+
         await _context.SaveChangesAsync();
     }
 
@@ -185,7 +244,11 @@ public class CatalogService : ICatalogService
     {
         return await _context.EventTemplates
             .Where(e => e.TenantId == tenantId)
-            .Select(e => new EventTypeDto(e.Id, e.Code, e.Name, e.DebitAccountCode, e.CreditAccountCode, e.RequiresOriginDestination, e.RequiresDestinationField, e.IsActive, tenantId))
+            .Include(e => e.EventTemplateActivities)
+            .Select(e => new EventTypeDto(
+                e.Id, e.Code, e.Name, e.DebitAccountCode, e.CreditAccountCode,
+                e.RequiresOriginDestination, e.RequiresDestinationField, e.IsActive, tenantId,
+                e.EventTemplateActivities.Select(eta => eta.ActivityId).ToList()))
             .ToListAsync();
     }
 
@@ -218,6 +281,15 @@ public class CatalogService : ICatalogService
         et.RequiresOriginDestination = dto.RequiresOriginDestination;
         et.RequiresDestinationField = dto.RequiresDestinationField;
         et.IsActive = dto.IsActive;
+
+        if (dto.ActivityIds != null)
+        {
+            var existing = await _context.EventTemplateActivities.Where(eta => eta.EventTemplateId == dto.Id).ToListAsync();
+            foreach (var eta in existing) _context.EventTemplateActivities.Remove(eta);
+            foreach (var aid in dto.ActivityIds)
+                _context.EventTemplateActivities.Add(new EventTemplateActivity { EventTemplateId = dto.Id, ActivityId = aid });
+        }
+
         await _context.SaveChangesAsync();
     }
 
