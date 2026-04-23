@@ -58,11 +58,11 @@ VALUES
 -- =====================================================
 -- EVENT TEMPLATES
 -- =====================================================
-INSERT INTO "EventTemplates" ("Id","TenantId","Name","EventType","DebitAccountCode","CreditAccountCode","IsActive","CreatedAt")
+INSERT INTO "EventTemplates" ("Id","TenantId","Name","EventType","DebitAccountCode","CreditAccountCode","Code","IsActive","CreatedAt")
 VALUES
-('e1111111-1111-1111-1111-111111111111','11111111-1111-1111-1111-111111111111','Marcación / Nacimiento',1,'1110','4110',true,now()),
-('e1111111-1111-1111-1111-111111111112','11111111-1111-1111-1111-111111111111','Pesaje de Control',2,'1110','1110',true,now()),
-('e2222222-2222-2222-2222-222222222221','22222222-2222-2222-2222-222222222222','Inseminación',3,'5110','2110',true,now());
+('e1111111-1111-1111-1111-111111111111','11111111-1111-1111-1111-111111111111','Marcación / Nacimiento',1,'1110','4110','NAC',true,now()),
+('e1111111-1111-1111-1111-111111111112','11111111-1111-1111-1111-111111111111','Pesaje de Control',2,'1110','1110','PES',true,now()),
+('e2222222-2222-2222-2222-222222222221','22222222-2222-2222-2222-222222222222','Inseminación',3,'5110','2110','INS',true,now());
 
 -- =====================================================
 -- LIVESTOCK EVENTS (Historical & Current)

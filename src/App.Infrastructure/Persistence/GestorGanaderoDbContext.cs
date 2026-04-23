@@ -105,6 +105,21 @@ public class GestorGanaderoDbContext : DbContext, IApplicationDbContext
             b.Property(e => e.AreaHectares).HasPrecision(12, 2);
         });
 
+        // --- Join: ActivityAnimalCategory ---
+        modelBuilder.Entity<ActivityAnimalCategory>(b =>
+        {
+            b.HasKey(ac => new { ac.ActivityId, ac.AnimalCategoryId });
+            b.HasOne(ac => ac.Activity).WithMany(a => a.ActivityAnimalCategories).HasForeignKey(ac => ac.ActivityId);
+            b.HasOne(ac => ac.AnimalCategory).WithMany().HasForeignKey(ac => ac.AnimalCategoryId);
+        });
+
+        // --- Join: ActivityEventType ---
+        modelBuilder.Entity<ActivityEventType>(b =>
+        {
+            b.HasKey(ae => new { ae.ActivityId, ae.EventType });
+            b.HasOne(ae => ae.Activity).WithMany().HasForeignKey(ae => ae.ActivityId);
+        });
+
         // --- Join: FieldActivity ---
         modelBuilder.Entity<FieldActivity>(b =>
         {
@@ -117,7 +132,7 @@ public class GestorGanaderoDbContext : DbContext, IApplicationDbContext
         modelBuilder.Entity<EventTemplateActivity>(b =>
         {
             b.HasKey(eta => new { eta.EventTemplateId, eta.ActivityId });
-            b.HasOne(eta => eta.EventTemplate).WithMany().HasForeignKey(eta => eta.EventTemplateId);
+            b.HasOne(eta => eta.EventTemplate).WithMany(et => et.EventTemplateActivities).HasForeignKey(eta => eta.EventTemplateId);
             b.HasOne(eta => eta.Activity).WithMany().HasForeignKey(eta => eta.ActivityId);
         });
 
