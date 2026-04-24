@@ -13,13 +13,9 @@ public static class DatabaseSeeder
         var context = scope.ServiceProvider.GetRequiredService<GestorGanaderoDbContext>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<GestorGanaderoDbContext>>();
 
-        try 
+        try
         {
-            // 1. Aplicar migraciones pendientes
-            await context.Database.MigrateAsync();
-            logger.LogInformation("Migraciones aplicadas correctamente.");
-
-            // 2. Limpiar base de datos (Reset)
+            // 1. Limpiar base de datos (Reset)
             await context.Database.ExecuteSqlRawAsync(@"
                 TRUNCATE TABLE ""AccountingDrafts"" RESTART IDENTITY CASCADE;
                 TRUNCATE TABLE ""LivestockEvents"" RESTART IDENTITY CASCADE;

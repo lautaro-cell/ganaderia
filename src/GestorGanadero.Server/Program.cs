@@ -7,6 +7,7 @@ using App.Infrastructure.Persistence;
 using App.Infrastructure.Services;
 using App.Infrastructure.ExternalProviders;
 using GestorGanadero.Server.Grpc;
+using GestorGanadero.Server.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -75,6 +76,8 @@ builder.Services.AddAntiforgery();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+await app.MigrateDatabaseAsync();
 
 if (app.Environment.IsDevelopment())
 {
