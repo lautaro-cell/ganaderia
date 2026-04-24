@@ -552,6 +552,16 @@
                       <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">expand_more</span>
                     </div>
                   </label>
+                  <label id="actividadSimpleField" class="flex flex-col gap-2">
+                    <span class="text-white text-sm font-medium">Actividad</span>
+                    <div class="relative">
+                      <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">agriculture</span>
+                      <select id="actividadSimple" name="actividadSimple" class="form-select w-full bg-[#271c1c] border-[#543b3b] rounded-xl text-white focus:ring-primary focus:border-primary h-12 pl-10 pr-10">
+                        <option value="">Seleccionar campo primero...</option>
+                      </select>
+                      <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">expand_more</span>
+                    </div>
+                  </label>
                   <label id="categoriaSimpleField" class="flex flex-col gap-2">
                     <span class="text-white text-sm font-medium">Categoría Animal <span class="text-primary">*</span></span>
                     <div class="relative">
@@ -641,9 +651,32 @@
                   <textarea id="observaciones" name="observaciones" rows="3" class="w-full bg-surface-darker border border-border-input rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all resize-none" placeholder="Detalles adicionales sobre el evento..."></textarea>
                 </label>
                 
+                <!-- Preview de asiento -->
+                <div id="previewAsiento" class="hidden p-4 rounded-xl bg-[#1f1515] border border-[#543b3b]">
+                  <h4 class="text-sm font-semibold text-text-secondary mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-lg">receipt_long</span>
+                    Vista previa del asiento
+                  </h4>
+                  <div id="previewAsientoError" class="hidden text-red-400 text-sm mb-2 p-2 bg-red-900/20 rounded-lg"></div>
+                  <table class="w-full text-sm">
+                    <thead>
+                      <tr class="border-b border-[#392828]">
+                        <th class="text-left text-text-secondary pb-2 font-medium">Cuenta</th>
+                        <th class="text-right text-text-secondary pb-2 font-medium">DEBE</th>
+                        <th class="text-right text-text-secondary pb-2 font-medium">HABER</th>
+                      </tr>
+                    </thead>
+                    <tbody id="previewAsientoBody"></tbody>
+                  </table>
+                </div>
+
                 <!-- Actions -->
                 <div class="flex justify-end gap-4 pt-4 border-t border-border-dark">
                   <button type="button" id="cancelEventBtn" class="h-12 px-6 rounded-lg border border-border-dark text-white font-medium hover:bg-surface-darker transition-colors">Cancelar</button>
+                  <button type="button" id="previewEventBtn" class="h-12 px-6 rounded-lg border border-[#543b3b] text-text-secondary hover:bg-[#271c1c] hover:text-white font-medium transition-colors flex items-center gap-2">
+                    <span class="material-symbols-outlined text-lg">receipt_long</span>
+                    Previsualizar
+                  </button>
                   <button type="submit" id="submitEventBtn" class="h-12 px-6 rounded-lg bg-primary hover:bg-red-700 text-white font-bold shadow-lg shadow-primary/20 transition-colors flex items-center gap-2">
                     <span class="material-symbols-outlined">save</span>
                     Guardar Evento
@@ -748,9 +781,10 @@
                 <thead>
                   <tr class="bg-[#271c1c]">
                     <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-[#392828]">Fecha</th>
+                    <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-[#392828]">Tipo Evento</th>
                     <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-[#392828]">Campo</th>
-                    <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-[#392828]">Cuenta Contable</th>
                     <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-[#392828]">Categoría</th>
+                    <th rowspan="2" class="px-4 py-3 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-[#392828]">Cuenta Contable</th>
                     <th colspan="2" class="px-4 py-2 text-center text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-[#392828] border-l border-l-[#392828]">Movimiento de Cabezas</th>
                     <th colspan="2" class="px-4 py-2 text-center text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-[#392828] border-l border-l-[#392828]">Movimiento de Kilos</th>
                     <th rowspan="2" class="px-4 py-3 text-right text-xs font-semibold text-text-secondary uppercase tracking-wider border-b border-[#392828] border-l border-l-[#392828]">Kg/Cab</th>
@@ -831,11 +865,13 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <label class="flex flex-col gap-2">
                 <span class="text-text-secondary text-xs font-bold uppercase tracking-wider">Periodo Contable</span>
-                <div class="relative">
+                <div id="balanceMesWrapper" class="relative hidden">
                   <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">calendar_month</span>
-                  <select id="balanceMes" class="form-select w-full rounded-lg bg-[#271c1c] border-[#543b3b] text-white pl-10 h-11 focus:ring-primary focus:border-primary text-sm">
-                    <option value="">Todos los periodos</option>
-                  </select>
+                  <input type="month" id="balanceMes" class="form-input w-full rounded-lg bg-[#271c1c] border-[#543b3b] text-white pl-10 h-11 focus:ring-primary focus:border-primary text-sm">
+                </div>
+                <div id="balanceFechaCorteWrapper" class="relative">
+                  <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">event</span>
+                  <input type="date" id="balanceFechaCorte" class="form-input w-full rounded-lg bg-[#271c1c] border-[#543b3b] text-white pl-10 h-11 focus:ring-primary focus:border-primary text-sm">
                 </div>
               </label>
               <label class="flex flex-col gap-2">
@@ -862,6 +898,15 @@
                   <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">landscape</span>
                   <select id="balanceCampo" class="form-select w-full rounded-lg bg-[#271c1c] border-[#543b3b] text-white pl-10 h-11 focus:ring-primary focus:border-primary text-sm">
                     <option value="">Todos</option>
+                  </select>
+                </div>
+              </label>
+              <label class="flex flex-col gap-2">
+                <span class="text-text-secondary text-xs font-bold uppercase tracking-wider">Categoría</span>
+                <div class="relative">
+                  <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">category</span>
+                  <select id="balanceCategoria" class="form-select w-full rounded-lg bg-[#271c1c] border-[#543b3b] text-white pl-10 h-11 focus:ring-primary focus:border-primary text-sm">
+                    <option value="">Todas</option>
                   </select>
                 </div>
               </label>
@@ -1068,11 +1113,27 @@
           <!-- Admin Categorias Mapeo -->
           <div id="adminCategoriasMapeo" class="admin-content hidden">
             <div class="bg-[#1E1818] rounded-xl p-6 md:p-8 border border-[#392828]">
-              <div class="flex items-center gap-3 mb-2">
-                <span class="material-symbols-outlined text-primary text-2xl">sync_alt</span>
-                <h2 class="text-white text-xl font-bold">Mapeo de Categorías</h2>
+              <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                  <span class="material-symbols-outlined text-primary text-2xl">sync_alt</span>
+                  <h2 class="text-white text-xl font-bold">Mapeo de Categorías</h2>
+                </div>
+                
+                <!-- Badge Conectividad Gestor Max -->
+                <div id="gestorConnectivityPanel" class="flex items-center gap-3 bg-[#271c1c] border border-[#392828] rounded-xl px-4 py-2">
+                  <div class="flex flex-col">
+                    <span class="text-[10px] text-text-secondary uppercase tracking-wider">Gestor Max</span>
+                    <div id="gestorStatusBadge" class="flex items-center gap-1.5">
+                      <span class="w-2 h-2 rounded-full bg-gray-500"></span>
+                      <span class="text-sm font-medium text-text-secondary">Cargando...</span>
+                    </div>
+                  </div>
+                  <button id="btnTestGestorActive" class="w-8 h-8 rounded-lg bg-[#392828] hover:bg-primary text-white flex items-center justify-center transition-all shadow-lg shadow-primary/10" title="Probar conexión ahora">
+                    <span class="material-symbols-outlined text-sm">network_check</span>
+                  </button>
+                </div>
               </div>
-              <p class="text-text-secondary text-sm mb-4">Asigne categorías del cliente a categorías de consolidación (Gestor) para reportes unificados.</p>
+              <p class="text-text-secondary text-sm mb-6">Asigne categorías del cliente a categorías de consolidación (Gestor) para reportes unificados.</p>
               
               <!-- Status Cards -->
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">

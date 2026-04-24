@@ -108,7 +108,9 @@ CREATE TABLE tipos_evento (
     nombre VARCHAR(100) NOT NULL,
     plan_cuenta_id INTEGER REFERENCES planes_cuenta(id),
     requiere_origen_destino BOOLEAN DEFAULT FALSE,
-    requiere_campo_destino BOOLEAN DEFAULT FALSE
+    requiere_campo_destino BOOLEAN DEFAULT FALSE,
+    cuenta_debe_id INTEGER REFERENCES cuentas(id),
+    cuenta_haber_id INTEGER REFERENCES cuentas(id)
 );
 
 -- CATEGORIAS (tipo CLIENTE y GESTOR)

@@ -54,20 +54,23 @@ CROSS JOIN planes_cuenta pc WHERE pc.codigo = 'RES'
 ON CONFLICT (codigo) DO NOTHING;
 
 -- TIPOS DE EVENTO BASE
-INSERT INTO tipos_evento (codigo, nombre, plan_cuenta_id, requiere_origen_destino, requiere_campo_destino)
-SELECT v.codigo, v.nombre, pc.id, v.req_od, v.req_cd
+INSERT INTO tipos_evento (codigo, nombre, plan_cuenta_id, requiere_origen_destino, requiere_campo_destino, cuenta_debe_id, cuenta_haber_id)
+SELECT
+  v.codigo, v.nombre, pc.id, v.req_od, v.req_cd,
+  (SELECT id FROM cuentas WHERE codigo = v.cod_debe),
+  (SELECT id FROM cuentas WHERE codigo = v.cod_haber)
 FROM (VALUES
-    ('APERTURA', 'Apertura de Stock', FALSE, FALSE),
-    ('COMPRA', 'Compra', FALSE, FALSE),
-    ('VENTA', 'Venta', FALSE, FALSE),
-    ('NACIMIENTO', 'Nacimiento', FALSE, FALSE),
-    ('MORTANDAD', 'Mortandad', FALSE, FALSE),
-    ('CAMBIO_CATEGORIA', 'Cambio de Categoría', TRUE, FALSE),
-    ('CAMBIO_ACTIVIDAD', 'Cambio de Actividad', TRUE, FALSE),
-    ('TRANSFERENCIA', 'Transferencia entre Campos', FALSE, TRUE),
-    ('AJUSTE_KG', 'Ajuste de Kilogramos', FALSE, FALSE),
-    ('RECUENTO', 'Recuento/Ajuste de Stock', FALSE, FALSE)
-) AS v(codigo, nombre, req_od, req_cd)
+    ('APERTURA',         'Apertura de Stock',           FALSE, FALSE, 'ACT001', 'PN001'),
+    ('COMPRA',           'Compra',                      FALSE, FALSE, 'ACT001', 'RES002'),
+    ('VENTA',            'Venta',                       FALSE, FALSE, 'RES001', 'ACT001'),
+    ('NACIMIENTO',       'Nacimiento',                  FALSE, FALSE, 'ACT001', 'PN001'),
+    ('MORTANDAD',        'Mortandad',                   FALSE, FALSE, 'RES003', 'ACT001'),
+    ('CAMBIO_CATEGORIA', 'Cambio de Categoría',         TRUE,  FALSE, 'ACT001', 'ACT001'),
+    ('CAMBIO_ACTIVIDAD', 'Cambio de Actividad',         TRUE,  FALSE, 'ACT001', 'ACT001'),
+    ('TRANSFERENCIA',    'Transferencia entre Campos',  FALSE, TRUE,  'ACT001', 'ACT001'),
+    ('AJUSTE_KG',        'Ajuste de Kilogramos',        FALSE, FALSE, 'ACT001', 'RES008'),
+    ('RECUENTO',         'Recuento/Ajuste de Stock',    FALSE, FALSE, NULL,     NULL)
+) AS v(codigo, nombre, req_od, req_cd, cod_debe, cod_haber)
 CROSS JOIN planes_cuenta pc WHERE pc.codigo = 'ACT'
 ON CONFLICT (codigo) DO NOTHING;
 

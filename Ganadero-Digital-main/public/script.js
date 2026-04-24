@@ -5,6 +5,8 @@ let catalogs = {};
 let adminData = {};
 let editingItem = { type: null, id: null };
 let balanceMode = 'acumulado';
+let balanceMesSeleccionado = new Date().toISOString().substring(0, 7);
+let balanceFechaCorte = new Date().toISOString().split('T')[0];
 let mayorCategoriaView = 'cliente';
 let balanceCategoriaView = 'cliente';
 let balanceData = { balance: [], meses: [] };
@@ -586,6 +588,81 @@ function updateDynamicFields() {
   document.getElementById('campoDestino').required = requiereCampoDestino;
 }
 
+async function loadPreviewAsiento() {
+  const previewEl = document.getElementById('previewAsiento');
+  const previewBodyEl = document.getElementById('previewAsientoBody');
+  const previewErrorEl = document.getElementById('previewAsientoError');
+  if (!previewEl) return;
+
+  const tipoEventoId = document.getElementById('tipoEvento').value;
+  if (!tipoEventoId) {
+    showNotification('Seleccione un tipo de evento para previsualizar', 'error');
+    return;
+  }
+
+  const tipoSelect = document.getElementById('tipoEvento');
+  const requiereOrigenDestino = tipoSelect.options[tipoSelect.selectedIndex]?.dataset.requiereOrigenDestino === 'true';
+
+  const previewData = {
+    tipo_evento_id: parseInt(tipoEventoId),
+    campo_id: parseInt(document.getElementById('campo').value) || null,
+    cabezas: parseInt(document.getElementById('cabezas').value) || 0,
+    kg_cabeza: parseFloat(document.getElementById('kgCabeza').value) || null,
+    kg_totales: parseFloat(document.getElementById('kgTotales').value) || null
+  };
+
+  if (requiereOrigenDestino) {
+    previewData.actividad_origen_id = parseInt(document.getElementById('actividadOrigen').value) || null;
+    previewData.actividad_destino_id = parseInt(document.getElementById('actividadDestino').value) || null;
+    previewData.categoria_origen_id = parseInt(document.getElementById('categoriaOrigen').value) || null;
+    previewData.categoria_destino_id = parseInt(document.getElementById('categoriaDestino').value) || null;
+  } else {
+    previewData.categoria_id = parseInt(document.getElementById('categoria').value) || null;
+    previewData.actividad_origen_id = parseInt(document.getElementById('actividadSimple').value) || null;
+  }
+
+  try {
+    const res = await fetch('/api/eventos/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(previewData)
+    });
+    const data = await res.json();
+
+    previewEl.classList.remove('hidden');
+
+    if (!res.ok) {
+      previewErrorEl.textContent = data.error || 'Error al generar vista previa';
+      previewErrorEl.classList.remove('hidden');
+      previewBodyEl.innerHTML = '';
+      return;
+    }
+
+    previewErrorEl.classList.add('hidden');
+
+    if (!data.asientos || data.asientos.length === 0) {
+      previewBodyEl.innerHTML = '<tr><td colspan="3" class="text-text-secondary text-center py-3 italic">Este tipo de evento no genera asientos contables</td></tr>';
+      return;
+    }
+
+    previewBodyEl.innerHTML = data.asientos.map(a => {
+      const cuentaLabel = `<span class="font-mono text-xs text-primary">${escapeHtml(a.cuenta_codigo || '')}</span> ${escapeHtml(a.cuenta_nombre || '')}`;
+      const valor = `${a.cabezas ?? 0} cab${a.kg ? ` / ${Number(a.kg).toFixed(2)} kg` : ''}`;
+      return `<tr class="border-b border-[#392828] last:border-0">
+        <td class="py-2 text-white text-sm">${cuentaLabel}</td>
+        <td class="py-2 text-right font-mono text-green-400 text-sm">${a.tipo === 'DEBE' ? valor : ''}</td>
+        <td class="py-2 text-right font-mono text-blue-400 text-sm">${a.tipo === 'HABER' ? valor : ''}</td>
+      </tr>`;
+    }).join('');
+  } catch (err) {
+    previewEl.classList.remove('hidden');
+    previewErrorEl.textContent = 'Error de conexión: ' + err.message;
+    previewErrorEl.classList.remove('hidden');
+    previewBodyEl.innerHTML = '';
+  }
+}
+
 let eventosCache = [];
 
 async function deleteEvento(id) {
@@ -833,7 +910,7 @@ let mayorData = { asientos: [], total: 0 };
 let mayorPage = 1;
 const mayorPageSize = 10;
 
-async function loadLedger() {
+async function loadMayor() {
   const tbody = document.getElementById('mayorTableBody');
   const mes = document.getElementById('mayorMes')?.value;
   const campoId = document.getElementById('mayorCampo')?.value;
@@ -845,8 +922,17 @@ async function loadLedger() {
     tbody.innerHTML = '<tr><td colspan="11" class="px-4 py-8 text-center text-text-secondary"><span class="material-symbols-outlined animate-spin mr-2">sync</span>Cargando datos...</td></tr>';
   }
 
-  let endpoint = '/ledger';
-  const params = [];
+  const params = new URLSearchParams();
+  
+  if (mes && mes !== 'Todos' && mes !== '') {
+    params.set('mes', mes);
+  }
+  if (campoId && campoId !== '') params.set('campo_id', campoId);
+  if (categoriaId && categoriaId !== '') params.set('categoria_id', categoriaId);
+  if (cuentaId && cuentaId !== '') params.set('cuenta_id', cuentaId);
+  if (mayorCategoriaView === 'gestor') params.set('categoria_view', 'gestor');
+
+  const params = new URLSearchParams();
   
   // Si hay un mes seleccionado, calcular rango desde/hasta
   if (mes && mes !== 'Todos' && mes !== '') {
@@ -854,14 +940,17 @@ async function loadLedger() {
     const firstDay = `${year}-${month}-01`;
     const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
     const lastDayFormatted = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
-    params.push('desde=' + firstDay);
-    params.push('hasta=' + lastDayFormatted);
+    params.set('desde', firstDay);
+    params.set('hasta', lastDayFormatted);
   }
-  if (campoId && campoId !== '') params.push('campo_id=' + campoId);
-  if (categoriaId && categoriaId !== '') params.push('categoria_id=' + categoriaId);
-  if (cuentaId && cuentaId !== '') params.push('cuenta_id=' + cuentaId);
-  if (mayorCategoriaView === 'gestor') params.push('categoria_view=gestor');
-  if (params.length) endpoint += '?' + params.join('&');
+  if (campoId && campoId !== '') params.set('campo_id', campoId);
+  if (categoriaId && categoriaId !== '') params.set('categoria_id', categoriaId);
+  if (cuentaId && cuentaId !== '') params.set('cuenta_id', cuentaId);
+  if (mayorCategoriaView === 'gestor') params.set('categoria_view', 'gestor');
+
+  let endpoint = '/ledger';
+  const queryString = params.toString();
+  if (queryString) endpoint += '?' + queryString;
 
   try {
     const data = await api(endpoint);
@@ -939,11 +1028,12 @@ function renderMayorTable() {
     const isExistenciaHacienda = (a.cuenta_nombre || '').toLowerCase().includes('existencia') || 
                                   (a.cuenta_nombre || '').toLowerCase().includes('ganado');
     const cuentaClass = isExistenciaHacienda ? 'text-primary font-semibold' : 'text-text-secondary';
-    const referencia = a.tipo_evento_codigo || a.tipo_evento_nombre || '-';
+    const tipoEvento = a.tipo_evento_nombre || '-';
 
     html += `
       <tr class="hover:bg-[#271c1c]/50 transition-colors">
         <td class="px-4 py-3 text-sm text-white">${escapeHtml(fecha)}</td>
+        <td class="px-4 py-3 text-sm text-white">${escapeHtml(tipoEvento)}</td>
         <td class="px-4 py-3 text-sm text-white">${escapeHtml(a.campo_nombre || '-')}</td>
         <td class="px-4 py-3 text-sm ${cuentaClass}">${escapeHtml(a.cuenta_nombre || '-')}</td>
         <td class="px-4 py-3 text-sm text-text-secondary">${escapeHtml(a.categoria_nombre || 'General')}</td>
@@ -951,8 +1041,6 @@ function renderMayorTable() {
         <td class="px-4 py-3 text-sm text-right font-mono font-medium text-red-500">${haberCab !== '' ? formatNum(haberCab) : '-'}</td>
         <td class="px-4 py-3 text-sm text-right font-mono font-medium text-green-500 border-l border-[#392828]">${debeKg !== '' ? formatKg(debeKg) : '-'}</td>
         <td class="px-4 py-3 text-sm text-right font-mono font-medium text-red-500">${haberKg !== '' ? formatKg(haberKg) : '-'}</td>
-        <td class="px-4 py-3 text-sm text-right font-mono text-text-secondary border-l border-[#392828]">${escapeHtml(kgCabeza)}</td>
-        <td class="px-4 py-3 text-sm text-text-secondary">${escapeHtml(referencia)}</td>
       </tr>`;
   });
 
@@ -972,7 +1060,6 @@ function updateMayorTotals(debeCab, haberCab, debeKg, haberKg) {
       <td class="px-4 py-4 text-right font-bold text-red-500 font-mono">${formatNum(haberCab)}</td>
       <td class="px-4 py-4 text-right font-bold text-green-500 font-mono border-l border-[#392828]">${formatKg(debeKg)}</td>
       <td class="px-4 py-4 text-right font-bold text-red-500 font-mono">${formatKg(haberKg)}</td>
-      <td colspan="2"></td>
     </tr>`;
 }
 
@@ -1018,7 +1105,7 @@ window.cambiarPaginaMayor = function(delta) {
 
 window.aplicarFiltrosMayor = function() {
   mayorPage = 1;
-  loadLedger();
+  loadMayor();
 };
 
 window.limpiarFiltrosMayor = function() {
@@ -1039,7 +1126,7 @@ window.limpiarFiltrosMayor = function() {
   
   // Disparar nueva petición al servidor con filtros limpios
   console.log('[Mayor] Restableciendo filtros y recargando datos del servidor...');
-  loadLedger();
+  loadMayor();
   showNotification('Filtros restablecidos', 'info');
 };
 
@@ -1050,32 +1137,41 @@ window.exportMayorCSV = function() {
     return;
   }
 
-  const empresaNombre = currentUser?.active_tenant_nombre || 'Dolores_Herrera_Vegas_SRL';
-  const fechaReporte = new Date().toISOString().split('T')[0];
-  
-  let csv = 'Fecha;Campo;Cuenta Contable;Categoria;Debe Cab;Haber Cab;Debe Kg;Haber Kg;Kg/Cab;Referencia\n';
-  asientos.forEach(a => {
-    const fecha = a.fecha ? a.fecha.split('T')[0] : '';
-    const debeCab = a.tipo === 'DEBE' ? (a.cabezas || 0) : '';
-    const haberCab = a.tipo === 'HABER' ? (a.cabezas || 0) : '';
-    const debeKg = a.tipo === 'DEBE' ? (a.kg || '') : '';
-    const haberKg = a.tipo === 'HABER' ? (a.kg || '') : '';
-    const campo = (a.campo_nombre || '').replace(/;/g, ',');
-    const cuenta = (a.cuenta_nombre || '').replace(/;/g, ',');
-    const categoria = (a.categoria_nombre || '').replace(/;/g, ',');
-    const referencia = (a.tipo_evento_nombre || '').replace(/;/g, ',');
-    csv += `${fecha};${campo};${cuenta};${categoria};${debeCab};${haberCab};${debeKg};${haberKg};${a.kg_cabeza || ''};${referencia}\n`;
-  });
+  const q = cell => `"${String(cell ?? '').replace(/"/g, '""')}"`;
 
-  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  const headers = [
+    'Fecha', 'ID Asiento', 'Tipo Evento', 'Campo', 'Actividad',
+    'Categor\u00eda', 'Cuenta C\u00f3digo', 'Cuenta Nombre', 'Plan',
+    'Tipo', 'Cabezas', 'Kg', 'Kg/Cabeza'
+  ];
+
+  const rows = asientos.map(a => [
+    a.fecha ? a.fecha.split('T')[0] : '',
+    a.id ?? '',
+    a.tipo_evento_nombre ?? '',
+    a.campo_nombre ?? '',
+    a.actividad_nombre ?? '',
+    a.categoria_nombre ?? '',
+    a.cuenta_codigo ?? '',
+    a.cuenta_nombre ?? '',
+    a.plan_nombre ?? '',
+    a.tipo ?? '',
+    a.cabezas ?? '',
+    a.kg ?? '',
+    a.kg_cabeza ?? ''
+  ]);
+
+  const csvContent = [headers, ...rows]
+    .map(row => row.map(q).join(','))
+    .join('\n');
+
+  const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  const empresaSlug = empresaNombre.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
-  link.download = `Mayor_${empresaSlug}_${fechaReporte}.csv`;
-  document.body.appendChild(link);
+  link.href = url;
+  link.download = `mayor_${new Date().toISOString().split('T')[0]}.csv`;
   link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(link.href);
+  URL.revokeObjectURL(url);
   showNotification('Archivo CSV exportado correctamente');
 };
 
@@ -1084,79 +1180,48 @@ window.nuevoAsiento = function() {
   showNotification('Registre un nuevo evento para generar asientos contables', 'info');
 };
 
+function getBalanceDateRange() {
+  if (balanceMode === 'mes') {
+    const [year, month] = balanceMesSeleccionado.split('-').map(Number);
+    const desde = `${year}-${String(month).padStart(2, '0')}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const hasta = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    return { desde, hasta };
+  }
+  const corte = balanceFechaCorte || new Date().toISOString().split('T')[0];
+  const desde = `${corte.substring(0, 4)}-01-01`;
+  return { desde, hasta: corte };
+}
+
 async function loadBalance() {
   const container = document.getElementById('balanceTree');
-  const campoId = document.getElementById('balanceCampo')?.value;
-  const mesId = document.getElementById('balanceMes')?.value;
-
-  // Mostrar estado de carga
   if (container) {
     container.innerHTML = '<p class="p-8 text-center text-text-secondary"><span class="material-symbols-outlined animate-spin mr-2">sync</span>Cargando balance...</p>';
   }
 
-  const params = [];
-  if (campoId && campoId !== '') params.push('campo_id=' + campoId);
-  
-  // Si es modo "mes" y hay un mes seleccionado, calcular rango desde/hasta
-  if (balanceMode === 'mes' && mesId && mesId !== '') {
-    const [year, month] = mesId.split('-');
-    const firstDay = `${year}-${month}-01`;
-    const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
-    const lastDayFormatted = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
-    params.push('desde=' + firstDay);
-    params.push('hasta=' + lastDayFormatted);
-  }
-  // Si es modo "acumulado", no se envían parámetros de fecha (trae todo el histórico)
-  if (balanceCategoriaView === 'gestor') params.push('categoria_view=gestor');
+  const { desde, hasta } = getBalanceDateRange();
+  const campoId = document.getElementById('balanceCampo')?.value || '';
+  const categoriaId = document.getElementById('balanceCategoria')?.value || '';
 
-  let endpoint = '/balance';
-  if (params.length) endpoint += '?' + params.join('&');
+  const params = new URLSearchParams({ desde, hasta });
+  if (campoId) params.set('campo_id', campoId);
+  if (categoriaId) params.set('categoria_id', categoriaId);
+  if (balanceCategoriaView === 'gestor') params.set('categoria_view', 'gestor');
 
   try {
-    const data = await api(endpoint);
+    const data = await api(`/balance?${params.toString()}`);
 
     if (data.error) {
-      container.innerHTML = '<p class="p-8 text-center text-text-secondary">Seleccione un cliente para ver el balance</p>';
+      if (container) container.innerHTML = '<p class="p-8 text-center text-text-secondary">Seleccione un cliente para ver el balance</p>';
       return;
     }
 
     balanceData = data;
-
-    if (data.meses && data.meses.length > 0) {
-      const balanceMesSelect = document.getElementById('balanceMes');
-      const currentValue = balanceMesSelect.value;
-      balanceMesSelect.innerHTML = '<option value="">Todos los periodos</option>';
-
-      data.meses.forEach(m => {
-        const opt = document.createElement('option');
-        opt.value = m;
-        opt.textContent = formatMes(m);
-        balanceMesSelect.appendChild(opt);
-      });
-
-      if (currentValue && balanceMode === 'mes') {
-        balanceMesSelect.value = currentValue;
-      } else if (balanceMode === 'acumulado') {
-        balanceMesSelect.value = '';
-      }
-
-      const mayorMesSelect = document.getElementById('mayorMes');
-      if (mayorMesSelect) {
-        mayorMesSelect.innerHTML = '<option value="">Todos</option>';
-        data.meses.forEach(m => {
-          const opt = document.createElement('option');
-          opt.value = m;
-          opt.textContent = m;
-          mayorMesSelect.appendChild(opt);
-        });
-      }
-    }
-
-    console.log('[Balance] Datos cargados:', data.balance?.length || 0, 'registros,', data.meses?.length || 0, 'meses');
-    renderBalanceTree(data.balance || [], data.meses || []);
+    console.log('[Balance] Datos cargados:', data.balance?.length || 0, 'registros');
+    renderBalance(data.balance || []);
   } catch (err) {
     console.error('Error loading balance:', err);
-    container.innerHTML = '<p class="p-8 text-center text-text-secondary">Error al cargar el balance</p>';
+    if (container) container.innerHTML = '<p class="p-8 text-center text-text-secondary">Error al cargar el balance</p>';
   }
 }
 
@@ -1167,31 +1232,25 @@ function formatMes(mes) {
   return monthNames[parseInt(month) - 1] + ' ' + year;
 }
 
-window.setBalanceMode = function(mode, preserveMonth = false) {
+window.setBalanceMode = function(mode) {
   balanceMode = mode;
   const btnMes = document.getElementById('btnMovMes');
   const btnAcum = document.getElementById('btnAcumulado');
-  const balanceMesSelect = document.getElementById('balanceMes');
+  const mesWrapper = document.getElementById('balanceMesWrapper');
+  const corteWrapper = document.getElementById('balanceFechaCorteWrapper');
 
   if (mode === 'mes') {
     btnMes.className = 'flex-1 px-3 py-2.5 text-sm font-medium bg-primary text-white';
     btnAcum.className = 'flex-1 px-3 py-2.5 text-sm font-medium bg-[#271c1c] text-text-secondary hover:text-white transition-colors';
-    if (balanceMesSelect && !preserveMonth) {
-      if (!balanceMesSelect.value && balanceData.meses && balanceData.meses.length > 0) {
-        balanceMesSelect.value = balanceData.meses[balanceData.meses.length - 1];
-      }
-    }
+    mesWrapper?.classList.remove('hidden');
+    corteWrapper?.classList.add('hidden');
   } else {
     btnAcum.className = 'flex-1 px-3 py-2.5 text-sm font-medium bg-primary text-white';
     btnMes.className = 'flex-1 px-3 py-2.5 text-sm font-medium bg-[#271c1c] text-text-secondary hover:text-white transition-colors';
-    if (balanceMesSelect) {
-      balanceMesSelect.value = '';
-    }
+    mesWrapper?.classList.add('hidden');
+    corteWrapper?.classList.remove('hidden');
   }
 
-  console.log('[Balance] Modo cambiado a:', mode, 'Mes seleccionado:', balanceMesSelect?.value || 'ninguno');
-  
-  // Disparar nueva petición al servidor con los parámetros correctos según el modo
   loadBalance();
 };
 
@@ -1209,7 +1268,7 @@ window.setMayorCategoriaView = function(view) {
   }
   
   console.log('[Mayor] Vista de categoría cambiada a:', view);
-  loadLedger();
+  loadMayor();
 };
 
 window.setBalanceCategoriaView = function(view) {
@@ -1245,16 +1304,16 @@ window.exportBalanceCSV = function() {
     return;
   }
   
-  const modoTexto = balanceMode === 'mes' ? 
-    'Movimientos ' + (document.getElementById('balanceMes')?.selectedOptions[0]?.text || '') :
-    'Acumulado Total';
+  const { desde: csvDesde, hasta: csvHasta } = getBalanceDateRange();
+  const modoTexto = balanceMode === 'mes'
+    ? `Movimientos ${formatMes(balanceMesSeleccionado)}`
+    : `Acumulado ${csvDesde} → ${csvHasta}`;
   const campoTexto = document.getElementById('balanceCampo')?.selectedOptions[0]?.text || 'Todos los campos';
   const fechaReporte = new Date().toLocaleDateString('es-AR');
-  const selectedMes = document.getElementById('balanceMes')?.value || '';
-  
+
   const hierarchy = {};
   let stockTotal = { cab: 0, kg: 0 };
-  
+
   data.forEach(row => {
     const planCodigo = row.plan_codigo || 'ACT';
     const planNombre = row.plan_nombre || 'Activo';
@@ -1263,9 +1322,6 @@ window.exportBalanceCSV = function() {
     const cuentaCodigo = row.cuenta_codigo || '';
     const cuentaNombre = row.cuenta_nombre || 'Sin Cuenta';
     const categoriaNombre = row.categoria_nombre || 'Sin Categoria';
-    const mes = row.mes || '';
-    
-    if (balanceMode === 'mes' && selectedMes && mes !== selectedMes) return;
     
     const saldo_cab = parseFloat(row.saldo_cabezas) || 0;
     const saldo_kg = parseFloat(row.saldo_kg) || 0;
@@ -1366,132 +1422,66 @@ window.exportBalanceCSV = function() {
   showNotification('CSV generado correctamente');
 };
 
-function renderBalanceTree(data, meses) {
+function renderBalance(data) {
   const container = document.getElementById('balanceTree');
   if (!data || data.length === 0) {
-    container.innerHTML = '<p class="p-8 text-center text-text-secondary">Sin datos de balance</p>';
+    container.innerHTML = '<p class="p-8 text-center text-text-secondary">Sin datos para el período seleccionado.</p>';
     return;
   }
 
   const searchTerm = (document.getElementById('balanceSearch')?.value || '').toLowerCase();
-  const selectedMes = document.getElementById('balanceMes')?.value || '';
 
-  console.log('[Balance] Renderizando - Modo:', balanceMode, 'Mes:', selectedMes, 'Registros:', data.length);
+  const byPlan = {};
 
-  if (balanceMode === 'mes' && !selectedMes) {
-    container.innerHTML = `
-      <div class="p-8 text-center">
-        <span class="material-symbols-outlined text-4xl text-text-secondary mb-2">calendar_month</span>
-        <p class="text-text-secondary">Seleccione un periodo para ver los movimientos del mes</p>
-      </div>`;
-    return;
-  }
+  data.forEach(r => {
+    const campoNombre = r.campo_nombre || 'SIN CAMPO';
+    const catNombre = r.categoria_nombre || 'SIN CATEGORÍA';
 
-  // Jerarquía correcta: Plan → Campo → Cuenta → Categoría
-  const hierarchy = {};
-  let stockTotal = { cab: 0, kg: 0 }; // Solo Activo
+    if (searchTerm &&
+        !campoNombre.toLowerCase().includes(searchTerm) &&
+        !catNombre.toLowerCase().includes(searchTerm)) return;
 
-  data.forEach(row => {
-    const planCodigo = row.plan_codigo || 'ACT';
-    const planNombre = row.plan_nombre || 'Activo';
-    const campoId = row.campo_id || 0;
-    const campoNombre = row.campo_nombre || 'Sin Campo';
-    const cuentaId = row.cuenta_id || 0;
-    const cuentaCodigo = row.cuenta_codigo || '';
-    const cuentaNombre = row.cuenta_nombre || 'Sin Cuenta';
-    const categoriaNombre = row.categoria_nombre || 'Sin Categoría';
-    const mes = row.mes || '';
+    const planCodigo = r.plan_codigo || 'ACT';
+    const planKey = `${r.plan_codigo} — ${r.plan_nombre}`;
 
-    // Búsqueda por campo, cuenta o categoría
-    if (searchTerm && 
-        !campoNombre.toLowerCase().includes(searchTerm) && 
-        !cuentaNombre.toLowerCase().includes(searchTerm) &&
-        !categoriaNombre.toLowerCase().includes(searchTerm)) {
-      return;
+    if (!byPlan[planCodigo]) byPlan[planCodigo] = { key: planKey, campos: {}, totals: { cab: 0, kg: 0 } };
+    if (!byPlan[planCodigo].campos[campoNombre]) byPlan[planCodigo].campos[campoNombre] = { cats: {}, totals: { cab: 0, kg: 0 } };
+    if (!byPlan[planCodigo].campos[campoNombre].cats[catNombre]) {
+      byPlan[planCodigo].campos[campoNombre].cats[catNombre] = { cab: 0, kg: 0 };
     }
 
-    // En modo Movimientos Mes: solo mostrar el mes seleccionado
-    // Si no hay mes seleccionado, mostrar mensaje para que seleccione uno
-    if (balanceMode === 'mes' && selectedMes) {
-      if (mes !== selectedMes) return;
-    }
+    const saldoCab = Number(r.saldo_cabezas || 0);
+    const saldoKg = Number(r.saldo_kg || 0);
 
-    // Saldo neto = Debe - Haber (ya viene calculado del backend)
-    const saldo_cab = parseFloat(row.saldo_cabezas) || 0;
-    const saldo_kg = parseFloat(row.saldo_kg) || 0;
-
-    // Construir jerarquía
-    if (!hierarchy[planCodigo]) {
-      hierarchy[planCodigo] = { nombre: planNombre, campos: {}, totals: { cab: 0, kg: 0 } };
-    }
-
-    if (!hierarchy[planCodigo].campos[campoId]) {
-      hierarchy[planCodigo].campos[campoId] = { nombre: campoNombre, cuentas: {}, totals: { cab: 0, kg: 0 } };
-    }
-
-    const cuentaKey = cuentaId + '_' + cuentaCodigo;
-    if (!hierarchy[planCodigo].campos[campoId].cuentas[cuentaKey]) {
-      hierarchy[planCodigo].campos[campoId].cuentas[cuentaKey] = { 
-        codigo: cuentaCodigo, 
-        nombre: cuentaNombre, 
-        categorias: {}, 
-        totals: { cab: 0, kg: 0 } 
-      };
-    }
-
-    if (!hierarchy[planCodigo].campos[campoId].cuentas[cuentaKey].categorias[categoriaNombre]) {
-      hierarchy[planCodigo].campos[campoId].cuentas[cuentaKey].categorias[categoriaNombre] = { cab: 0, kg: 0 };
-    }
-
-    // Acumular valores
-    const cat = hierarchy[planCodigo].campos[campoId].cuentas[cuentaKey].categorias[categoriaNombre];
-    cat.cab += saldo_cab;
-    cat.kg += saldo_kg;
-
-    hierarchy[planCodigo].campos[campoId].cuentas[cuentaKey].totals.cab += saldo_cab;
-    hierarchy[planCodigo].campos[campoId].cuentas[cuentaKey].totals.kg += saldo_kg;
-    hierarchy[planCodigo].campos[campoId].totals.cab += saldo_cab;
-    hierarchy[planCodigo].campos[campoId].totals.kg += saldo_kg;
-    hierarchy[planCodigo].totals.cab += saldo_cab;
-    hierarchy[planCodigo].totals.kg += saldo_kg;
-
-    // Stock solo del Activo
-    if (planCodigo === 'ACT') {
-      stockTotal.cab += saldo_cab;
-      stockTotal.kg += saldo_kg;
-    }
+    byPlan[planCodigo].campos[campoNombre].cats[catNombre].cab += saldoCab;
+    byPlan[planCodigo].campos[campoNombre].cats[catNombre].kg += saldoKg;
+    byPlan[planCodigo].campos[campoNombre].totals.cab += saldoCab;
+    byPlan[planCodigo].campos[campoNombre].totals.kg += saldoKg;
+    byPlan[planCodigo].totals.cab += saldoCab;
+    byPlan[planCodigo].totals.kg += saldoKg;
   });
 
-  function formatSaldo(val) {
+  function fmtCab(val) {
     if (val === 0) return '-';
-    const num = parseFloat(val);
-    const formatted = Math.abs(num).toLocaleString('es-AR');
-    return num < 0 ? '(' + formatted + ')' : formatted;
+    const n = parseFloat(val);
+    const s = Math.abs(n).toLocaleString('es-AR');
+    return n < 0 ? `(${s})` : s;
   }
-
-  function formatSaldoKg(val) {
+  function fmtKg(val) {
     if (val === 0) return '-';
-    const num = parseFloat(val);
-    const formatted = Math.abs(num).toLocaleString('es-AR') + ' kg';
-    return num < 0 ? '(' + formatted + ')' : formatted;
+    const n = parseFloat(val);
+    const s = Math.abs(n).toLocaleString('es-AR') + ' kg';
+    return n < 0 ? `(${s})` : s;
   }
-
-  function calcKgProm(cab, kg) {
+  function fmtKgCab(cab, kg) {
     if (Math.abs(cab) < 0.001) return '-';
     return Math.round(Math.abs(kg / cab)) + ' kg';
-  }
-
-  function getPlanDescription(codigo) {
-    if (codigo === 'ACT') return 'Stock ganadero (existencias)';
-    if (codigo === 'PN') return 'Aportes de capital';
-    if (codigo === 'RES') return 'Movimientos del período';
-    return '';
   }
 
   let html = `<table class="w-full text-sm">
     <thead>
       <tr class="border-b border-[#392828]">
-        <th class="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-text-secondary w-1/2">Jerarquía Contable</th>
+        <th class="px-4 py-4 text-left text-xs font-bold uppercase tracking-wider text-text-secondary w-1/2">Plan / Campo / Categoría</th>
         <th class="px-4 py-4 text-right text-xs font-bold uppercase tracking-wider text-text-secondary">Saldo Cabezas</th>
         <th class="px-4 py-4 text-right text-xs font-bold uppercase tracking-wider text-text-secondary">Saldo Kg</th>
         <th class="px-4 py-4 text-right text-xs font-bold uppercase tracking-wider text-text-secondary">Kg/Cab</th>
@@ -1500,154 +1490,116 @@ function renderBalanceTree(data, meses) {
     <tbody>`;
 
   const planOrder = ['ACT', 'PN', 'RES'];
-  const sortedPlans = Object.entries(hierarchy).sort((a, b) => {
-    return (planOrder.indexOf(a[0]) ?? 99) - (planOrder.indexOf(b[0]) ?? 99);
-  });
-
   let rowIndex = 0;
+  let stockTotal = { cab: 0, kg: 0 };
 
-  sortedPlans.forEach(([planCodigo, plan]) => {
-    const planKgProm = planCodigo === 'ACT' ? calcKgProm(plan.totals.cab, plan.totals.kg) : '-';
-    const planDesc = getPlanDescription(planCodigo);
+  planOrder.forEach(planCodigo => {
+    const plan = byPlan[planCodigo];
+    if (!plan) return;
+
     const isActivo = planCodigo === 'ACT';
+    const planIdx = rowIndex;
 
     html += `
       <tr class="bg-[#271c1c] hover:bg-[#322424] cursor-pointer balance-row" data-level="0" data-index="${rowIndex}" data-expanded="true">
         <td class="px-4 py-3 font-bold text-white">
           <span class="inline-flex items-center gap-2">
             <span class="material-symbols-outlined text-lg toggle-icon">expand_more</span>
-            <span>${escapeHtml(plan.nombre)}</span>
+            <span>${escapeHtml(plan.key)}</span>
           </span>
-          <span class="text-text-secondary text-xs ml-2">${escapeHtml(planDesc)}</span>
         </td>
-        <td class="px-4 py-3 text-right font-bold ${isActivo ? 'text-white' : 'text-text-secondary'} font-mono">${formatSaldo(plan.totals.cab)}</td>
-        <td class="px-4 py-3 text-right font-bold ${isActivo ? 'text-white' : 'text-text-secondary'} font-mono">${formatSaldoKg(plan.totals.kg)}</td>
-        <td class="px-4 py-3 text-right font-bold ${isActivo ? 'text-white' : 'text-text-secondary'} font-mono">${planKgProm}</td>
+        <td class="px-4 py-3 text-right font-bold ${isActivo ? 'text-white' : 'text-text-secondary'} font-mono">${fmtCab(plan.totals.cab)}</td>
+        <td class="px-4 py-3 text-right font-bold ${isActivo ? 'text-white' : 'text-text-secondary'} font-mono">${fmtKg(plan.totals.kg)}</td>
+        <td class="px-4 py-3 text-right font-bold ${isActivo ? 'text-white' : 'text-text-secondary'} font-mono">${isActivo ? fmtKgCab(plan.totals.cab, plan.totals.kg) : '-'}</td>
       </tr>`;
+    rowIndex++;
 
-    const planIdx = rowIndex++;
+    const sortedCampos = Object.entries(plan.campos).sort((a, b) => a[0].localeCompare(b[0]));
+    sortedCampos.forEach(([campoNombre, campo]) => {
+      const campoIdx = rowIndex;
 
-    const sortedCampos = Object.entries(plan.campos).sort((a, b) => a[1].nombre.localeCompare(b[1].nombre));
-    sortedCampos.forEach(([campoId, campo]) => {
-      const campoKgProm = isActivo ? calcKgProm(campo.totals.cab, campo.totals.kg) : '-';
       html += `
         <tr class="hover:bg-[#1E1818] cursor-pointer balance-row child-of-${planIdx}" data-level="1" data-index="${rowIndex}" data-expanded="true" data-parent="${planIdx}">
           <td class="px-4 py-3 text-white">
             <span class="inline-flex items-center gap-2 pl-6">
               <span class="material-symbols-outlined text-lg toggle-icon">expand_more</span>
-              <span>${escapeHtml(campo.nombre)}</span>
-              <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-[#392828] text-text-secondary">Centro Costo</span>
+              <span>${escapeHtml(campoNombre)}</span>
+              <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-[#392828] text-text-secondary">Campo</span>
             </span>
           </td>
-          <td class="px-4 py-3 text-right text-white font-mono">${formatSaldo(campo.totals.cab)}</td>
-          <td class="px-4 py-3 text-right text-white font-mono">${formatSaldoKg(campo.totals.kg)}</td>
-          <td class="px-4 py-3 text-right text-white font-mono">${campoKgProm}</td>
+          <td class="px-4 py-3 text-right font-semibold text-white font-mono">${fmtCab(campo.totals.cab)}</td>
+          <td class="px-4 py-3 text-right font-semibold text-white font-mono">${fmtKg(campo.totals.kg)}</td>
+          <td class="px-4 py-3 text-right font-semibold text-white font-mono">${isActivo ? fmtKgCab(campo.totals.cab, campo.totals.kg) : '-'}</td>
         </tr>`;
+      rowIndex++;
 
-      const campoIdx = rowIndex++;
-
-      // Nivel de CUENTA CONTABLE (en lugar de actividad)
-      const sortedCuentas = Object.entries(campo.cuentas).sort((a, b) => (a[1].codigo || '').localeCompare(b[1].codigo || ''));
-      sortedCuentas.forEach(([cuentaKey, cuenta]) => {
-        const cuentaKgProm = isActivo ? calcKgProm(cuenta.totals.cab, cuenta.totals.kg) : '-';
-        const cuentaLabel = cuenta.codigo ? `${escapeHtml(cuenta.codigo)} - ${escapeHtml(cuenta.nombre)}` : escapeHtml(cuenta.nombre);
+      const sortedCats = Object.entries(campo.cats).sort((a, b) => a[0].localeCompare(b[0]));
+      sortedCats.forEach(([catNombre, cat]) => {
         html += `
-          <tr class="hover:bg-[#1E1818] cursor-pointer balance-row child-of-${campoIdx}" data-level="2" data-index="${rowIndex}" data-expanded="true" data-parent="${campoIdx}">
-            <td class="px-4 py-2.5 text-text-secondary">
+          <tr class="hover:bg-[#1E1818] balance-row child-of-${campoIdx}" data-level="2" data-index="${rowIndex}" data-parent="${campoIdx}">
+            <td class="px-4 py-2 text-text-secondary">
               <span class="inline-flex items-center gap-2 pl-12">
-                <span class="material-symbols-outlined text-lg toggle-icon">expand_more</span>
-                <span class="material-symbols-outlined text-base text-primary">account_balance</span>
-                <span>${cuentaLabel}</span>
+                <span class="w-2 h-2 rounded-full bg-primary flex-shrink-0"></span>
+                <span>${escapeHtml(catNombre)}</span>
               </span>
             </td>
-            <td class="px-4 py-2.5 text-right text-text-secondary font-mono">${formatSaldo(cuenta.totals.cab)}</td>
-            <td class="px-4 py-2.5 text-right text-text-secondary font-mono">${formatSaldoKg(cuenta.totals.kg)}</td>
-            <td class="px-4 py-2.5 text-right text-text-secondary font-mono">${cuentaKgProm}</td>
+            <td class="px-4 py-2 text-right text-text-secondary font-mono">${fmtCab(cat.cab)}</td>
+            <td class="px-4 py-2 text-right text-text-secondary font-mono">${fmtKg(cat.kg)}</td>
+            <td class="px-4 py-2 text-right text-text-secondary font-mono">${isActivo ? fmtKgCab(cat.cab, cat.kg) : '-'}</td>
           </tr>`;
-
-        const cuentaIdx = rowIndex++;
-
-        // Nivel de CATEGORÍA
-        const sortedCats = Object.entries(cuenta.categorias).sort((a, b) => a[0].localeCompare(b[0]));
-        sortedCats.forEach(([catNombre, cat]) => {
-          const catKgProm = isActivo ? calcKgProm(cat.cab, cat.kg) : '-';
-          html += `
-            <tr class="hover:bg-[#1E1818] balance-row child-of-${cuentaIdx}" data-level="3" data-index="${rowIndex}" data-parent="${cuentaIdx}">
-              <td class="px-4 py-2 text-text-secondary">
-                <span class="inline-flex items-center gap-2 pl-[72px]">
-                  <span class="w-2.5 h-2.5 rounded-full bg-primary"></span>
-                  <span>${escapeHtml(catNombre)}</span>
-                </span>
-              </td>
-              <td class="px-4 py-2 text-right text-text-secondary font-mono">${formatSaldo(cat.cab)}</td>
-              <td class="px-4 py-2 text-right text-text-secondary font-mono">${formatSaldoKg(cat.kg)}</td>
-              <td class="px-4 py-2 text-right text-text-secondary font-mono">${catKgProm}</td>
-            </tr>`;
-          rowIndex++;
-        });
+        rowIndex++;
       });
     });
+
+    if (isActivo) {
+      stockTotal.cab = plan.totals.cab;
+      stockTotal.kg = plan.totals.kg;
+    }
   });
 
-  // Totales solo del ACTIVO (stock real)
-  const stockKgProm = calcKgProm(stockTotal.cab, stockTotal.kg);
-  let mesLabel = 'Acumulado Total';
-  if (balanceMode === 'mes') {
-    mesLabel = selectedMes ? formatMes(selectedMes) + ' - Movimientos' : 'Seleccione un mes';
-  }
-
-  const hasData = stockTotal.cab !== 0 || stockTotal.kg !== 0 || Object.keys(hierarchy).length > 0;
-  if (!hasData && balanceMode === 'mes' && !selectedMes) {
-    container.innerHTML = '<p class="p-8 text-center text-text-secondary">Seleccione un período para ver los movimientos del mes</p>';
-    return;
-  }
+  const { desde, hasta } = getBalanceDateRange();
+  const periodoLabel = balanceMode === 'mes'
+    ? `${formatMes(balanceMesSeleccionado)} — Movimientos`
+    : `${desde} → ${hasta} — Acumulado`;
 
   html += `
     <tr class="bg-green-900/30 border-t-2 border-green-600">
       <td class="px-4 py-4">
         <span class="font-bold text-white">STOCK TOTAL (Activo)</span>
-        <span class="text-text-secondary text-xs block">${mesLabel} - Solo existencias del plan Activo</span>
+        <span class="text-text-secondary text-xs block">${escapeHtml(periodoLabel)}</span>
       </td>
-      <td class="px-4 py-4 text-right font-bold text-green-400 font-mono text-lg">${formatSaldo(stockTotal.cab)}</td>
-      <td class="px-4 py-4 text-right font-bold text-green-400 font-mono">${formatSaldoKg(stockTotal.kg)}</td>
-      <td class="px-4 py-4 text-right font-bold text-green-400 font-mono">${stockKgProm}</td>
+      <td class="px-4 py-4 text-right font-bold text-green-400 font-mono text-lg">${fmtCab(stockTotal.cab)}</td>
+      <td class="px-4 py-4 text-right font-bold text-green-400 font-mono">${fmtKg(stockTotal.kg)}</td>
+      <td class="px-4 py-4 text-right font-bold text-green-400 font-mono">${fmtKgCab(stockTotal.cab, stockTotal.kg)}</td>
     </tr>`;
 
   html += '</tbody></table>';
   container.innerHTML = html;
 
   function collapseAllChildren(parentIdx) {
-    const children = container.querySelectorAll('.child-of-' + parentIdx);
-    children.forEach(child => {
+    container.querySelectorAll('.child-of-' + parentIdx).forEach(child => {
       child.classList.add('hidden');
       child.dataset.expanded = 'false';
       const childIcon = child.querySelector('.toggle-icon');
       if (childIcon) childIcon.textContent = 'chevron_right';
-
       const childIdx = child.dataset.index;
       if (childIdx) collapseAllChildren(childIdx);
     });
   }
 
   container.onclick = function(e) {
-    const row = e.target.closest('.balance-row[data-level="0"], .balance-row[data-level="1"], .balance-row[data-level="2"]');
+    const row = e.target.closest('.balance-row[data-level="0"], .balance-row[data-level="1"]');
     if (!row) return;
     e.stopPropagation();
-    
     const idx = row.dataset.index;
     const isExpanded = row.dataset.expanded === 'true';
-    row.dataset.expanded = !isExpanded;
-
+    row.dataset.expanded = String(!isExpanded);
     const icon = row.querySelector('.toggle-icon');
     if (icon) icon.textContent = isExpanded ? 'chevron_right' : 'expand_more';
-
     if (isExpanded) {
       collapseAllChildren(idx);
     } else {
-      const children = container.querySelectorAll('.child-of-' + idx);
-      children.forEach(child => {
-        child.classList.remove('hidden');
-      });
+      container.querySelectorAll('.child-of-' + idx).forEach(child => child.classList.remove('hidden'));
     }
   };
 }
@@ -1770,6 +1722,72 @@ window._testGestorImpl = async function(id) {
   } catch (err) {
     showNotification(err.message || 'Error al probar conexión', 'error');
     console.error('Test exception:', err);
+  }
+};
+
+async function loadGestorStatus() {
+  const badge = document.getElementById('gestorStatusBadge');
+  if (!badge) return;
+  
+  try {
+    const status = await api('/admin/gestor/status');
+    
+    if (!status.configured) {
+      badge.innerHTML = `
+        <span class="w-2 h-2 rounded-full bg-gray-500"></span>
+        <span class="text-sm font-medium text-text-secondary">Sin Configurar</span>
+      `;
+      return;
+    }
+    
+    if (status.last_test_ok) {
+      badge.innerHTML = `
+        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+        <span class="text-sm font-medium text-green-400">Operativo</span>
+      `;
+      badge.title = 'Última prueba: ' + new Date(status.last_test_at).toLocaleString();
+    } else {
+      badge.innerHTML = `
+        <span class="w-2 h-2 rounded-full bg-red-500"></span>
+        <span class="text-sm font-medium text-red-400">Error de Conexión</span>
+      `;
+      badge.title = 'Error: ' + (status.last_test_error || 'Desconocido');
+    }
+  } catch (err) {
+    console.error('Error loading Gestor status:', err);
+    badge.innerHTML = `
+      <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+      <span class="text-sm font-medium text-amber-400">Error de red</span>
+    `;
+  }
+}
+
+window._testGestorActiveImpl = async function() {
+  try {
+    const btn = document.getElementById('btnTestGestorActive');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="material-symbols-outlined text-sm animate-spin">refresh</span>';
+    }
+    
+    showNotification('Probando conexión con Gestor Max...', 'warning');
+    const result = await api('/admin/gestor/test-connection', { method: 'POST' });
+    
+    if (result.ok) {
+      showNotification('Conexión Exitosa: ' + result.total + ' conceptos encontrados', 'success');
+    } else {
+      showNotification('Error de conexión: ' + (result.message || 'Error desconocido'), 'error');
+    }
+    
+    await loadGestorStatus();
+  } catch (err) {
+    showNotification(err.message || 'Error al probar conexión', 'error');
+  } finally {
+    const btn = document.getElementById('btnTestGestorActive');
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span class="material-symbols-outlined text-sm">network_check</span>';
+    }
   }
 };
 
@@ -1909,17 +1927,29 @@ async function loadAdminData() {
       });
     }
 
-    const tiposEventoRows = (tiposEvento.tipos_evento || []).map(te => renderTableRow([
-      `<span class="font-mono font-bold text-primary">${escapeHtml(te.codigo)}</span>`,
-      escapeHtml(te.nombre),
-      te.requiere_origen_destino ? '<span class="text-green-400">Sí</span>' : '<span class="text-text-secondary">No</span>',
-      te.requiere_campo_destino ? '<span class="text-green-400">Sí</span>' : '<span class="text-text-secondary">No</span>',
-      renderActionButtons('tipos-evento', te.id)
-    ]));
+    const tiposEventoRows = (tiposEvento.tipos_evento || []).map(te => {
+      const cuentaDebe = te.cuenta_debe_codigo
+        ? `<span class="font-mono text-xs text-green-400">${escapeHtml(te.cuenta_debe_codigo)}</span>`
+        : '<span class="text-red-400 text-xs font-semibold">Sin configurar</span>';
+      const cuentaHaber = te.cuenta_haber_codigo
+        ? `<span class="font-mono text-xs text-green-400">${escapeHtml(te.cuenta_haber_codigo)}</span>`
+        : (te.codigo === 'RECUENTO'
+            ? '<span class="text-text-secondary text-xs">—</span>'
+            : '<span class="text-red-400 text-xs font-semibold">Sin configurar</span>');
+      return renderTableRow([
+        `<span class="font-mono font-bold text-primary">${escapeHtml(te.codigo)}</span>`,
+        escapeHtml(te.nombre),
+        cuentaDebe,
+        cuentaHaber,
+        te.requiere_origen_destino ? '<span class="text-green-400">Sí</span>' : '<span class="text-text-secondary">No</span>',
+        te.requiere_campo_destino ? '<span class="text-green-400">Sí</span>' : '<span class="text-text-secondary">No</span>',
+        renderActionButtons('tipos-evento', te.id)
+      ]);
+    });
     const tiposEventoListEl = document.getElementById('tiposEventoList');
     if (tiposEventoListEl) {
       tiposEventoListEl.innerHTML = renderAdminTable(
-        ['Código', 'Nombre', 'Origen/Destino', 'Campo Destino', 'Acciones'],
+        ['Código', 'Nombre', 'Cuenta DEBE', 'Cuenta HABER', 'Origen/Destino', 'Campo Destino', 'Acciones'],
         tiposEventoRows, 'No hay tipos de evento registrados'
       );
     }
@@ -3175,7 +3205,7 @@ document.addEventListener('DOMContentLoaded', () => {
       tabContent.classList.remove('hidden');
 
       if (tab.dataset.tab === 'mayor') {
-        loadLedger();
+        loadMayor();
       } else if (tab.dataset.tab === 'balance') {
         loadBalance();
       } else if (tab.dataset.tab === 'admin') {
@@ -3215,33 +3245,96 @@ document.addEventListener('DOMContentLoaded', () => {
       if (tab.dataset.admin === 'clientes') {
         loadClientes();
       }
+      if (tab.dataset.admin === 'categoriasMapeo') {
+        loadGestorStatus();
+      }
     });
   });
 
-  document.getElementById('mayorMes').addEventListener('change', loadLedger);
-  document.getElementById('mayorCampo').addEventListener('change', loadLedger);
-  document.getElementById('mayorCategoria').addEventListener('change', loadLedger);
+  document.getElementById('mayorMes').addEventListener('change', loadMayor);
+  document.getElementById('mayorCampo').addEventListener('change', loadMayor);
+  document.getElementById('mayorCategoria').addEventListener('change', loadMayor);
+  document.getElementById('mayorCuenta')?.addEventListener('change', loadMayor);
   document.getElementById('balanceCampo').addEventListener('change', loadBalance);
-  document.getElementById('balanceMes').addEventListener('change', function() {
-    const selectedValue = this.value;
-    console.log('[Balance] Periodo seleccionado:', selectedValue);
-    if (selectedValue) {
-      if (balanceMode !== 'mes') {
-        setBalanceMode('mes', true);
-      } else {
-        // Disparar nueva petición al servidor con el nuevo periodo
-        loadBalance();
-      }
-    } else {
-      setBalanceMode('acumulado');
-    }
+  document.getElementById('balanceCategoria')?.addEventListener('change', loadBalance);
+  document.getElementById('balanceMes')?.addEventListener('change', function() {
+    balanceMesSeleccionado = this.value || new Date().toISOString().substring(0, 7);
+    loadBalance();
   });
+  document.getElementById('balanceFechaCorte')?.addEventListener('change', function() {
+    balanceFechaCorte = this.value || new Date().toISOString().split('T')[0];
+    loadBalance();
+  });
+  // Initialize date inputs with current values
+  const _balanceMesEl = document.getElementById('balanceMes');
+  if (_balanceMesEl) _balanceMesEl.value = balanceMesSeleccionado;
+  const _balanceFechaCorteEl = document.getElementById('balanceFechaCorte');
+  if (_balanceFechaCorteEl) _balanceFechaCorteEl.value = balanceFechaCorte;
   document.getElementById('balanceSearch').addEventListener('input', debounce(function() {
-    renderBalanceTree(balanceData.balance || [], balanceData.meses || []);
+    renderBalance(balanceData.balance || []);
   }, 300));
 
-  document.getElementById('tipoEvento').addEventListener('change', updateDynamicFields);
-  document.getElementById('tipoEvento').addEventListener('change', updateCabezasValidation);
+  document.getElementById('tipoEvento').addEventListener('change', () => {
+    updateDynamicFields();
+    updateCabezasValidation();
+    const actividadSimpleEl = document.getElementById('actividadSimple');
+    if (actividadSimpleEl) actividadSimpleEl.value = '';
+    document.getElementById('categoria').value = '';
+    document.getElementById('previewAsiento')?.classList.add('hidden');
+  });
+
+  document.getElementById('campo').addEventListener('change', async () => {
+    const campoId = document.getElementById('campo').value;
+    const actividadSimpleEl = document.getElementById('actividadSimple');
+    if (!actividadSimpleEl) return;
+
+    document.getElementById('categoria').value = '';
+    document.getElementById('previewAsiento')?.classList.add('hidden');
+
+    if (!campoId) {
+      actividadSimpleEl.innerHTML = '<option value="">Seleccionar campo primero...</option>';
+      populateSelect('categoria', catalogs.categorias, 'id', 'nombre', 'Seleccionar categoría...');
+      return;
+    }
+
+    actividadSimpleEl.innerHTML = '<option value="">Cargando actividades...</option>';
+    try {
+      const data = await api(`/admin/campos/${campoId}/actividades`);
+      
+      // Filtrar SOLO las actividades asignadas al campo (según MODULO3.md Tarea 2)
+      const asignadasIds = new Set((data.asignadas || []).map(id => String(id)));
+      const actividadesAsignadas = (data.actividades || []).filter(a => asignadasIds.has(String(a.id)));
+      
+      populateSelect('actividadSimple', actividadesAsignadas, 'id', 'nombre', 'Seleccionar actividad...');
+      
+      // Filtrar categorías por actividades disponibles en este campo
+      const actividadIds = new Set(actividadesAsignadas.map(a => String(a.id)));
+      const filtered = catalogs.categorias.filter(c => !c.actividad_id || actividadIds.has(String(c.actividad_id)));
+      populateSelect('categoria', filtered, 'id', 'nombre', 'Seleccionar categoría...');
+    } catch (err) {
+      actividadSimpleEl.innerHTML = '<option value="">Error al cargar actividades</option>';
+    }
+  });
+
+  document.getElementById('actividadSimple')?.addEventListener('change', () => {
+    const actividadId = document.getElementById('actividadSimple').value;
+    document.getElementById('previewAsiento')?.classList.add('hidden');
+
+    if (!actividadId) {
+      // Sin actividad: mostrar todas las categorías del campo (ya filtradas)
+      const campoId = document.getElementById('campo').value;
+      if (!campoId) {
+        populateSelect('categoria', catalogs.categorias, 'id', 'nombre', 'Seleccionar categoría...');
+      }
+      return;
+    }
+
+    const filtered = catalogs.categorias.filter(c => String(c.actividad_id) === String(actividadId));
+    populateSelect('categoria', filtered, 'id', 'nombre', 'Seleccionar categoría...');
+    document.getElementById('categoria').value = '';
+  });
+
+  document.getElementById('previewEventBtn')?.addEventListener('click', loadPreviewAsiento);
 
   document.getElementById('cabezas').addEventListener('input', calculateKgTotales);
   document.getElementById('kgCabeza').addEventListener('input', calculateKgTotales);
@@ -3273,6 +3366,8 @@ document.addEventListener('DOMContentLoaded', () => {
         formData.categoria_destino_id = parseInt(document.getElementById('categoriaDestino').value);
       } else {
         formData.categoria_id = parseInt(document.getElementById('categoria').value);
+        const actividadSimpleVal = document.getElementById('actividadSimple')?.value;
+        if (actividadSimpleVal) formData.actividad_origen_id = parseInt(actividadSimpleVal);
       }
 
       const requiereCampoDestino = tipoSelect.options[tipoSelect.selectedIndex]?.dataset.requiereCampoDestino === 'true';
@@ -3303,6 +3398,9 @@ document.addEventListener('DOMContentLoaded', () => {
       e.target.reset();
       document.getElementById('fecha').valueAsDate = new Date();
       updateDynamicFields();
+      const actividadSimpleEl = document.getElementById('actividadSimple');
+      if (actividadSimpleEl) actividadSimpleEl.innerHTML = '<option value="">Seleccionar campo primero...</option>';
+      document.getElementById('previewAsiento')?.classList.add('hidden');
       document.getElementById('eventFormContainer')?.classList.add('hidden');
       document.getElementById('showEventFormBtn')?.classList.remove('hidden');
       loadEventos();
@@ -4015,6 +4113,8 @@ document.addEventListener('DOMContentLoaded', () => {
       window.irAPaginaMayor(parseInt(btn.dataset.page));
     }
   });
+
+  document.getElementById('btnTestGestorActive')?.addEventListener('click', window._testGestorActiveImpl);
 
   // ==========================================
   // EVENT LISTENERS - BALANCE TAB (CSP compliant)

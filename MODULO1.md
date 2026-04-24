@@ -1,113 +1,52 @@
-  # Módulo 1 — Motor contable
+# Índice de módulos — Plan Estratégico de Mejoras Gestor Ganadero
+
+Versión base: 1.0  
+Fecha del plan original: 2026-04-24  
+Stack actual: ANALIZALO 
 
 ## Objetivo
-Eliminar lógica hardcodeada y garantizar integridad contable en cada evento.
 
-## Alcance
-- TranslationService
-- generación de AccountingDrafts
-- validación DEBE = HABER
-- auditoría mínima de generación
+Dividir el plan estratégico de mejoras en archivos Markdown independientes para que cada módulo pueda ser desarrollado, probado y revisado por un agente de desarrollo con menor ambigüedad.
 
-## Problemas detectados
-- cuentas hardcodeadas en TranslationService
-- no existe validación post-generación del asiento
-- no hay registro mínimo de auditoría técnica del resultado
+## Orden recomendado de ejecución
 
-## Orden de implementación
+1. `MODULO2.md` (Módulo 1: Motor Contable)  
+   Eliminar cuentas hardcodeadas, parametrizar imputaciones y validar DEBE = HABER.
 
-### Tarea 1.1 — Reemplazar cuentas hardcodeadas
-**Objetivo:** eliminar cualquier código de cuenta literal del motor.
+2. `MODULO3.md` (Módulo 2: Modal de Carga de Eventos)  
+   Mejorar el modal de carga de eventos, cascada de selección, guardado correcto y preview de asiento.
 
-**Archivos permitidos:**
-- `TranslationService.cs`
-- entidades/modelos estrictamente necesarios para resolver `EventTemplate` o `EventType`
+3. `MODULO4.md` (Módulo 3: Mayor Contable)  
+   Corregir endpoint, filtros, visualización y exportación CSV del mayor.
 
-**Cambios esperados:**
-- reemplazar cuentas fijas por `DebitAccountCode` y `CreditAccountCode` configurados
-- la resolución debe depender del tenant y del tipo/template del evento
-- no introducir valores por defecto silenciosos
+4. `MODULO5.MD` (Módulo 4: Balance Contable)  
+   Implementar jerarquía PLAN → CAMPO → CATEGORÍA, subtotales y modo Mes/Acumulado.
 
-**No tocar:**
-- UI
-- reporting
-- páginas Blazor
-- migraciones
+5. `MODULO6.MD` (Módulo 5: Admin Campos Sin GIS)  
+   Quitar campos GIS no operativos del alta/edición de campos.
 
-**Criterios de aceptación:**
-- no quedan cuentas contables hardcodeadas
-- todo asiento toma cuentas desde configuración
-- si faltan cuentas configuradas, falla con error explícito
+6. `MODULO7.MD` (Módulo 6: Integración Gestor Max)  
+   Agregar verificación de conexión y estado visible de integración con Gestor Max.
 
----
+## Reglas generales para todos los agentes
 
-### Tarea 1.2 — Validación DEBE = HABER
-**Objetivo:** impedir persistencia de asientos descuadrados.
+- No modificar módulos fuera del alcance salvo que sea estrictamente necesario.
+- Mantener compatibilidad con el stack actual: Node.js / Express, PostgreSQL y Vanilla JS SPA.
+- No introducir frameworks frontend nuevos.
+- No cambiar nombres de tablas o columnas existentes sin migración explícita.
+- Todo cambio de base de datos debe tener SQL claro, reversible y comentado.
+- Validar manualmente los flujos afectados antes de dar el módulo por terminado.
+- No ocultar errores técnicos con mensajes genéricos. Los errores deben ser legibles y diagnósticables.
+- Mantener la lógica multi-tenant usando `req.activeTenantId` o el mecanismo existente del repositorio.
 
-**Archivos permitidos:**
-- `TranslationService.cs`
-- servicio/aplicación que persiste el evento si resulta necesario
+## Archivos esperados del repositorio
 
-**Cambios esperados:**
-- sumar `DebitAmount`
-- sumar `CreditAmount`
-- aplicar tolerancia decimal
-- lanzar excepción de dominio o resultado inválido si no balancea
+- `index.js`
+- `public/index.html`
+- `public/script.js`
+- Migraciones SQL o scripts equivalentes del proyecto
+- `db/seed.sql` si existe y contiene cuentas contables base
 
-**Criterios de aceptación:**
-- ningún evento se guarda con asiento descuadrado
-- el error incluye diferencia y totales calculados
-- el mensaje es apto para log y diagnóstico
+## Nota crítica
 
----
-
-### Tarea 1.3 — Tests unitarios del motor
-**Objetivo:** cubrir casos críticos con pruebas pequeñas y determinísticas.
-
-**Casos mínimos:**
-- traslado entre campos
-- cambio de actividad
-- ajuste positivo
-- ajuste negativo
-
-**Cada test debe validar:**
-- cuentas usadas
-- montos
-- signo correcto
-- balance final
-- referencias relevantes del evento
-
-**Criterios de aceptación:**
-- tests aislados
-- sin dependencias de UI
-- sin acceso real a ERP
-
----
-
-### Tarea 1.4 — Auditoría mínima de generación
-**Objetivo:** registrar el resultado de traducción del evento.
-
-**Campos mínimos sugeridos:**
-- tenant
-- usuario
-- tipo de evento
-- fecha/hora
-- total debe
-- total haber
-- estado: `OK` / `ERROR`
-- detalle breve
-
-**No tocar:**
-- reportes de auditoría UI
-- exportaciones
-
-**Criterios de aceptación:**
-- cada intento de generación deja rastro
-- los errores quedan trazables
-
-## Definición de terminado del módulo
-- no hay cuentas hardcodeadas
-- existe validación DEBE = HABER
-- hay tests para casos críticos
-- existe auditoría mínima técnica
-  
+El módulo 1 debe ejecutarse antes que los demás si hay despliegue integral, porque modifica la generación contable y puede bloquear el guardado de eventos si las cuentas no están configuradas.
