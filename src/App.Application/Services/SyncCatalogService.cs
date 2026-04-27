@@ -1,4 +1,4 @@
-using NodaTime;
+﻿using NodaTime;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using App.Application.Interfaces;
@@ -61,23 +61,37 @@ public class SyncCatalogService : ISyncCatalogService
 
     private async Task ProcessAnimalCategories(Guid tenantId, JsonDocument data)
     {
-        var categories = data.RootElement.EnumerateArray();
-        foreach (var catJson in categories)
+        var rawCategories = data.RootElement.EnumerateArray()
+            .Select(catJson => new
+            {
+                Code = catJson.GetProperty("Code").GetString() ?? "",
+                Name = catJson.GetProperty("Name").GetString() ?? ""
+            })
+            .Where(x => !string.IsNullOrWhiteSpace(x.Code))
+            .ToList();
+
+        var codes = rawCategories.Select(x => x.Code).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var existing = await _context.AnimalCategories
+            .IgnoreQueryFilters()
+            .Where(c => c.TenantId == tenantId
+                        && c.Type == CategoryType.Gestor
+                        && c.ExternalId != null
+                        && codes.Contains(c.ExternalId))
+            .ToListAsync();
+
+        var existingByCode = existing
+            .Where(e => !string.IsNullOrWhiteSpace(e.ExternalId))
+            .ToDictionary(e => e.ExternalId!, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var cat in rawCategories)
         {
-            var code = catJson.GetProperty("Code").GetString() ?? "";
-            var name = catJson.GetProperty("Name").GetString() ?? "";
-
-            var existing = await _context.AnimalCategories
-                .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.ExternalId == code && c.Type == CategoryType.Gestor);
-
-            if (existing == null)
+            if (!existingByCode.TryGetValue(cat.Code, out var category))
             {
                 _context.AnimalCategories.Add(new AnimalCategory
                 {
                     TenantId = tenantId,
-                    ExternalId = code,
-                    Name = name,
+                    ExternalId = cat.Code,
+                    Name = cat.Name,
                     Type = CategoryType.Gestor,
                     IsActive = true,
                     LastSyncedAt = SystemClock.Instance.GetCurrentInstant()
@@ -85,11 +99,11 @@ public class SyncCatalogService : ISyncCatalogService
             }
             else
             {
-                existing.Name = name;
-                existing.LastSyncedAt = SystemClock.Instance.GetCurrentInstant();
-                _context.AnimalCategories.Update(existing);
+                category.Name = cat.Name;
+                category.LastSyncedAt = SystemClock.Instance.GetCurrentInstant();
             }
         }
+
         await _context.SaveChangesAsync();
     }
 }

@@ -1,4 +1,4 @@
-using Grpc.Core;
+﻿using Grpc.Core;
 using Google.Protobuf.WellKnownTypes;
 using App.Application.Interfaces;
 using GestorGanadero.Services.Reporting.Contracts;
@@ -61,12 +61,14 @@ public class ReportingServiceImplementation : ReportingService.ReportingServiceB
         var tenantId   = string.IsNullOrEmpty(request.TenantId)   ? Guid.Empty  : Guid.Parse(request.TenantId);
         var categoryId = string.IsNullOrEmpty(request.CategoryId) ? (Guid?)null : Guid.Parse(request.CategoryId);
         var fieldId    = string.IsNullOrEmpty(request.FieldId)    ? (Guid?)null : Guid.Parse(request.FieldId);
+        var pageSize = request.PageSize > 0 ? Math.Min(request.PageSize, 500) : 500;
+        var pageIndex = request.PageIndex >= 0 ? request.PageIndex : 0;
 
         var entries = await _reportService.GetLedgerAsync(
             request.StartDate == null ? (Instant?)null : Instant.FromDateTimeUtc(request.StartDate.ToDateTime()),
             request.EndDate   == null ? (Instant?)null : Instant.FromDateTimeUtc(request.EndDate.ToDateTime()),
-            request.PageIndex,
-            request.PageSize > 0 ? request.PageSize : 2000,
+            pageIndex,
+            pageSize,
             request.SearchTerm,
             tenantId,
             string.IsNullOrEmpty(request.AccountCode) ? null : request.AccountCode,

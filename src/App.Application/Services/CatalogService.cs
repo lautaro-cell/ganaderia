@@ -1,4 +1,4 @@
-using NodaTime;
+﻿using NodaTime;
 using Microsoft.EntityFrameworkCore;
 using App.Application.DTOs;
 using App.Application.Interfaces;
@@ -22,6 +22,7 @@ public class CatalogService : ICatalogService
     public async Task<IEnumerable<FieldDto>> GetFieldsAsync()
     {
         return await _context.Fields
+            .AsNoTracking()
             .Include(f => f.FieldActivities)
             .Select(f => new FieldDto(
                 f.Id, f.Name, f.Description, f.IsActive, f.TenantId,
@@ -34,6 +35,7 @@ public class CatalogService : ICatalogService
     {
         var field = new Field
         {
+            Id = Guid.NewGuid(),
             Name = dto.Name,
             Description = dto.Description,
             LegalName = dto.LegalName,
@@ -44,7 +46,6 @@ public class CatalogService : ICatalogService
             IsActive = true
         };
         _context.Fields.Add(field);
-        await _context.SaveChangesAsync();
 
         if (dto.ActivityIds != null)
             foreach (var aid in dto.ActivityIds)
@@ -92,6 +93,7 @@ public class CatalogService : ICatalogService
     public async Task<IEnumerable<ActivityDto>> GetActivitiesAsync()
     {
         return await _context.Activities
+            .AsNoTracking()
             .Include(a => a.ActivityAnimalCategories)
             .Select(a => new ActivityDto(
                 a.Id, a.Name, a.TenantId == null, a.TenantId, a.Description,
@@ -104,12 +106,12 @@ public class CatalogService : ICatalogService
     {
         var activity = new Activity
         {
+            Id = Guid.NewGuid(),
             Name = dto.Name,
             Description = dto.Description,
             TenantId = dto.IsGlobal ? null : _tenantProvider.TenantId
         };
         _context.Activities.Add(activity);
-        await _context.SaveChangesAsync();
 
         if (dto.CategoryIds != null)
             foreach (var cid in dto.CategoryIds)
@@ -163,6 +165,7 @@ public class CatalogService : ICatalogService
     public async Task<IEnumerable<AnimalCategoryDto>> GetCategoriesAsync()
     {
         return await _context.AnimalCategories
+            .AsNoTracking()
             .Select(c => new AnimalCategoryDto(
                 c.Id, c.Name, c.ActivityId, c.StandardWeightKg ?? 0, 
                 "CLIENTE", c.ExternalId, c.IsActive, c.TenantId))
@@ -210,6 +213,7 @@ public class CatalogService : ICatalogService
     public async Task<IEnumerable<CategoryMappingDto>> GetMappingsAsync(Guid tenantId)
     {
         return await _context.CategoryMappings
+            .AsNoTracking()
             .Include(m => m.CategoriaCliente)
             .Where(m => m.TenantId == tenantId)
             .Select(m => new CategoryMappingDto(m.CategoriaClienteId, m.CategoriaGestorId, m.CategoriaCliente != null ? m.CategoriaCliente.Name : "Desconocido", "", tenantId))
@@ -243,6 +247,7 @@ public class CatalogService : ICatalogService
     public async Task<IEnumerable<EventTypeDto>> GetEventTypesAsync(Guid tenantId)
     {
         return await _context.EventTemplates
+            .AsNoTracking()
             .Where(e => e.TenantId == tenantId)
             .Include(e => e.EventTemplateActivities)
             .Select(e => new EventTypeDto(
@@ -307,6 +312,7 @@ public class CatalogService : ICatalogService
     public async Task<IEnumerable<AccountDto>> GetAccountsAsync(Guid tenantId)
     {
         return await _context.Accounts
+            .AsNoTracking()
             .Include(a => a.Plan)
             .Where(a => a.TenantId == tenantId)
             .Select(a => new AccountDto(a.Id, a.Code, a.Name, a.PlanId, a.Plan!.Name, a.NormalType.ToString(), a.IsActive, tenantId))
@@ -355,6 +361,7 @@ public class CatalogService : ICatalogService
     public async Task<IEnumerable<ErpConceptDto>> GetErpConceptsAsync(Guid tenantId)
     {
         return await _context.ErpConcepts
+            .AsNoTracking()
             .Where(c => c.TenantId == tenantId)
             .Select(c => new ErpConceptDto(
                 c.Id, 
@@ -369,5 +376,4 @@ public class CatalogService : ICatalogService
             .ToListAsync();
     }
 }
-
 

@@ -1,4 +1,4 @@
-@page "/reportes/mayor"
+﻿@page "/reportes/mayor"
 @using GestorGanadero.Client.Services
 @using GestorGanadero.Client.Catalog
 @using GestorGanadero.Services.Reporting.Contracts
@@ -344,7 +344,7 @@
             StartDate = Timestamp.FromDateTime(DateTime.SpecifyKind(startDt, DateTimeKind.Utc)),
             EndDate   = Timestamp.FromDateTime(DateTime.SpecifyKind(endDt,   DateTimeKind.Utc)),
             PageIndex = 0,
-            PageSize  = 2000,
+            PageSize  = 500,
             AccountCode  = _accountFilter  ?? string.Empty,
             CategoryId   = _categoryFilter ?? string.Empty,
             FieldId      = _fieldFilter    ?? string.Empty,

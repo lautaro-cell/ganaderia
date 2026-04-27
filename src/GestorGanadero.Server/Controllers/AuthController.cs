@@ -1,14 +1,11 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.AspNetCore.Authorization;
-using System.IdentityModel.Tokens.Jwt;
+﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using App.Application.Interfaces;
 using App.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using BCrypt.Net;
+using Microsoft.IdentityModel.Tokens;
 
 namespace GestorGanadero.Server.Controllers;
 
@@ -19,11 +16,16 @@ public class AuthController : ControllerBase
 {
     private readonly GestorGanaderoDbContext _context;
     private readonly IConfiguration _configuration;
+    private readonly ILogger<AuthController> _logger;
 
-    public AuthController(GestorGanaderoDbContext context, IConfiguration configuration)
+    public AuthController(
+        GestorGanaderoDbContext context,
+        IConfiguration configuration,
+        ILogger<AuthController> logger)
     {
         _context = context;
         _configuration = configuration;
+        _logger = logger;
     }
 
     [HttpPost("login")]
@@ -33,47 +35,39 @@ public class AuthController : ControllerBase
         if (string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password))
             return BadRequest(new { message = "Email y contraseña son requeridos." });
 
-        Console.WriteLine($"[Login] Intento para: {request.Email}");
+        _logger.LogInformation("Login attempt for {Email}", request.Email);
 
         var user = await _context.Users
-            .IgnoreQueryFilters() // Ignorar el filtro de tenant para encontrar al usuario por email
+            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(u => u.Email == request.Email);
 
         if (user == null)
         {
-            Console.WriteLine($"[Login] Usuario NO encontrado: {request.Email}");
+            _logger.LogWarning("User not found for {Email}", request.Email);
             return Unauthorized(new { message = "Credenciales inválidas." });
         }
 
-        Console.WriteLine($"[Login] Usuario encontrado: {user.Email}. Verificando password...");
-
-        // Verificar la contraseña usando BCrypt O permitir literal admin123 (SOLO PARA PRUEBAS)
-        bool isPasswordCorrect = false;
-        try 
+        bool isPasswordCorrect;
+        try
         {
             isPasswordCorrect = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Login] Error verificando BCrypt: {ex.Message}");
-        }
-
-        // FALLBACK: Permitir admin123 literal si el hash falla por algún motivo
-        if (request.Password == "admin123")
-        {
-             Console.WriteLine($"[Login] Password CORRECTA (vía Fallback admin123)");
-             isPasswordCorrect = true;
+            _logger.LogWarning(ex, "BCrypt verification error for {Email}", user.Email);
+            isPasswordCorrect = false;
         }
 
         if (!isPasswordCorrect)
         {
-             Console.WriteLine($"[Login] Password INCORRECTA para: {request.Email}");
-             return Unauthorized(new { message = "Credenciales inválidas." });
+            _logger.LogWarning("Invalid password for {Email}", request.Email);
+            return Unauthorized(new { message = "Credenciales inválidas." });
         }
 
-        Console.WriteLine($"[Login] Login EXITOSO para: {request.Email}");
+        _logger.LogInformation("Successful login for {Email}", request.Email);
 
-        var tenant = await _context.Tenants.IgnoreQueryFilters()
+        var tenant = await _context.Tenants
+            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(t => t.Id == user.TenantId);
 
         var token = GenerateJwtToken(user.Id, user.Email, user.Role.ToString(), user.TenantId);
@@ -91,24 +85,33 @@ public class AuthController : ControllerBase
 
     private string GenerateJwtToken(Guid userId, string email, string role, Guid tenantId)
     {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-            _configuration["Jwt:Key"] ?? "GestorGanaderoSecretKey2024!MustBeLongEnough"));
+        var jwtKey = _configuration["Jwt:Key"];
+        if (string.IsNullOrWhiteSpace(jwtKey))
+            throw new InvalidOperationException("JWT key is missing.");
+
+        var issuer = _configuration["Jwt:Issuer"] ?? "gestor-ganadero";
+        var audience = _configuration["Jwt:Audience"] ?? "gestor-ganadero-client";
+
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, email),
             new Claim("role", role),
+            new Claim(ClaimTypes.Role, role),
             new Claim("tenant_id", tenantId.ToString()),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
         var token = new JwtSecurityToken(
+            issuer: issuer,
+            audience: audience,
             claims: claims,
             expires: DateTime.UtcNow.AddHours(8),
-            signingCredentials: creds
-        );
+            signingCredentials: creds);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }

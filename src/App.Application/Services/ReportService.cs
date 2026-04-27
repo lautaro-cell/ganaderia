@@ -1,8 +1,8 @@
-using NodaTime;
-using Microsoft.EntityFrameworkCore;
-using App.Application.DTOs;
+﻿using App.Application.DTOs;
 using App.Application.Interfaces;
 using App.Domain.Enums;
+using Microsoft.EntityFrameworkCore;
+using NodaTime;
 
 namespace App.Application.Services;
 
@@ -24,6 +24,7 @@ public class ReportService : IReportService
         Guid? categoryId)
     {
         var query = _context.AccountingDrafts
+            .AsNoTracking()
             .Where(a => a.TenantId == tenantId)
             .AsQueryable();
 
@@ -42,15 +43,17 @@ public class ReportService : IReportService
         if (categoryView == "gestor")
         {
             var gestorQuery = from a in query
-                              join m in _context.CategoryMappings on a.CategoryId equals m.CategoriaClienteId into am
+                              join m in _context.CategoryMappings.AsNoTracking()
+                                  on a.CategoryId equals m.CategoriaClienteId into am
                               from m in am.DefaultIfEmpty()
-                              join gc in _context.AnimalCategories.Where(c => c.Type == CategoryType.Gestor && c.TenantId == tenantId)
-                                   on m.CategoriaGestorId equals gc.ExternalId into agc
+                              join gc in _context.AnimalCategories.AsNoTracking()
+                                      .Where(c => c.Type == CategoryType.Gestor && c.TenantId == tenantId)
+                                  on m.CategoriaGestorId equals gc.ExternalId into agc
                               from gc in agc.DefaultIfEmpty()
                               group a by new
                               {
                                   a.AccountCode,
-                                  FieldName    = a.Field    != null ? a.Field.Name    : "Sin Campo",
+                                  FieldName = a.Field != null ? a.Field.Name : "Sin Campo",
                                   ActivityName = a.Activity != null ? a.Activity.Name : "Sin Actividad",
                                   CategoryName = gc != null ? gc.Name : (a.Category != null ? a.Category.Name : "Sin Categoría")
                               } into g
@@ -65,8 +68,7 @@ public class ReportService : IReportService
                                   g.Sum(a => a.CreditAmount),
                                   g.Sum(a => a.DebitAmount - a.CreditAmount),
                                   g.Sum(a => a.WeightKg ?? 0),
-                                  DeriveGroup(g.Key.AccountCode)
-                              );
+                                  DeriveGroup(g.Key.AccountCode));
 
             return await gestorQuery.ToListAsync();
         }
@@ -75,7 +77,7 @@ public class ReportService : IReportService
             .GroupBy(a => new
             {
                 a.AccountCode,
-                FieldName    = a.Field    != null ? a.Field.Name    : "Sin Campo",
+                FieldName = a.Field != null ? a.Field.Name : "Sin Campo",
                 ActivityName = a.Activity != null ? a.Activity.Name : "Sin Actividad",
                 CategoryName = a.Category != null ? a.Category.Name : "Sin Categoría"
             })
@@ -90,33 +92,19 @@ public class ReportService : IReportService
                 g.Sum(a => a.CreditAmount),
                 g.Sum(a => a.DebitAmount - a.CreditAmount),
                 g.Sum(a => a.WeightKg ?? 0),
-                DeriveGroup(g.Key.AccountCode)
-            ));
+                DeriveGroup(g.Key.AccountCode)));
 
         return await resultQuery.ToListAsync();
-    }
-
-    private static string DeriveGroup(string accountCode)
-    {
-        if (string.IsNullOrEmpty(accountCode)) return "RESULTADO";
-        return accountCode[0] switch
-        {
-            '1' => "ACTIVO",
-            '2' => "PASIVO",
-            _   => "RESULTADO"
-        };
     }
 
     public async Task<IEnumerable<LedgerEntryDto>> GetLedgerAsync(
         Instant? startDate, Instant? endDate,
         int pageIndex, int pageSize,
-        string searchTerm, Guid tenantId,
+        string? searchTerm, Guid tenantId,
         string? accountCode, Guid? categoryId, Guid? fieldId)
     {
         var query = _context.AccountingDrafts
-            .Include(a => a.LivestockEvent)
-            .Include(a => a.Field)
-            .Include(a => a.Category)
+            .AsNoTracking()
             .Where(a => a.TenantId == tenantId)
             .AsQueryable();
 
@@ -138,8 +126,8 @@ public class ReportService : IReportService
         if (fieldId.HasValue)
             query = query.Where(a => a.FieldId == fieldId.Value);
 
-        var entries = await query
-            .OrderBy(a => a.LivestockEvent != null ? a.LivestockEvent.EventDate : a.CreatedAt)
+        return await query
+            .OrderByDescending(a => a.LivestockEvent != null ? a.LivestockEvent.EventDate : a.CreatedAt)
             .Skip(pageIndex * pageSize)
             .Take(pageSize)
             .Select(a => new LedgerEntryDto(
@@ -153,13 +141,22 @@ public class ReportService : IReportService
                 a.HeadCount,
                 a.WeightKg ?? 0,
                 a.LivestockEventId,
-                a.Field    != null ? a.Field.Name    : "",
+                a.Field != null ? a.Field.Name : "",
                 a.Category != null ? a.Category.Name : "",
                 a.DebitAmount,
-                a.CreditAmount
-            ))
+                a.CreditAmount))
             .ToListAsync();
+    }
 
-        return entries;
+    private static string DeriveGroup(string accountCode)
+    {
+        if (string.IsNullOrEmpty(accountCode)) return "RESULTADO";
+        return accountCode[0] switch
+        {
+            '1' => "ACTIVO",
+            '2' => "PASIVO",
+            _ => "RESULTADO"
+        };
     }
 }
+

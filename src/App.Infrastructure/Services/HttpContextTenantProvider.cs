@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using App.Application.Interfaces;
 
 namespace App.Infrastructure.Services;
@@ -7,7 +7,6 @@ public class HttpContextTenantProvider : ITenantProvider
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
     private const string TenantHeaderName = "X-Tenant-Id";
-    private static readonly Guid DefaultTenantId = Guid.Parse("11111111-1111-1111-1111-111111111111"); // Matches data.sql
 
     public HttpContextTenantProvider(IHttpContextAccessor httpContextAccessor)
     {
@@ -19,7 +18,7 @@ public class HttpContextTenantProvider : ITenantProvider
         get
         {
             var context = _httpContextAccessor.HttpContext;
-            if (context == null) return DefaultTenantId;
+            if (context == null) return Guid.Empty;
 
             // 1. Prioritize JWT Claim (tenant_id)
             var claim = context.User?.FindFirst("tenant_id");
@@ -37,8 +36,7 @@ public class HttpContextTenantProvider : ITenantProvider
                 }
             }
 
-            return DefaultTenantId;
+            return Guid.Empty;
         }
     }
 }
-

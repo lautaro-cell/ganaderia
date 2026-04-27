@@ -1,42 +1,60 @@
-using NodaTime;
-using Microsoft.EntityFrameworkCore;
+﻿using System.Security.Cryptography;
 using App.Application.DTOs;
 using App.Application.Interfaces;
 using App.Domain.Entities;
 using App.Domain.Enums;
-
-using BCrypt.Net;
+using Microsoft.EntityFrameworkCore;
 
 namespace App.Application.Services;
 
 public class UserService : IUserService
 {
     private readonly IApplicationDbContext _context;
-    private readonly ITenantProvider _tenantProvider;
+    private readonly ICurrentUserProvider _currentUserProvider;
     private readonly IEncryptionService _encryptionService;
 
-    public UserService(IApplicationDbContext context, ITenantProvider tenantProvider, IEncryptionService encryptionService)
+    public UserService(
+        IApplicationDbContext context,
+        ICurrentUserProvider currentUserProvider,
+        IEncryptionService encryptionService)
     {
         _context = context;
-        _tenantProvider = tenantProvider;
+        _currentUserProvider = currentUserProvider;
         _encryptionService = encryptionService;
     }
 
     public async Task<UserDto> GetMyProfileAsync()
     {
+        if (!_currentUserProvider.UserId.HasValue)
+            throw new UnauthorizedAccessException("Usuario no autenticado.");
+
         var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.TenantId == _tenantProvider.TenantId);
-            
-        if (user == null) throw new KeyNotFoundException("Usuario no encontrado en el tenant actual");
-        
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.Id == _currentUserProvider.UserId.Value);
+
+        if (user == null)
+            throw new KeyNotFoundException("Usuario no encontrado.");
+
         return new UserDto(user.Id, user.Email, user.TenantId, user.Role);
     }
 
     public async Task<IEnumerable<TenantDto>> GetAvailableTenantsAsync()
     {
-        // En una implementación real, esto consultaría a qué Tenants tiene acceso el usuario (vía tabla intermedia)
-        // Por ahora devolvemos todos los Tenants como simplificación para el MVP de migración.
+        if (!_currentUserProvider.UserId.HasValue)
+            return Enumerable.Empty<TenantDto>();
+
+        var tenantId = await _context.Users
+            .IgnoreQueryFilters()
+            .Where(u => u.Id == _currentUserProvider.UserId.Value)
+            .Select(u => u.TenantId)
+            .FirstOrDefaultAsync();
+
+        if (tenantId == Guid.Empty)
+            return Enumerable.Empty<TenantDto>();
+
         return await _context.Tenants
+            .IgnoreQueryFilters()
+            .Where(t => t.Id == tenantId)
             .Select(t => new TenantDto(t.Id, t.Name, t.GestorMaxDatabaseId ?? "", t.CreatedAt))
             .ToListAsync();
     }
@@ -55,8 +73,8 @@ public class UserService : IUserService
     public async Task<Guid> InviteUserAsync(InviteUserRequest request)
     {
         var role = Enum.TryParse<UserRole>(request.RoleName, true, out var r) ? r : UserRole.Guest;
-        var defaultPassword = "password123";
-        var hashedPassword = BCrypt.Net.BCrypt.HashPassword(defaultPassword);
+        var temporaryPassword = Convert.ToBase64String(RandomNumberGenerator.GetBytes(12));
+        var hashedPassword = BCrypt.Net.BCrypt.HashPassword(temporaryPassword);
 
         var user = new User
         {
@@ -101,7 +119,7 @@ public class UserService : IUserService
 
         tenant.Name = dto.Name;
         tenant.GestorMaxDatabaseId = dto.GestorMaxDatabaseId;
-        
+
         if (!string.IsNullOrEmpty(dto.GestorMaxApiKey))
         {
             tenant.GestorMaxApiKeyEncrypted = _encryptionService.Encrypt(dto.GestorMaxApiKey);
@@ -120,5 +138,3 @@ public class UserService : IUserService
         }
     }
 }
-
-

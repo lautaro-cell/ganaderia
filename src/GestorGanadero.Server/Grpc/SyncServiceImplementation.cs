@@ -1,33 +1,25 @@
-using Grpc.Core;
-using Google.Protobuf.WellKnownTypes;
-using App.Application.Interfaces;
+﻿using App.Application.Interfaces;
 using GestorGanadero.Services.Sync.Contracts;
+using Google.Protobuf.WellKnownTypes;
+using Grpc.Core;
 using Microsoft.Extensions.Logging;
-using System.Linq;
-using System.Threading.Tasks;
-using System;
-using System.Text.Json;
-using System.Collections.Generic;
 
 namespace GestorGanadero.Server.Grpc;
 
 public class SyncServiceImplementation : SyncService.SyncServiceBase
 {
     private readonly ILivestockEventService _livestockEventService;
-    private readonly IERPProvider _erpProvider;
     private readonly ITenantProvider _tenantProvider;
     private readonly IErpSyncService _erpSyncService;
     private readonly ILogger<SyncServiceImplementation> _logger;
 
     public SyncServiceImplementation(
-        ILivestockEventService livestockEventService, 
-        IERPProvider erpProvider, 
-        ITenantProvider tenantProvider, 
+        ILivestockEventService livestockEventService,
+        ITenantProvider tenantProvider,
         IErpSyncService erpSyncService,
         ILogger<SyncServiceImplementation> logger)
     {
         _livestockEventService = livestockEventService;
-        _erpProvider = erpProvider;
         _tenantProvider = tenantProvider;
         _erpSyncService = erpSyncService;
         _logger = logger;
@@ -37,7 +29,10 @@ public class SyncServiceImplementation : SyncService.SyncServiceBase
     {
         try
         {
-            var tenantId = string.IsNullOrEmpty(request.TenantId) ? _tenantProvider.TenantId : Guid.Parse(request.TenantId);
+            var tenantId = string.IsNullOrEmpty(request.TenantId)
+                ? _tenantProvider.TenantId
+                : Guid.Parse(request.TenantId);
+
             await _erpSyncService.SyncCatalogAsync(tenantId, context.CancellationToken);
             return new SyncCatalogResponse { Success = true, Message = "Sincronización completada exitosamente." };
         }
@@ -47,7 +42,6 @@ public class SyncServiceImplementation : SyncService.SyncServiceBase
             return new SyncCatalogResponse { Success = false, Message = $"Error: {ex.Message}" };
         }
     }
-
 
     public override async Task<PendingSyncList> GetPendingSyncEvents(PendingSyncFilter request, ServerCallContext context)
     {
@@ -68,41 +62,30 @@ public class SyncServiceImplementation : SyncService.SyncServiceBase
 
     public override async Task<SyncResult> SyncToERP(SyncRequest request, ServerCallContext context)
     {
-        var tenantId = _tenantProvider.TenantId;
         var logMessages = new List<string>();
-        var syncedCount = 0;
 
         try
         {
-            var accounts = await _erpProvider.GetAccountsAsync(tenantId);
-            var costCenters = await _erpProvider.GetCostCentersAsync(tenantId);
-            var categories = await _erpProvider.GetAnimalCategoriesAsync(tenantId);
+            var eventIds = request.EntryIds
+                .Select(id => Guid.TryParse(id, out var parsed) ? (Guid?)parsed : null)
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .Distinct()
+                .ToList();
 
-            logMessages.Add($"ERP data fetched: {accounts.RootElement.GetArrayLength()} accounts, {costCenters.RootElement.GetArrayLength()} cost centers, {categories.RootElement.GetArrayLength()} categories");
+            if (eventIds.Count == 0)
+                return new SyncResult { Count = 0, Log = "No se enviaron IDs válidos para sincronizar." };
 
-            foreach (var entryId in request.EntryIds)
-            {
-                if (Guid.TryParse(entryId, out var eventId))
-                {
-                    var erpRef = await _livestockEventService.CommitToErpAsync(new[] { eventId });
-                    syncedCount++;
-                    logMessages.Add($"Event {entryId} synced: {erpRef}");
-                }
-                else
-                {
-                    logMessages.Add($"Invalid event ID: {entryId}");
-                }
-            }
-
-            logMessages.Add($"Sincronización completada: {syncedCount}/{request.EntryIds.Count} eventos sincronizados.");
+            var erpRef = await _livestockEventService.CommitToErpAsync(eventIds);
+            logMessages.Add($"Sincronización completada: {eventIds.Count}/{request.EntryIds.Count} eventos. Ref={erpRef}");
+            return new SyncResult { Count = eventIds.Count, Log = string.Join(" | ", logMessages) };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during ERP sync");
             logMessages.Add($"Error: {ex.Message}");
+            return new SyncResult { Count = 0, Log = string.Join(" | ", logMessages) };
         }
-
-        return new SyncResult { Count = syncedCount, Log = string.Join(" | ", logMessages) };
     }
 }
 

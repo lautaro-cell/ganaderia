@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using App.Application.Interfaces;
@@ -10,6 +10,14 @@ using GestorGanadero.Server.Grpc;
 using GestorGanadero.Server.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
+var jwtKey = builder.Configuration["Jwt:Key"];
+if (string.IsNullOrWhiteSpace(jwtKey))
+{
+    throw new InvalidOperationException("JWT key is required. Configure 'Jwt:Key' in appsettings or environment.");
+}
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "gestor-ganadero";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "gestor-ganadero-client";
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
 
 // Kestrel usa configuración por defecto (http://localhost:5000 / https://localhost:5001)
 // builder.WebHost.ConfigureKestrel(options =>
@@ -19,8 +27,16 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddCors(options => {
     options.AddPolicy("BlazorPolicy", policy => {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
+        if (builder.Environment.IsDevelopment())
+        {
+            policy.AllowAnyOrigin();
+        }
+        else if (allowedOrigins.Length > 0)
+        {
+            policy.WithOrigins(allowedOrigins);
+        }
+
+        policy.AllowAnyMethod()
               .AllowAnyHeader()
               .WithExposedHeaders("Grpc-Status", "Grpc-Message", "Grpc-Encoding", "Grpc-Accept-Encoding");
     });
@@ -32,15 +48,17 @@ builder.Services.AddAuthentication(options =>
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 }).AddJwtBearer(options =>
 {
-    options.RequireHttpsMetadata = false;
+    options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
     options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
     {
-        ValidateIssuer = false,
-        ValidateAudience = false,
+        ValidateIssuer = true,
+        ValidIssuer = jwtIssuer,
+        ValidateAudience = true,
+        ValidAudience = jwtAudience,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
-            System.Text.Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "GestorGanaderoSecretKey2024!MustBeLongEnough"))
+            System.Text.Encoding.UTF8.GetBytes(jwtKey))
     };
 });
 
@@ -53,6 +71,7 @@ builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequir
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ITenantProvider, HttpContextTenantProvider>();
+builder.Services.AddScoped<ICurrentUserProvider, HttpContextCurrentUserProvider>();
 builder.Services.AddScoped<ITranslationService, TranslationService>();
 builder.Services.AddScoped<ILivestockEventService, LivestockEventService>();
 builder.Services.AddScoped<ICatalogService, CatalogService>();
@@ -87,7 +106,7 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
-    // app.UseHttpsRedirection(); // Deshabilitado: se usa HTTP para desarrollo
+    app.UseHttpsRedirection();
 }
 
 app.UseBlazorFrameworkFiles();
@@ -109,5 +128,8 @@ app.MapGrpcService<SyncServiceImplementation>().RequireAuthorization().EnableGrp
 app.MapGet("/health", () => new { status = "ok" });
 app.MapFallbackToFile("index.html");
 
-await app.Services.SeedAsync();
+if (app.Environment.IsDevelopment() && app.Configuration.GetValue<bool>("Database:RunSeedOnStartup"))
+{
+    await app.Services.SeedAsync();
+}
 app.Run();

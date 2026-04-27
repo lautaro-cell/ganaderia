@@ -1,4 +1,4 @@
-@page "/"
+﻿@page "/"
 @page "/eventos"
 @using GestorGanadero.Client.Services
 @using GestorGanadero.Services.Operations.Contracts
@@ -280,9 +280,13 @@
 
     private async Task NextPage()
     {
-        _pageIndex++;
-        await LoadData();
-        StateHasChanged();
+        var totalPages = (int)Math.Ceiling((double)_totalCount / _pageSize);
+        if (_pageIndex + 1 < totalPages)
+        {
+            _pageIndex++;
+            await LoadData();
+            StateHasChanged();
+        }
     }
 
     private void OpenDrawer(EventTemplate? t)

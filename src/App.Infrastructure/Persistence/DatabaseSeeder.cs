@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.IO;
@@ -37,8 +37,7 @@ public static class DatabaseSeeder
                 Path.Combine(Directory.GetCurrentDirectory(), "sql", "data.sql"),                        // Relative to project root
                 Path.Combine(Directory.GetCurrentDirectory(), "GestorGanadero.Server", "sql", "data.sql"),      // Relative to parent
                 "sql/data.sql",
-                "data.sql",
-                @"c:\Users\HWLScuffi\Desktop\ganaderia\GestorGanadero.Server\sql\data.sql"                    // Absolute fallback
+                "data.sql"
             };
 
             string? foundPath = null;
@@ -77,4 +76,3 @@ public static class DatabaseSeeder
         }
     }
 }
-

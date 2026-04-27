@@ -1,4 +1,4 @@
-using NodaTime;
+﻿using NodaTime;
 namespace App.Application.DTOs;
 
 public record CreateLivestockEventRequest(
@@ -7,6 +7,15 @@ public record CreateLivestockEventRequest(
     int HeadCount,
     decimal EstimatedWeightKg,
     decimal TotalAmount,
-    Instant EventDate);
-
+    Instant EventDate,
+    Guid? FieldId = null,
+    Guid? ActivityId = null,
+    Guid? CategoryId = null,
+    Guid? OriginActivityId = null,
+    Guid? DestinationActivityId = null,
+    Guid? OriginCategoryId = null,
+    Guid? DestinationCategoryId = null,
+    Guid? DestinationFieldId = null,
+    decimal? WeightPerHead = null,
+    string? Observations = null);
 
