@@ -1,0 +1,54 @@
+@using GestorGanadero.Services.Catalog.Contracts
+@if (IsOpen)
+{
+  <div class="drawer" style="position:fixed; right:0; top:0; bottom:0; width:420px; background:#111; border-left:1px solid #333; padding:16px; overflow:auto;">
+    <h3>Campo</h3>
+    <div>
+      <label>Nombre</label>
+      <input @bind="FieldName" style="width:100%; padding:6px;" />
+    </div>
+    <div>
+      <label>Descripción</label>
+      <textarea @bind="FieldDescription" style="width:100%; height:100px; padding:6px;"></textarea>
+    </div>
+    <div>
+      <label>Activo</label>
+      <input type="checkbox" @bind="FieldIsActive" />
+    </div>
+    <button class="btn" style="margin-top:12px; background:#C0392B; color:#fff; padding:8px 12px; border-radius:6px;" @onclick="Save">Guardar</button>
+    <button class="btn" style="margin-left:8px; margin-top:12px;" @onclick="Close">Cerrar</button>
+  </div>
+}
+
+@code {
+  [Parameter] public bool IsOpen { get; set; }
+  [Parameter] public FieldMessage? Field { get; set; }
+  [Parameter] public EventCallback<FieldMessage> OnSave { get; set; }
+  [Parameter] public EventCallback OnClose { get; set; }
+  private string FieldName { get; set; } = string.Empty;
+  private string FieldDescription { get; set; } = string.Empty;
+  private bool FieldIsActive { get; set; }
+
+  protected override void OnParametersSet()
+  {
+    if (Field != null)
+    {
+      FieldName = Field.Name;
+      FieldDescription = Field.Description;
+      FieldIsActive = Field.IsActive;
+    }
+  }
+
+  private async Task Save()
+  {
+    var f = Field ?? new FieldMessage();
+    f.Name = FieldName;
+    f.Description = FieldDescription;
+    f.IsActive = FieldIsActive;
+    await OnSave.InvokeAsync(f);
+  }
+  private async Task Close()
+  {
+    if (OnClose.HasDelegate) await OnClose.InvokeAsync();
+  }
+}

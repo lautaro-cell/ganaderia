@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Auditor - Seleccionar cliente</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec1313",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221010",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#361a1a",
+                        "border-light": "#f3e7e7",
+                        "border-dark": "#4a2525",
+                        "text-main": "#1b0d0d",
+                        "text-muted": "#9a4c4c",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>body {
+    font-family: "Manrope", sans-serif
+    }
+/* Custom scrollbar for dropdowns if needed */
+.custom-select {
+    appearance: none;
+    background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuDDV3Gxa1g62O9n6hcj_gquVIRZ6FGOb_srmX07Td3WdV9ICpFErLMGHXUPEOI6BP9gojyrmzDMC_Y2ySlJ0tAzwp1bRk4iCBk_ss7TC42ReJrple1HKSaRLituTXzQOs9-JhbbzbTf3WEhvy1Hu-8ydpiWqe1Tb5mnlI1JcCUVUndWL-TWKMOZHHuA8O06v86CZwM3FZvtXBDSp7N0J5GPP85Wh5L_0fHwmVleU_70lCjMb5F_AUZ5Cbii4aD7ptB4do_3Wp_cNQ);
+    background-position: right 1rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em
+    }</style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-text-main dark:text-white flex flex-col min-h-screen transition-colors duration-200">
+<!-- Top Navigation -->
+<header class="sticky top-0 z-50 w-full border-b border-border-light dark:border-border-dark bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm">
+<div class="px-6 md:px-10 py-3 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-2xl">agriculture</span>
+</div>
+<h2 class="text-lg font-bold leading-tight tracking-tight">Gestor Ganadero</h2>
+</div>
+<div class="flex items-center gap-6">
+<!-- User Profile / Logout -->
+<div class="hidden md:flex items-center gap-3">
+<div class="text-right">
+<p class="text-sm font-bold leading-none">Carlos Auditor</p>
+<p class="text-xs text-text-muted dark:text-red-300 font-medium">Auditor Senior</p>
+</div>
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-10 ring-2 ring-primary/20" data-alt="Portrait of the current user" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC6FJD85wvndOC2CzdSyuUatSuTxnU8XcbAnnUUNjgMqudaVYpWP4NUkifuJT-q47bus2IfY7ewNgDmRVm0ijscFq6s1QF59l7O098qo1cUciSVCpBCHacGdPdrGSUOWYUtFt9PxzOm40pB7-LeODkrYTlxow3Xn5ucEhGdmhRFsXqDBAa_eLT26WViGTim1T8mRqX5SaZkKXn8pUQnH9BfMuR5HwBpwg27ibZgTdor-oImOYCgH7l8Nwl4n_vkiMcYmRZpJGVBqg");'>
+</div>
+</div>
+<button class="flex items-center justify-center rounded-full size-10 bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark text-primary hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+<span class="material-symbols-outlined text-xl">logout</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col items-center justify-center p-4 md:p-8 relative overflow-hidden">
+<!-- Background Decorative Elements -->
+<div class="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary/5 rounded-full blur-[100px] pointer-events-none"></div>
+<div class="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[80px] pointer-events-none"></div>
+<div class="w-full max-w-[520px] relative z-10">
+<!-- Card -->
+<div class="bg-surface-light dark:bg-surface-dark rounded-[2rem] shadow-xl shadow-black/5 dark:shadow-black/20 overflow-hidden border border-border-light dark:border-border-dark">
+<!-- Card Header -->
+<div class="pt-10 px-8 pb-2 text-center">
+<div class="size-16 mx-auto bg-primary/10 dark:bg-red-500/10 rounded-2xl flex items-center justify-center mb-6 text-primary">
+<span class="material-symbols-outlined text-4xl">domain_verification</span>
+</div>
+<h1 class="text-3xl font-bold tracking-tight mb-2">Seleccionar cliente</h1>
+<p class="text-text-muted dark:text-red-200/70 text-base">
+                        Seleccioná la empresa o establecimiento para comenzar la auditoría de hoy.
+                    </p>
+</div>
+<!-- Card Body -->
+<div class="p-8 flex flex-col gap-6">
+<!-- Search/Select Field -->
+<div class="flex flex-col gap-2">
+<label class="text-sm font-bold ml-1 text-text-main dark:text-gray-200" for="client-select">
+                            Empresa o CUIT
+                        </label>
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-text-muted dark:text-red-300/50">search</span>
+</div>
+<select class="custom-select w-full h-14 pl-12 pr-10 bg-background-light dark:bg-[#2a1212] border border-border-light dark:border-border-dark rounded-xl text-base text-text-main dark:text-white placeholder-text-muted focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all cursor-pointer shadow-sm hover:border-primary/30" id="client-select">
+<option disabled="" selected="" value="">Buscar por nombre o ID...</option>
+<option value="1">Estancia La Paz (CUIT 30-11223344-5)</option>
+<option value="2">Agroganadera del Sur S.A.</option>
+<option value="3">Los Quebrachos - Campo 2</option>
+<option value="4">Establecimiento Don Juan</option>
+<option value="5">Cabaña Las Lilas</option>
+</select>
+</div>
+<div class="flex justify-between px-1">
+<span class="text-xs text-text-muted dark:text-red-300/60 font-medium">5 clientes asignados</span>
+<button class="text-xs text-primary font-bold hover:underline">Actualizar lista</button>
+</div>
+</div>
+<!-- Action Button -->
+<button class="w-full h-14 bg-primary hover:bg-red-600 text-white text-lg font-bold rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all duration-300 flex items-center justify-center gap-2 group">
+<span>Entrar</span>
+<span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</div>
+<!-- Card Footer / Empty State Helper -->
+<div class="px-8 pb-8 pt-0 text-center">
+<div class="h-px w-full bg-border-light dark:bg-border-dark mb-6"></div>
+<p class="text-sm text-text-muted dark:text-red-200/50">
+                        ¿No encontrás a tu cliente? <a class="text-primary font-bold hover:underline" href="#">Contactar al administrador</a>
+</p>
+</div>
+</div>
+<!-- Empty State Visualization (Hidden by default, shown conceptually for the prompt) -->
+<!-- Note: In a real app, this would replace the content above if list is empty -->
+<div class="hidden mt-8 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/50 flex items-start gap-3">
+<span class="material-symbols-outlined text-primary mt-0.5">info</span>
+<p class="text-sm text-text-main dark:text-red-100 font-medium">
+                    No tenés clientes asignados. Por favor contactá al administrador del sistema para solicitar acceso.
+                </p>
+</div>
+</div>
+<!-- Footer Info -->
+<footer class="mt-12 text-center opacity-60">
+<p class="text-xs font-medium text-text-muted dark:text-red-300/50">
+                Gestor Ganadero © 2024. Versión 2.4.0
+            </p>
+</footer>
+</main>
+</body></html>

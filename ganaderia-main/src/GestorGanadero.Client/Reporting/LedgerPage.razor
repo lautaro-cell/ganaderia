@@ -1,0 +1,471 @@
+@page "/reportes/mayor"
+@using GestorGanadero.Client.Services
+@using GestorGanadero.Client.Catalog
+@using GestorGanadero.Services.Reporting.Contracts
+@using GestorGanadero.Services.Catalog.Contracts
+@using Google.Protobuf.WellKnownTypes
+@using Microsoft.JSInterop
+@using System.Text
+@using System.Threading
+@inject AppStateContainer State
+@inject ReportingClientService ReportingClientService
+@inject CatalogCacheService CatalogSvc
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<div class="flex flex-col gap-6 p-6">
+
+    <!-- Header -->
+    <div class="flex justify-between items-start flex-wrap gap-3">
+        <div class="flex flex-col gap-1">
+            <h1 class="text-3xl font-black tracking-tight text-white m-0">Mayor Contable</h1>
+            <p class="text-text-secondary text-sm">Auditoría detallada de movimientos y balances</p>
+        </div>
+        <div class="flex gap-3">
+            <button class="bg-surface-dark border border-border-dark text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 hover:bg-border-dark transition-colors disabled:opacity-50"
+                    disabled="@(!_entries.Any())"
+                    @onclick="ExportCsv">
+                <span class="material-symbols-outlined text-[18px]">download</span> Exportar CSV
+            </button>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-surface-dark border border-border-dark rounded-2xl p-6 shadow-xl shadow-black/20">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+
+            <!-- Período -->
+            <div class="flex flex-col gap-2">
+                <label class="text-xs font-bold text-text-secondary uppercase tracking-widest">Mes / Período</label>
+                <input type="month" value="@_monthFilter"
+                       @onchange="@(e => _monthFilter = e.Value?.ToString() ?? _monthFilter)"
+                       class="w-full bg-background-main border border-border-input rounded-lg px-4 py-2.5 text-white text-sm outline-none focus:ring-1 focus:ring-primary" />
+            </div>
+
+            <!-- Campo -->
+            <div class="flex flex-col gap-2">
+                <label class="text-xs font-bold text-text-secondary uppercase tracking-widest">Campo</label>
+                <div class="relative">
+                    <select @bind="_fieldFilter"
+                            class="w-full bg-background-main border border-border-input rounded-lg px-4 py-2.5 text-white text-sm outline-none focus:ring-1 focus:ring-primary">
+                        <option value="">Todos los campos</option>
+                        @foreach (var f in _fields)
+                        {
+                            <option value="@f.Id">@f.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <!-- Categoría -->
+            <div class="flex flex-col gap-2">
+                <label class="text-xs font-bold text-text-secondary uppercase tracking-widest">Categoría</label>
+                <div class="relative">
+                    <select @bind="_categoryFilter"
+                            class="w-full bg-background-main border border-border-input rounded-lg px-4 py-2.5 text-white text-sm outline-none focus:ring-1 focus:ring-primary">
+                        <option value="">Todas las categorías</option>
+                        @foreach (var c in _categories)
+                        {
+                            <option value="@c.Id">@c.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <!-- Cuenta Contable -->
+            <div class="flex flex-col gap-2">
+                <label class="text-xs font-bold text-text-secondary uppercase tracking-widest">Cuenta Contable</label>
+                <div class="relative">
+                    <select @bind="_accountFilter"
+                            class="w-full bg-background-main border border-border-input rounded-lg px-4 py-2.5 text-white text-sm outline-none focus:ring-1 focus:ring-primary">
+                        <option value="">Todas las cuentas</option>
+                        @foreach (var a in _accounts)
+                        {
+                            <option value="@a.Code">@a.Code — @a.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <!-- Acciones -->
+            <div class="flex items-center gap-2">
+                <button class="flex-1 bg-primary hover:bg-red-700 text-white rounded-lg px-4 py-2.5 text-sm font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                        @onclick="ApplyFilters" disabled="@_isLoading">
+                    @if (_isLoading)
+                    {
+                        <div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                    }
+                    else
+                    {
+                        <span class="material-symbols-outlined text-[18px]">filter_list</span>
+                    }
+                    Filtrar
+                </button>
+                <button class="bg-surface-darker border border-border-dark text-text-secondary rounded-lg p-2.5 hover:text-white hover:bg-border-dark transition-colors"
+                        @onclick="ResetFilters" title="Limpiar filtros">
+                    <span class="material-symbols-outlined text-[18px]">refresh</span>
+                </button>
+            </div>
+        </div>
+
+        @if (_unbalancedEventIds.Count > 0)
+        {
+            <div class="mt-4 flex items-center gap-2 text-amber-400 text-xs font-bold">
+                <span class="material-symbols-outlined text-base">warning</span>
+                @_unbalancedEventIds.Count asiento(s) descuadrado(s) resaltado(s) en la tabla.
+            </div>
+        }
+    </div>
+
+    <!-- Stream progress / error -->
+    @if (_isLoading && _loadedCount > 0)
+    {
+        <div class="flex items-center gap-3 px-1 text-text-secondary text-xs">
+            <div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary flex-shrink-0"></div>
+            <span>Cargando asientos... <span class="text-white font-mono">@_loadedCount</span> recibidos</span>
+        </div>
+    }
+    @if (_streamError != null)
+    {
+        <div class="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+            <span class="material-symbols-outlined text-lg flex-shrink-0">error</span>
+            <span>Error de conexión: @_streamError</span>
+            <button class="ml-auto text-red-400 hover:text-white" @onclick="() => _streamError = null">
+                <span class="material-symbols-outlined text-lg">close</span>
+            </button>
+        </div>
+    }
+
+    <!-- Ledger Table -->
+    <div class="bg-surface-dark border border-border-dark rounded-2xl shadow-xl shadow-black/20 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm whitespace-nowrap">
+                <thead class="bg-background-main border-b border-border-dark text-text-secondary">
+                    <tr>
+                        <th rowspan="2" class="px-4 py-4 font-bold uppercase text-[10px] tracking-widest">Fecha</th>
+                        <th rowspan="2" class="px-4 py-4 font-bold uppercase text-[10px] tracking-widest">Campo</th>
+                        <th rowspan="2" class="px-4 py-4 font-bold uppercase text-[10px] tracking-widest">Cuenta</th>
+                        <th rowspan="2" class="px-4 py-4 font-bold uppercase text-[10px] tracking-widest">Categoría</th>
+                        <th rowspan="2" class="px-4 py-4 font-bold uppercase text-[10px] tracking-widest">Concepto</th>
+                        <th colspan="2" class="px-4 py-2 font-bold uppercase text-[10px] text-center border-b border-border-dark tracking-widest">Cabezas</th>
+                        <th colspan="2" class="px-4 py-2 font-bold uppercase text-[10px] text-center border-b border-border-dark tracking-widest">Kilos</th>
+                        <th rowspan="2" class="px-4 py-4 font-bold uppercase text-[10px] tracking-widest text-center">Estado</th>
+                    </tr>
+                    <tr class="text-[10px] border-b border-border-dark">
+                        <th class="px-4 py-2 text-blue-400 font-bold text-center">DEBE</th>
+                        <th class="px-4 py-2 text-emerald-400 font-bold text-center">HABER</th>
+                        <th class="px-4 py-2 text-blue-400 font-bold text-center">DEBE (KG)</th>
+                        <th class="px-4 py-2 text-emerald-400 font-bold text-center">HABER (KG)</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border-dark">
+                    @if (_isLoading && !_entries.Any())
+                    {
+                        <tr>
+                            <td colspan="10" class="py-16 text-center text-text-secondary">
+                                <div class="flex flex-col items-center gap-3">
+                                    <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+                                    <span class="text-sm">Cargando asientos...</span>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else if (!_isLoading && !_entries.Any())
+                    {
+                        <tr>
+                            <td colspan="10" class="py-16 text-center text-text-secondary">
+                                <div class="flex flex-col items-center gap-3">
+                                    <span class="material-symbols-outlined text-4xl">receipt_long</span>
+                                    <p class="text-sm">No hay asientos para los filtros seleccionados.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var e in _entries)
+                        {
+                            bool unbalanced = _unbalancedEventIds.Contains(e.LivestockEventId);
+                            bool isDebe     = e.EntryType == "DEBE";
+                            <tr class="hover:bg-[#2a2a2a] transition-colors @(unbalanced ? "bg-amber-900/10 border-l-2 border-l-amber-500" : "")">
+                                <td class="px-4 py-3 text-text-secondary text-xs font-mono">
+                                    @e.Date.ToDateTime().ToLocalTime().ToString("dd/MM/yy HH:mm")
+                                </td>
+                                <td class="px-4 py-3 text-text-body text-xs">@e.FieldName</td>
+                                <td class="px-4 py-3">
+                                    <span class="font-mono text-xs text-white bg-background-main border border-border-dark px-2 py-0.5 rounded">
+                                        @e.AccountCode
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-text-body text-xs">@e.CategoryName</td>
+                                <td class="px-4 py-3 text-white text-xs max-w-[180px] truncate" title="@e.Description">@e.Description</td>
+                                <td class="px-4 py-3 text-center">
+                                    @if (isDebe && e.HeadCount > 0)
+                                    {
+                                        <span class="font-mono font-bold text-blue-400 text-sm">@e.HeadCount</span>
+                                    }
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    @if (!isDebe && e.HeadCount > 0)
+                                    {
+                                        <span class="font-mono font-bold text-emerald-400 text-sm">@e.HeadCount</span>
+                                    }
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    @if (isDebe && e.DebitAmount > 0)
+                                    {
+                                        <span class="font-mono text-blue-300 text-xs">@((double)e.DebitAmount / 1 is var d ? d.ToString("N1") : "")</span>
+                                    }
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    @if (!isDebe && e.CreditAmount > 0)
+                                    {
+                                        <span class="font-mono text-emerald-300 text-xs">@((double)e.CreditAmount / 1 is var c ? c.ToString("N1") : "")</span>
+                                    }
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full @StatusClass(e.Status)">
+                                        @e.Status
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                        @if (_isLoading)
+                        {
+                            <tr>
+                                <td colspan="10" class="py-4 text-center text-text-secondary text-xs">
+                                    <div class="flex items-center justify-center gap-2">
+                                        <div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary"></div>
+                                        Cargando más asientos...
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+                <!-- Totales del período -->
+                <tfoot class="bg-background-main border-t-2 border-border-dark font-bold text-white text-sm">
+                    <tr>
+                        <td colspan="5" class="px-4 py-4 text-text-secondary text-xs font-bold uppercase tracking-widest">
+                            Totales del período
+                            <span class="ml-2 text-white font-mono normal-case">(@_entries.Count asiento(s))</span>
+                        </td>
+                        <td class="px-4 py-4 text-center text-blue-400 font-mono">@_totalDebeHeads</td>
+                        <td class="px-4 py-4 text-center text-emerald-400 font-mono">@_totalHaberHeads</td>
+                        <td class="px-4 py-4 text-center text-blue-300 font-mono text-xs">@_totalDebeKg.ToString("N1")</td>
+                        <td class="px-4 py-4 text-center text-emerald-300 font-mono text-xs">@_totalHaberKg.ToString("N1")</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+@code {
+    // --- Catálogos ---
+    private List<FieldMessage>         _fields     = new();
+    private List<AnimalCategoryMessage> _categories = new();
+    private List<AccountMessage>       _accounts   = new();
+
+    // --- Filtros ---
+    private string _monthFilter    = DateTime.Today.ToString("yyyy-MM");
+    private string _fieldFilter    = string.Empty;
+    private string _categoryFilter = string.Empty;
+    private string _accountFilter  = string.Empty;
+
+    // --- Datos ---
+    private List<LedgerEntry> _entries = new();
+    private bool _isLoading;
+
+    // --- Totales (5.4) ---
+    private int    _totalDebeHeads;
+    private int    _totalHaberHeads;
+    private double _totalDebeKg;
+    private double _totalHaberKg;
+
+    // --- Asientos descuadrados (5.5): evento_id → (Item1=debe_heads, Item2=haber_heads) ---
+    private Dictionary<string, (int, int)> _eventBalances = new();
+    private HashSet<string> _unbalancedEventIds = new();
+
+    // --- Streaming state ---
+    private int _loadedCount;
+    private string? _streamError;
+    private CancellationTokenSource? _cts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCatalogs();
+        await ApplyFilters();
+    }
+
+    private async Task LoadCatalogs()
+    {
+        if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
+        var req = new GetCatalogRequest { TenantId = State.ActiveTenantId };
+        var f = await CatalogSvc.GetFieldsAsync(req);
+        _fields = f.Data?.Fields.ToList() ?? new();
+        var c = await CatalogSvc.GetAnimalCategoriesAsync(req);
+        _categories = c.Data?.Categories.ToList() ?? new();
+        var a = await CatalogSvc.GetAccountsAsync(req);
+        _accounts = a.Data?.Accounts.ToList() ?? new();
+    }
+
+    private async Task ApplyFilters()
+    {
+        // Cancelar streaming anterior si sigue activo
+        if (_cts is not null)
+        {
+            _cts.Cancel();
+            _cts.Dispose();
+        }
+        _cts = new CancellationTokenSource();
+
+        // Resetear estado
+        _entries.Clear();
+        _totalDebeHeads = _totalHaberHeads = 0;
+        _totalDebeKg = _totalHaberKg = 0;
+        _eventBalances.Clear();
+        _unbalancedEventIds.Clear();
+        _loadedCount = 0;
+        _streamError = null;
+        _isLoading = true;
+        StateHasChanged();
+
+        if (string.IsNullOrEmpty(State.ActiveTenantId)) { _isLoading = false; return; }
+
+        // Calcular start/end del mes seleccionado
+        DateTime startDt = DateTime.Parse(_monthFilter + "-01");
+        DateTime endDt   = startDt.AddMonths(1).AddSeconds(-1);
+
+        var filter = new LedgerFilter
+        {
+            TenantId  = State.ActiveTenantId,
+            StartDate = Timestamp.FromDateTime(DateTime.SpecifyKind(startDt, DateTimeKind.Utc)),
+            EndDate   = Timestamp.FromDateTime(DateTime.SpecifyKind(endDt,   DateTimeKind.Utc)),
+            PageIndex = 0,
+            PageSize  = 500,
+            AccountCode  = _accountFilter  ?? string.Empty,
+            CategoryId   = _categoryFilter ?? string.Empty,
+            FieldId      = _fieldFilter    ?? string.Empty,
+        };
+
+        try
+        {
+            await foreach (var entry in ReportingClientService.GetLedgerAsync(filter, _cts.Token))
+            {
+                _entries.Add(entry);
+                _loadedCount++;
+                AccumulateTotals(entry);
+                UpdateEventBalance(entry);
+                if (_loadedCount % 15 == 0)
+                    await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            _streamError = ex.Message;
+            Console.WriteLine($"Ledger stream error: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void AccumulateTotals(LedgerEntry e)
+    {
+        bool isDebe = e.EntryType == "DEBE";
+        if (isDebe)
+        {
+            _totalDebeHeads += e.HeadCount;
+            if (double.TryParse(e.WeightKg, out var wk)) _totalDebeKg += wk;
+        }
+        else
+        {
+            _totalHaberHeads += e.HeadCount;
+            if (double.TryParse(e.WeightKg, out var wk)) _totalHaberKg += wk;
+        }
+    }
+
+    private void UpdateEventBalance(LedgerEntry e)
+    {
+        if (string.IsNullOrEmpty(e.LivestockEventId)) return;
+        var key = e.LivestockEventId;
+        if (!_eventBalances.TryGetValue(key, out var bal))
+            bal = (0, 0);
+
+        _eventBalances[key] = e.EntryType == "DEBE"
+            ? (bal.Item1 + e.HeadCount, bal.Item2)
+            : (bal.Item1, bal.Item2 + e.HeadCount);
+
+        var updated = _eventBalances[key];
+        if (updated.Item1 != updated.Item2)
+            _unbalancedEventIds.Add(key);
+        else
+            _unbalancedEventIds.Remove(key);
+    }
+
+    private async Task ResetFilters()
+    {
+        _monthFilter    = DateTime.Today.ToString("yyyy-MM");
+        _fieldFilter    = string.Empty;
+        _categoryFilter = string.Empty;
+        _accountFilter  = string.Empty;
+        await ApplyFilters();
+    }
+
+    private async Task ExportCsv()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("Fecha,Campo,Cuenta,Categoría,Concepto,Tipo,Cabezas,KG,Estado,EventoId");
+        foreach (var e in _entries)
+        {
+            sb.AppendLine(string.Join(",",
+                CsvEscape(e.Date.ToDateTime().ToLocalTime().ToString("dd/MM/yyyy HH:mm")),
+                CsvEscape(e.FieldName),
+                CsvEscape(e.AccountCode),
+                CsvEscape(e.CategoryName),
+                CsvEscape(e.Description),
+                CsvEscape(e.EntryType),
+                e.HeadCount.ToString(),
+                e.WeightKg,
+                CsvEscape(e.Status),
+                CsvEscape(e.LivestockEventId)));
+        }
+
+        var bytes  = Encoding.UTF8.GetBytes(sb.ToString());
+        var stream = new System.IO.MemoryStream(bytes);
+        var streamRef = new DotNetStreamReference(stream);
+        await JS.InvokeVoidAsync("downloadFileFromStream",
+            $"mayor_{_monthFilter}.csv", streamRef);
+    }
+
+    private static string CsvEscape(string? v)
+    {
+        if (string.IsNullOrEmpty(v)) return string.Empty;
+        if (v.Contains(',') || v.Contains('"') || v.Contains('\n'))
+            return $"\"{v.Replace("\"", "\"\"")}\"";
+        return v;
+    }
+
+    private static string StatusClass(string? status) => status?.ToLower() switch
+    {
+        "synced"   => "bg-emerald-500/15 text-emerald-400",
+        "validated"=> "bg-blue-500/15 text-blue-400",
+        "audited"  => "bg-purple-500/15 text-purple-400",
+        _          => "bg-border-dark text-text-secondary"
+    };
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_cts is not null)
+        {
+            _cts.Cancel();
+            _cts.Dispose();
+        }
+        await ValueTask.CompletedTask;
+    }
+}

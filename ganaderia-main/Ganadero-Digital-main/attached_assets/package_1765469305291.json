@@ -1,0 +1,9 @@
+{
+  "name": "ganado-events",
+  "version": "1.0.0",
+  "description": "Registro de eventos ganaderos sin dependencias externas",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  }
+}

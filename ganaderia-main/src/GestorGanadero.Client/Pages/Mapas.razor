@@ -1,0 +1,95 @@
+@page "/maps"
+@using GestorGanadero.Client.Services
+@using GestorGanadero.Services.Catalog.Contracts
+@inject AppStateContainer State
+@inject CatalogService.CatalogServiceClient GrpcClient
+@inject IJSRuntime JS
+@implements IDisposable
+
+<div class="page-header">
+    <h1>Mapas y Catastro</h1>
+    <span class="subtitle">Gestion geografica de campos</span>
+</div>
+
+<div class="card" style="padding:0; position:relative; overflow:hidden;">
+    <div style="position:absolute; top:16px; left:56px; z-index:1000; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:16px; box-shadow:var(--shadow-lg); max-width:300px;">
+        <div class="form-group" style="margin-bottom:0;">
+            <label>Campo para dibujar</label>
+            <select @bind="_activeFieldId" class="form-control">
+                <option value="">Seleccione un campo...</option>
+                @if (_fields != null)
+                {
+                    @foreach (var f in _fields)
+                    {
+                        <option value="@f.Id">@f.Name</option>
+                    }
+                }
+            </select>
+            <div style="font-size:0.7rem; color:var(--text-muted); margin-top:6px;">Seleccione un campo antes de usar la herramienta de dibujo.</div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_statusMsg))
+        {
+            <div class="alert @(_statusOk ? "alert-success" : "alert-danger") mt-md" style="margin-top:12px;">
+                @_statusMsg
+            </div>
+        }
+    </div>
+
+    <div id="map" style="height:70vh; border-radius:var(--radius-lg); z-index:1;"></div>
+</div>
+
+@code {
+    private List<FieldMessage>? _fields;
+    private string _activeFieldId = "";
+    private string _statusMsg = "";
+    private bool _statusOk;
+    private DotNetObjectReference<Mapas>? _objRef;
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.OnChange += StateHasChanged;
+        await LoadFields();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _objRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("initMap", "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", _objRef);
+            // await RenderPolygons(); // Assuming geometries will be added to FieldMessage later
+        }
+    }
+
+    private async Task LoadFields()
+    {
+        if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
+        try
+        {
+            var r = await GrpcClient.GetFieldsAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
+            _fields = r.Fields.ToList();
+        }
+        catch { }
+    }
+
+    [JSInvokable]
+    public async Task OnPolygonDrawn(string geojson)
+    {
+        if (string.IsNullOrEmpty(_activeFieldId))
+        {
+            _statusOk = false;
+            _statusMsg = "Debe seleccionar un campo antes de guardar.";
+            StateHasChanged();
+            return;
+        }
+        // Implementation for saving field geometry will go here
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        State.OnChange -= StateHasChanged;
+        _objRef?.Dispose();
+    }
+}

@@ -1,0 +1,114 @@
+syntax = "proto3";
+import "google/protobuf/empty.proto";
+import "Protos/Common/shared_types.proto";
+
+option csharp_namespace = "GestorGanadero.Services.Identity.Contracts";
+package identity.v1;
+
+service IdentityService {
+  rpc GetMyProfile (google.protobuf.Empty) returns (UserProfile);
+  rpc GetAvailableTenants (google.protobuf.Empty) returns (TenantList);
+  rpc GetUsers (google.protobuf.Empty) returns (UserList);
+  rpc InviteUser (InviteUserRequest) returns (common.v1.ActionResponse);
+  rpc UpdateUser (UserMessage) returns (common.v1.ActionResponse);
+  rpc DeleteUser (common.v1.DeleteEntityRequest) returns (common.v1.ActionResponse);
+
+  // Tenant Management
+  rpc GetAllTenants (google.protobuf.Empty) returns (TenantList);
+  rpc UpdateTenant (TenantMessage) returns (common.v1.ActionResponse);
+
+  // Module 3 — Empresa / ERP connectivity
+  rpc SaveCompanyConfiguration (SaveCompanyConfigurationRequest) returns (common.v1.ActionResponse);
+  rpc VerifyConnection (VerifyConnectionRequest) returns (VerifyConnectionResponse);
+  rpc GetCompanyStatus (GetCompanyStatusRequest) returns (CompanyStatusResponse);
+  rpc TriggerCatalogSync (TriggerSyncRequest) returns (common.v1.ActionResponse);
+}
+
+message TenantMessage {
+  string id = 1;
+  string name = 2;
+  string gestor_max_database_id = 3;
+  string gestor_max_api_key = 4;
+  string status_summary = 5;
+  bool has_erp_config = 6;
+  string last_sync_at = 7;
+  bool last_test_ok = 8;
+}
+
+message TenantList {
+  repeated TenantMessage tenants = 1;
+}
+
+message UserProfile {
+  string id = 1;
+  string email = 2;
+  string name = 3;
+  string role = 4;
+  string active_tenant_id = 5;
+  string profile_image_url = 6;
+}
+
+message InviteUserRequest {
+  string email = 1;
+  string name = 2;
+  string role_name = 3;
+  string tenant_id = 4;
+}
+
+message UserMessage {
+  string id = 1;
+  string email = 2;
+  string name = 3;
+  string role_name = 4;
+  bool is_active = 5;
+  string tenant_id = 6;
+  string last_login_at = 7;
+  repeated string assigned_field_ids = 8;
+}
+
+message UserList { repeated UserMessage users = 1; }
+
+// --- Module 3 messages ---
+
+message SaveCompanyConfigurationRequest {
+  string tenant_id = 1;
+  string tenant_name = 2;
+  string api_key = 3;
+  int32 gestor_database_id = 4;
+  string base_url = 5;
+}
+
+message VerifyConnectionRequest {
+  string tenant_id = 1;
+}
+
+message VerifyConnectionResponse {
+  bool success = 1;
+  string message = 2;
+  int64 latency_ms = 3;
+  string checked_at = 4;
+}
+
+message GetCompanyStatusRequest {
+  string tenant_id = 1;
+}
+
+message CompanyStatusResponse {
+  bool is_configured = 1;
+  bool is_enabled = 2;
+  string api_key_last4 = 3;
+  string base_url = 4;
+  int32 gestor_database_id = 5;
+  string tenant_name = 6;
+  string last_tested_at = 7;
+  bool last_test_ok = 8;
+  string last_test_error = 9;
+  string last_sync_at = 10;
+  bool last_sync_ok = 11;
+  string last_sync_error = 12;
+  string status_summary = 13;
+}
+
+message TriggerSyncRequest {
+  string tenant_id = 1;
+}

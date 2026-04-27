@@ -1,0 +1,72 @@
+version: "2"
+type: frontend
+tech_stack:
+  - C#
+  - Blazor WebAssembly
+  - gRPC-Web
+  - .NET 10
+routes:
+  - path: /
+    file: src/GestorGanadero.Client/Pages/Eventos.razor
+    auth_required: true
+    description: Dashboard and events registration
+  - path: /eventos
+    file: src/GestorGanadero.Client/Pages/Eventos.razor
+    auth_required: true
+    description: Events history and registration
+  - path: /admin
+    file: src/GestorGanadero.Client/Pages/Administracion.razor
+    auth_required: true
+    description: Administration of fields, categories, activities, lots and templates
+  - path: /ledger
+    file: src/GestorGanadero.Client/Pages/Mayor.razor
+    auth_required: true
+    description: General ledger and ERP synchronization
+  - path: /login
+    file: src/GestorGanadero.Client/Pages/Login.razor
+    auth_required: false
+    description: Authentication page
+features:
+  - name: Livestock Event Registration
+    description: Register cattle events with automatic weight calculation
+    files:
+      - src/GestorGanadero.Client/Pages/Eventos.razor
+      - src/GestorGanadero.Client/Components/Eventos/EventoDrawer.razor
+    entry_route: /eventos
+    user_interactions:
+      - Click on an event template card
+      - Select date and enter head count
+      - Enter average weight (total weight is calculated)
+      - Select field, category, and activity
+      - Click "Registrar Evento"
+    api_calls:
+      - method: gRPC
+        endpoint: LivestockService/RegisterEvent
+    auth_required: true
+  - name: General Ledger and ERP Sync
+    description: View accounting entries and sync them to GestorMax ERP
+    files:
+      - src/GestorGanadero.Client/Pages/Mayor.razor
+    entry_route: /ledger
+    user_interactions:
+      - Filter entries by date
+      - Select pending entries using checkboxes
+      - Click "Sincronizar" button
+    api_calls:
+      - method: gRPC
+        endpoint: SyncService/SyncToERP
+    auth_required: true
+  - name: Event Templates Configuration
+    description: Manage event templates and their accounting mappings
+    files:
+      - src/GestorGanadero.Client/Pages/Administracion.razor
+      - src/GestorGanadero.Client/Components/Admin/TemplatesAdmin.razor
+    entry_route: /admin
+    user_interactions:
+      - Navigate to "Plantillas de Eventos" section
+      - View list of templates and their required fields
+    auth_required: true
+known_limitations:
+  - issue: New template creation is UI-only (button disabled)
+    location: src/GestorGanadero.Client/Components/Admin/TemplatesAdmin.razor
+    impact: Users cannot create new event types from the UI yet

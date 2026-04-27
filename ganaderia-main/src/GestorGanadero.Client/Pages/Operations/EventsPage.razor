@@ -1,0 +1,163 @@
+@page "/operaciones"
+@page "/centro-operativo"
+@using GestorGanadero.Client.Operations
+@using GestorGanadero.Client.Shared
+@using GestorGanadero.Client.Services
+@using GestorGanadero.Services.Operations.Contracts
+@using System.Linq
+@inject OperationsClientService OperationsClientService
+@inject AppStateContainer State
+@inject Microsoft.AspNetCore.Components.NavigationManager Nav
+
+<PageHeader Title="Centro Operativo">
+    <Breadcrumb>Historial de Eventos</Breadcrumb>
+    <Actions>
+        <button class="btn btn-primary" @onclick='() => Nav.NavigateTo("/operaciones/nuevo")'>
+            <span class="material-icons">add</span>
+            Nuevo Evento
+        </button>
+    </Actions>
+</PageHeader>
+
+<div class="filters-bar card card-compact">
+    <div class="filter-group">
+        <label>Desde</label>
+        <input type="date" @bind="StartDate" class="form-control" />
+    </div>
+    <div class="filter-group">
+        <label>Hasta</label>
+        <input type="date" @bind="EndDate" class="form-control" />
+    </div>
+    <div class="filter-actions flex items-center gap-md" style="padding-bottom: 4px;">
+        <button class="btn btn-secondary" @onclick="LoadEvents" disabled="@IsLoading">
+            @if (IsLoading) { <span class="spinner"></span> }
+            else { <span class="material-icons">filter_list</span> }
+            Filtrar
+        </button>
+    </div>
+</div>
+
+<div class="table-wrapper">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Evento</th>
+                <th>Campo</th>
+                <th class="text-end">Cabezas</th>
+                <th class="text-end">Peso Prom.</th>
+                <th class="text-end">Peso Total</th>
+                <th>Estado</th>
+                <th class="text-end">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (IsLoading && !Events.Any())
+            {
+                <tr>
+                    <td colspan="8" class="text-center" style="padding: 48px;">
+                        <div class="spinner spinner-lg mb-md"></div>
+                        <p class="text-muted">Cargando eventos...</p>
+                    </td>
+                </tr>
+            }
+            else if (!Events.Any())
+            {
+                <tr>
+                    <td colspan="8" class="text-center" style="padding: 48px;">
+                        <div class="empty-state">
+                            <span class="material-icons">inventory_2</span>
+                            <p>No se encontraron eventos en el período seleccionado.</p>
+                        </div>
+                    </td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var e in Events)
+                {
+                    var isExpanded = Expanded.GetValueOrDefault(e.Id);
+                    <tr class="@(isExpanded ? "bg-surface-hover" : "")">
+                        <td>@e.OccurredOn.ToDateTime().ToString("dd MMM yyyy")</td>
+                        <td>
+                            <div class="flex items-center gap-sm">
+                                <span class="badge badge-neutral">@e.TypeName</span>
+                            </div>
+                        </td>
+                        <td>@e.FieldName</td>
+                        <td class="text-end font-mono">@e.HeadCount</td>
+                        <td class="text-end font-mono">@e.WeightPerHead.ToString("N1") kg</td>
+                        <td class="text-end font-mono">@e.TotalWeight.ToString("N0") kg</td>
+                        <td><span class="badge badge-success">Completado</span></td>
+                        <td class="text-end">
+                            <button class="btn-icon" @onclick="() => Expand(e.Id)" title="Ver detalles">
+                                <span class="material-icons">@(isExpanded ? "expand_less" : "expand_more")</span>
+                            </button>
+                        </td>
+                    </tr>
+                    @if (isExpanded)
+                    {
+                        <tr class="expanded-row">
+                            <td colspan="8" style="background: var(--bg-root); border-left: 4px solid var(--accent);">
+                                <div class="p-md">
+                                    <div class="flex flex-col gap-sm">
+                                        <div class="text-muted text-xs uppercase font-bold">Observaciones</div>
+                                        <div class="text-sm">@(string.IsNullOrEmpty(e.Observations) ? "Sin observaciones registradas." : e.Observations)</div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private List<EventDetail> Events = new();
+    private Dictionary<string, bool> Expanded = new();
+    private DateTime? StartDate { get; set; }
+    private DateTime? EndDate { get; set; }
+    private bool IsLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        StartDate = DateTime.Today.AddMonths(-1);
+        EndDate = DateTime.Today;
+        await LoadEvents();
+    }
+
+    private async Task LoadEvents()
+    {
+        IsLoading = true;
+        try
+        {
+            var req = new GetEventsRequest
+            {
+                TenantId = State.ActiveTenantId,
+                StartDate = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime((StartDate ?? DateTime.UtcNow.AddMonths(-1)).ToUniversalTime()),
+                EndDate = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime((EndDate ?? DateTime.UtcNow.AddDays(1)).ToUniversalTime())
+            };
+            var r = await OperationsClientService.GetEventsAsync(req);
+            if (r.Success && r.Data != null) Events = r.Data.Events.ToList();
+        }
+        catch (Exception)
+        {
+            // Handle error
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private void Expand(string id) { Expanded[id] = !Expanded.GetValueOrDefault(id); }
+}
+
+<style>
+    .p-md { padding: var(--space-md); }
+    .text-xs { font-size: 0.7rem; }
+    .font-bold { font-weight: 700; }
+    .expanded-row td { padding: 0; }
+</style>

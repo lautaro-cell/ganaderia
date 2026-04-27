@@ -1,0 +1,189 @@
+@page "/operaciones/nuevo"
+@using GestorGanadero.Client.Operations
+@using GestorGanadero.Client.Shared
+@using GestorGanadero.Client.Services
+@using GestorGanadero.Services.Operations.Contracts
+@using Google.Protobuf.WellKnownTypes
+@using System.Linq
+@inject OperationsClientService OperationsClientService
+@inject AppStateContainer State
+@inject Microsoft.AspNetCore.Components.NavigationManager Nav
+
+<PageHeader Title="Registrar Evento">
+    <Breadcrumb>Centro Operativo / Nuevo</Breadcrumb>
+</PageHeader>
+
+<div class="main-container">
+    @if (IsLoading)
+    {
+        <div class="loading-container">
+            <div class="spinner spinner-lg"></div>
+            <p>Cargando plantillas de eventos...</p>
+        </div>
+    }
+    else if (HasError)
+    {
+        <div class="alert alert-danger">
+            <span class="material-icons">error</span>
+            <div>
+                <strong>Error:</strong> No se pudo completar el registro. Verifique los datos e intente nuevamente.
+                <button class="btn btn-sm btn-ghost mt-sm" @onclick="() => HasError = false">Reintentar</button>
+            </div>
+        </div>
+    }
+    else
+    {
+        @if (SelectedTemplate == null)
+        {
+            <div class="section-title mb-md">
+                <h3>Seleccione el tipo de evento</h3>
+                <p class="text-muted">Elija una plantilla para comenzar el registro</p>
+            </div>
+
+            @if (!Templates.Any())
+            {
+                <div class="empty-state card">
+                    <span class="material-icons">event_busy</span>
+                    <h3>No hay plantillas disponibles</h3>
+                    <p>No se encontraron tipos de eventos configurados para este establecimiento (@State.ActiveTenantId).</p>
+                    <button class="btn btn-secondary mt-md" @onclick="@(() => Nav.NavigateTo("/admin"))">Configurar Plantillas</button>
+                </div>
+            }
+            else
+            {
+                <div class="template-grid">
+                    @foreach (var t in Templates)
+                    {
+                        var bgColor = string.IsNullOrEmpty(t.ColorCode) ? "var(--surface-3)" : t.ColorCode + "22";
+                        var fgColor = string.IsNullOrEmpty(t.ColorCode) ? "var(--text-primary)" : t.ColorCode;
+                        <div class="template-card" @onclick="() => SelectedTemplate = t">
+                            <div class="icon" style="background: @bgColor; color: @fgColor">
+                                <span class="material-icons">@(GetIconForTemplate(t.Name))</span>
+                            </div>
+                            <div class="name">@t.Name</div>
+                        </div>
+                    }
+                </div>
+            }
+        }
+        else
+        {
+            <div class="card max-w-2xl mx-auto">
+                <div class="card-header">
+                    <div class="flex items-center gap-md">
+                        <button class="btn-icon" @onclick="() => SelectedTemplate = null">
+                            <span class="material-icons">arrow_back</span>
+                        </button>
+                        <h3>@SelectedTemplate.Name</h3>
+                    </div>
+                    <span class="badge badge-info">Nueva Entrada</span>
+                </div>
+
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Fecha del Evento</label>
+                            <input type="date" @bind="OccurredOnDate" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>Campo / Potrero</label>
+                            <input @bind="Req.FieldId" placeholder="Seleccione campo" class="form-control" />
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>ID Animal (Opcional)</label>
+                            <input @bind="Req.AnimalId" placeholder="Ej: Caravana 123" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>Cantidad de Cabezas</label>
+                            <input @bind="Req.HeadCount" type="number" class="form-control" placeholder="0" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Observaciones</label>
+                        <textarea @bind="Req.Observations" placeholder="Detalles adicionales del evento..." class="form-control"></textarea>
+                    </div>
+                </div>
+
+                <div class="card-footer flex justify-between items-center mt-lg">
+                    <button class="btn btn-secondary" @onclick="() => SelectedTemplate = null">Cancelar</button>
+                    <button class="btn btn-primary" @onclick="Register" disabled="@IsSubmitting">
+                        @if (IsSubmitting) { <span class="spinner"></span> }
+                        Registrar Evento
+                    </button>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private bool IsLoading = true;
+    private bool IsSubmitting = false;
+    private bool HasError = false;
+    private List<EventTemplate> Templates = new();
+    private EventTemplate? SelectedTemplate;
+    private DateTime OccurredOnDate = DateTime.Today;
+    private RegisterEventRequest Req = new RegisterEventRequest();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var r = await OperationsClientService.GetTemplatesAsync(new GetTemplatesRequest { TenantId = State.ActiveTenantId });
+            if (r.Success && r.Data != null) Templates = r.Data.Templates.ToList();
+        }
+        catch (Exception)
+        {
+            HasError = true;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task Register()
+    {
+        if (IsSubmitting) return;
+        
+        IsSubmitting = true;
+        try
+        {
+            Req.TemplateId = SelectedTemplate?.Id ?? string.Empty;
+            Req.OccurredOn = Timestamp.FromDateTime(OccurredOnDate.ToUniversalTime());
+            
+            var res = await OperationsClientService.RegisterEventAsync(Req);
+            if (res.Success) Nav.NavigateTo("/operaciones");
+            else HasError = true;
+        }
+        catch (Exception)
+        {
+            HasError = true;
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
+    }
+
+    private string GetIconForTemplate(string name)
+    {
+        name = name.ToLower();
+        if (name.Contains("vacuna") || name.Contains("sanidad")) return "medical_services";
+        if (name.Contains("pesada") || name.Contains("peso")) return "monitor_weight";
+        if (name.Contains("movimiento") || name.Contains("traslado")) return "local_shipping";
+        if (name.Contains("parto") || name.Contains("nacimiento")) return "child_care";
+        if (name.Contains("compra")) return "shopping_cart";
+        if (name.Contains("venta")) return "sell";
+        return "event_note";
+    }
+}
+
+<style>
+    .max-w-2xl { max-width: 42rem; }
+    .mx-auto { margin-left: auto; margin-right: auto; }
+</style>

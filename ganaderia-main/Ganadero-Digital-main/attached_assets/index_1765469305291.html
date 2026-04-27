@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Registro de Eventos Ganaderos</title>
+  <link rel="stylesheet" href="style.css" />
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <h1>Registro de Eventos Ganaderos</h1>
+  <p>Completa el siguiente formulario para registrar un nuevo evento. Para esta versión se registra manualmente; en el futuro se integrará con WhatsApp y IA.</p>
+  <form id="eventForm" class="card">
+    <div class="field-group">
+      <label for="fecha">Fecha:</label>
+      <input type="date" id="fecha" name="fecha" required />
+    </div>
+    <div class="field-group">
+      <label for="tipo">Tipo de evento:</label>
+      <select id="tipo" name="tipo" required></select>
+    </div>
+    <div class="field-group">
+      <label for="actividadOrigen">Actividad origen:</label>
+      <select id="actividadOrigen" name="actividadOrigen" required></select>
+    </div>
+    <div class="field-group">
+      <label for="actividadDestino">Actividad destino:</label>
+      <select id="actividadDestino" name="actividadDestino" required></select>
+    </div>
+    <div class="field-group">
+      <label for="categoriaOrigen">Categoría origen:</label>
+      <select id="categoriaOrigen" name="categoriaOrigen" required></select>
+    </div>
+    <div class="field-group">
+      <label for="categoriaDestino">Categoría destino:</label>
+      <select id="categoriaDestino" name="categoriaDestino" required></select>
+    </div>
+    <div class="field-group">
+      <label for="cabezas">Cabezas:</label>
+      <input type="number" id="cabezas" name="cabezas" min="0" step="1" required />
+    </div>
+    <div class="field-group">
+      <label for="kgTotales">Kg totales:</label>
+      <input type="number" id="kgTotales" name="kgTotales" min="0" step="0.01" required />
+    </div>
+    <button type="submit">Registrar evento</button>
+  </form>
+  <div class="actions">
+    <button id="loadLedger">Ver mayor (asientos)</button>
+    <button id="loadBalance">Ver balance</button>
+  </div>
+  <!-- Sección para mostrar el mayor (partida doble) -->
+  <div id="ledgerSection" class="card hidden">
+    <h2>Mayor (partida doble simplificada)</h2>
+    <table id="ledgerTable">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Cuenta</th>
+          <th>Tipo</th>
+          <th>Importe</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <!-- Sección para mostrar el balance y gráfico -->
+  <div id="balanceSection" class="card hidden">
+    <h2>Balance (sumas y saldos)</h2>
+    <!-- Gráfico de barras para visualizar las diferencias entre debe y haber -->
+    <canvas id="balanceChart" width="600" height="300"></canvas>
+    <table id="balanceTable">
+      <thead>
+        <tr>
+          <th>Cuenta</th>
+          <th>Debe</th>
+          <th>Haber</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</body>
+</html>

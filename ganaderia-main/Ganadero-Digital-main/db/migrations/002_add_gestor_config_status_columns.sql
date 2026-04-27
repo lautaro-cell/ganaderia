@@ -1,0 +1,4 @@
+ALTER TABLE empresa_gestor_config
+ADD COLUMN IF NOT EXISTS last_test_at TIMESTAMP,
+ADD COLUMN IF NOT EXISTS last_test_ok BOOLEAN,
+ADD COLUMN IF NOT EXISTS last_test_error TEXT;

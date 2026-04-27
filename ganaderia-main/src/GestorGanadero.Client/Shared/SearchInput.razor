@@ -1,0 +1,41 @@
+@using System.Timers
+@typeparam T
+@inject IJSRuntime jsRuntime
+
+<input @bind="CurrentValue" @bind:event="oninput" placeholder="Buscar..." style="width:240px; padding:6px 8px; border-radius:6px; border:1px solid #333; background:#111; color:#fff;" />
+
+@code {
+  private string _currentValue = string.Empty;
+  private string CurrentValue 
+  { 
+    get => _currentValue; 
+    set 
+    {
+      if (_currentValue != value)
+      {
+        _currentValue = value;
+        _debounce?.Stop();
+        _debounce?.Start();
+      }
+    }
+  }
+  private System.Timers.Timer? _debounce;
+
+  [Parameter] public EventCallback<string> OnDebouncedValueChanged { get; set; }
+  [Parameter] public int DebounceMilliseconds { get; set; } = 300;
+
+  protected override void OnInitialized()
+  {
+    _debounce = new System.Timers.Timer(DebounceMilliseconds);
+    _debounce.AutoReset = false;
+    _debounce.Elapsed += async (s, e) => await InvokeDebouncedAsync();
+  }
+
+  private async Task InvokeDebouncedAsync()
+  {
+    if (OnDebouncedValueChanged.HasDelegate)
+    {
+      await OnDebouncedValueChanged.InvokeAsync(CurrentValue);
+    }
+  }
+}

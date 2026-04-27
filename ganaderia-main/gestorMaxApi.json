@@ -1,0 +1,34 @@
+{
+    "/v3/GestorG4/ListConceptos": {
+        "get": {
+            "tags": [
+                "GestorG4"
+            ],
+            "summary": "Lista los Conceptos (incluyendo o no Grupos, Subgrupos...)",
+            "parameters": [
+                {
+                    "name": "databaseId",
+                    "in": "query",
+                    "description": "Id de la Base de Datos",
+                    "schema": {
+                        "type": "integer",
+                        "format": "int32"
+                    }
+                },
+                {
+                    "name": "soloFisicos",
+                    "in": "query",
+                    "description": "Mostrar sólo Conceptos Físicos",
+                    "schema": {
+                        "type": "boolean"
+                    }
+                }
+            ],
+            "responses": {
+                "200": {
+                    "description": "OK"
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,98 @@
+@page "/usuarios"
+@using GestorGanadero.Client.Identity
+@using GestorGanadero.Services.Identity.Contracts
+@using GestorGanadero.Client.Shared
+@using GestorGanadero.Client.Services
+@using System.Linq
+@inject IdentityClientService IdentityClientService
+@inject AppStateContainer State
+
+<PageHeader Title="Usuarios" />
+
+<div class="toolbar flex items-center gap-sm mb-lg">
+  <button class="btn btn-primary" @onclick="() => IsInviteOpen = true">
+    <span class="material-icons">person_add</span>
+    Invitar Usuario
+  </button>
+</div>
+
+@if (HasError) { <div class="alert alert-danger">Error al cargar los usuarios.</div> }
+else if (Users == null) { <div class="loading-container"><div class="spinner"></div></div> }
+else
+{
+  <div class="table-wrapper">
+    <table class="table">
+      <thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th class="text-end">Acciones</th></tr></thead>
+      <tbody>
+        @foreach (var u in Users)
+        {
+          <tr>
+            <td>@u.Name</td>
+            <td>@u.Email</td>
+            <td><span class="badge badge-neutral">@u.RoleName</span></td>
+            <td><span class="badge @(u.IsActive ? "badge-success" : "badge-neutral")">@(u.IsActive ? "Activo" : "Inactivo")</span></td>
+            <td class="text-end">
+              <button class="btn-icon" title="Eliminar" @onclick="() => Delete(u.Id, u.TenantId)">
+                <span class="material-icons">delete_outline</span>
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+@if (IsInviteOpen)
+{
+  <div class="modal-backdrop" @onclick="() => IsInviteOpen = false">
+    <div class="modal" @onclick:stopPropagation="true">
+      <div class="modal-header">
+        <h3>Invitar Usuario</h3>
+        <button class="btn-icon" @onclick="() => IsInviteOpen = false"><span class="material-icons">close</span></button>
+      </div>
+      <div class="form-group"><label>Email</label><input @bind="InviteReq.Email" placeholder="email@ejemplo.com" class="form-control" /></div>
+      <div class="form-group"><label>Nombre</label><input @bind="InviteReq.Name" placeholder="Nombre completo" class="form-control" /></div>
+      <div class="form-group"><label>Rol</label><input @bind="InviteReq.RoleName" placeholder="Administrador, Operador..." class="form-control" /></div>
+      
+      <div class="modal-actions">
+        <button class="btn btn-secondary" @onclick="() => IsInviteOpen = false">Cancelar</button>
+        <button class="btn btn-primary" @onclick="Invite">Invitar</button>
+      </div>
+    </div>
+  </div>
+}
+
+@code {
+  private System.Collections.Generic.List<UserMessage>? Users;
+  private bool IsInviteOpen = false;
+  private bool HasError = false;
+  private InviteUserRequest InviteReq = new InviteUserRequest();
+
+  protected override async Task OnInitializedAsync() => await LoadUsers();
+
+  private async Task LoadUsers()
+  {
+    var r = await IdentityClientService.GetUsersAsync();
+    if (r.Success && r.Data != null) Users = r.Data.Users.ToList();
+    else HasError = true;
+  }
+
+  private async Task Invite()
+  {
+    InviteReq.TenantId = State.ActiveTenantId;
+    var r = await IdentityClientService.InviteUserAsync(InviteReq);
+    if (r.Success)
+    {
+      IsInviteOpen = false;
+      InviteReq = new InviteUserRequest();
+      await LoadUsers();
+    }
+  }
+
+  private async Task Delete(string id, string tenantId)
+  {
+    await IdentityClientService.DeleteUserAsync(id, tenantId);
+    await LoadUsers();
+  }
+}

@@ -1,0 +1,41 @@
+@typeparam TItem
+
+<div class="table-wrapper">
+  @if (Items == null)
+  {
+    <div class="loading-container">
+        <div class="spinner"></div>
+        <p>Cargando datos...</p>
+    </div>
+  }
+  else if (!Items.Any())
+  {
+    <div class="empty-state">
+        <span class="material-icons">search_off</span>
+        <p>No se encontraron resultados.</p>
+    </div>
+  }
+  else
+  {
+    <table class="table">
+      @if (HeaderTemplate != null)
+      {
+        <thead>
+            @HeaderTemplate
+        </thead>
+      }
+      <tbody>
+        @foreach (var item in Items)
+        {
+          <tr>@RowTemplate(item)</tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>
+
+@code {
+  [Parameter, EditorRequired] public IEnumerable<TItem> Items { get; set; } = default!;
+  [Parameter] public RenderFragment? HeaderTemplate { get; set; }
+  [Parameter, EditorRequired] public RenderFragment<TItem> RowTemplate { get; set; } = default!;
+}

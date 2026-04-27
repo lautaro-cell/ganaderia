@@ -1,0 +1,123 @@
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+}
+
+.top-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: var(--nav-height);
+    background-color: var(--bg-surface);
+    padding: 0 2rem;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-weight: 700;
+    font-size: 1.25rem;
+}
+
+.logo img {
+    height: 32px;
+}
+
+.nav-actions {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+}
+
+.main-tabs {
+    background-color: var(--bg-surface);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.main-tabs ul {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0 1.5rem;
+    gap: 0.5rem;
+}
+
+.main-tabs li a {
+    display: inline-block;
+    padding: 1rem 1.5rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.main-tabs li a:hover {
+    color: var(--text-primary);
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.main-tabs li a.active {
+    color: var(--primary-accent);
+    border-bottom-color: var(--primary-accent);
+}
+
+.content-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2rem;
+}
+
+/* Component Styles */
+.tenant-selector select {
+    background-color: var(--bg-panel);
+    color: var(--text-primary);
+    border: 1px solid var(--border-subtle);
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.profile-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.user-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.user-role {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.profile-avatar img, .avatar-placeholder {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.avatar-placeholder {
+    background-color: var(--primary-accent);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}

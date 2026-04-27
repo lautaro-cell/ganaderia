@@ -1,0 +1,30 @@
+{
+  "name": "ganado-events",
+  "version": "1.0.0",
+  "description": "Registro de eventos ganaderos sin dependencias externas",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "connect-pg-simple": "^10.0.0",
+    "cors": "^2.8.5",
+    "csv-parse": "^6.1.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
+    "express-session": "^1.18.2",
+    "express-validator": "^7.3.1",
+    "helmet": "^8.1.0",
+    "hpp": "^0.2.3",
+    "jspdf": "^4.0.0",
+    "jspdf-autotable": "^5.0.7",
+    "memoizee": "^0.4.17",
+    "multer": "^2.0.2",
+    "nodemailer": "^7.0.12",
+    "openid-client": "^6.8.1",
+    "passport": "^0.7.0",
+    "pg": "^8.16.3",
+    "xlsx": "^0.18.5"
+  }
+}

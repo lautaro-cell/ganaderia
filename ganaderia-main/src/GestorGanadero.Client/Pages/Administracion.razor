@@ -1,0 +1,56 @@
+@page "/admin"
+@using GestorGanadero.Client.Components.Admin
+@using GestorGanadero.Client.Services
+@inject AppStateContainer State
+@implements IDisposable
+
+<div class="flex flex-col gap-1 mb-8">
+    <h1 class="text-white text-3xl sm:text-4xl font-black leading-tight tracking-tight">Administración</h1>
+    <p class="text-text-secondary text-sm">Configuración y parametrización del sistema</p>
+</div>
+
+<!-- Tabs Pills -->
+<div class="flex flex-wrap gap-2 mb-8">
+    @foreach (var section in Enum.GetValues<Section>())
+    {
+        <button class="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all border @(_section == section ? "bg-primary text-white border-primary" : "bg-surface-dark border-border-dark text-text-secondary hover:bg-surface-darker hover:border-text-secondary")" @onclick='() => _section = section'>
+            <span class="material-symbols-outlined text-lg">@GetIcon(section)</span> @GetLabel(section)
+        </button>
+    }
+</div>
+
+<!-- Main Section Content -->
+<div class="bg-surface-dark border border-border-dark rounded-2xl p-6 shadow-xl shadow-black/20">
+    @switch (_section)
+    {
+        case Section.Campos: <FieldsAdmin /> break;
+        case Section.Actividades: <ActivitiesAdmin /> break;
+        case Section.Categorias: <CategoriesAdmin /> break;
+        case Section.TiposEvento: <TiposEventoAdmin /> break;
+        case Section.Cuentas: <CuentasAdmin /> break;
+        case Section.Planes: <PlanesAdmin /> break;
+        case Section.Empresas: <EmpresasAdmin /> break;
+        case Section.Usuarios: <UsersAdmin /> break;
+        default: <div class="text-text-secondary text-center py-12">Sección en construcción</div> break;
+    }
+</div>
+
+@code {
+    private enum Section { Campos, Actividades, Categorias, TiposEvento, Cuentas, Planes, Empresas, Usuarios }
+    private Section _section = Section.Campos;
+
+    private string GetLabel(Section s) => s switch {
+        Section.Campos => "Campos", Section.Actividades => "Actividades", Section.Categorias => "Categorías",
+        Section.TiposEvento => "Tipos Evento", Section.Cuentas => "Cuentas",
+        Section.Planes => "Planes", Section.Empresas => "Empresas", Section.Usuarios => "Usuarios", _ => ""
+    };
+    
+    private string GetIcon(Section s) => s switch {
+        Section.Campos => "terrain", Section.Actividades => "work", Section.Categorias => "pets",
+        Section.TiposEvento => "event", Section.Cuentas => "account_balance",
+        Section.Planes => "grid_view", Section.Empresas => "business", Section.Usuarios => "group", _ => ""
+    };
+
+    protected override void OnInitialized() => State.OnChange += StateHasChanged;
+    public void Dispose() => State.OnChange -= StateHasChanged;
+}

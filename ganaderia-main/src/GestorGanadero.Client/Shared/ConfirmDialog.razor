@@ -1,0 +1,24 @@
+@using Microsoft.AspNetCore.Components
+@typeparam T
+
+@if (IsOpen)
+{
+  <div class="confirm-dialog" style="position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; z-index:1000;">
+    <div class="dialog" style="background:#1a1a1a; border:1px solid #333; padding:20px; border-radius:8px; width:320px;">
+      <h3 style="margin-top:0; color:#fff;">@Title</h3>
+      <p style="color:#fff;">@Message</p>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
+        <button class="btn" style="background:#444; color:#fff; border:none; padding:8px 12px; border-radius:6px;" @onclick="OnCancel">Cancelar</button>
+        <button class="btn" style="background:#C0392B; color:#fff; border:none; padding:8px 12px; border-radius:6px;" @onclick="OnConfirm">Confirmar</button>
+      </div>
+    </div>
+  </div>
+}
+
+@code {
+  [Parameter] public bool IsOpen { get; set; }
+  [Parameter] public string Title { get; set; } = "Confirmación";
+  [Parameter] public string Message { get; set; } = "¿Está seguro?";
+  [Parameter] public EventCallback OnConfirm { get; set; }
+  [Parameter] public EventCallback OnCancel { get; set; }
+}

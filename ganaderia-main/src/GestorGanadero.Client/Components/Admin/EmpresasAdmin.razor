@@ -1,0 +1,493 @@
+@using GestorGanadero.Services.Common.Contracts
+@using GestorGanadero.Services.Identity.Contracts
+@using GestorGanadero.Client.Services
+@using Google.Protobuf.WellKnownTypes
+@inject AppStateContainer State
+@inject IdentityService.IdentityServiceClient IdentityClient
+@inject IJSRuntime JS
+
+<div class="flex flex-col gap-6">
+    <!-- Header -->
+    <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined text-primary text-2xl">business</span>
+        <h2 class="text-white text-xl font-bold">Gestión de Empresas</h2>
+    </div>
+    <p class="text-text-secondary text-sm -mt-4">Configuración de credenciales ERP y estado de conectividad con GestorMax.</p>
+
+    <!-- Table -->
+    <div class="bg-background-main border border-border-dark rounded-2xl overflow-hidden shadow-xl shadow-black/20">
+        <table class="w-full text-left text-sm">
+            <thead class="bg-surface-darker text-text-secondary uppercase text-[10px] tracking-widest border-b border-border-dark">
+                <tr>
+                    <th class="px-6 py-4">Empresa</th>
+                    <th class="px-6 py-4 text-center">DB ID</th>
+                    <th class="px-6 py-4 text-center">Estado</th>
+                    <th class="px-6 py-4 text-center">Última sync</th>
+                    <th class="px-6 py-4 text-right">Acciones</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-border-dark/30">
+                @if (_tenants == null)
+                {
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center">
+                            <div class="flex flex-col items-center gap-3">
+                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                <p class="text-text-secondary text-sm">Cargando...</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                else if (!_tenants.Any())
+                {
+                    <tr><td colspan="5" class="px-6 py-12 text-center text-text-disabled">No hay empresas registradas.</td></tr>
+                }
+                else
+                {
+                    @foreach (var t in _tenants)
+                    {
+                        <tr class="hover:bg-white/5 transition-colors">
+                            <td class="px-6 py-4">
+                                <span class="text-white font-bold text-sm">@t.Name</span>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="font-mono text-xs text-text-secondary bg-surface-darker px-2 py-1 rounded border border-border-dark/50">
+                                    @(string.IsNullOrEmpty(t.GestorMaxDatabaseId) ? "—" : t.GestorMaxDatabaseId)
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                @{
+                                    var (badgeColor, badgeIcon) = GetStatusBadge(t.StatusSummary, t.HasErpConfig);
+                                }
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border @badgeColor">
+                                    <span class="material-symbols-outlined text-[12px]">@badgeIcon</span>
+                                    @(t.HasErpConfig ? t.StatusSummary : "Sin configurar")
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-center text-xs text-text-secondary font-mono">
+                                @(string.IsNullOrEmpty(t.LastSyncAt) ? "—" : FormatDate(t.LastSyncAt))
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <button class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-surface-darker border border-border-dark text-text-secondary hover:text-white hover:border-text-secondary transition-all text-xs font-bold ml-auto"
+                                        @onclick="() => OpenModal(t)">
+                                    <span class="material-symbols-outlined text-sm">settings</span>
+                                    Configurar
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal -->
+    @if (_showModal && _status != null)
+    {
+        <div class="fixed inset-0 z-50 flex items-start justify-center p-4 pt-12 bg-black/80 backdrop-blur-sm overflow-y-auto" @onclick="CloseModal">
+            <div class="w-full max-w-xl bg-surface-dark border border-border-dark rounded-2xl shadow-2xl overflow-hidden" @onclick:stopPropagation>
+
+                <!-- Modal header -->
+                <div class="flex items-center justify-between px-6 py-4 border-b border-border-dark bg-surface-darker/50">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-primary">business</span>
+                        <div>
+                            <h3 class="text-base font-bold text-white">@_status.TenantName</h3>
+                            <p class="text-[11px] text-text-disabled">Configuración ERP</p>
+                        </div>
+                    </div>
+                    <button class="text-text-secondary hover:text-white transition-colors" @onclick="CloseModal">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+
+                <!-- Status panel (Tarea 3.4) -->
+                <div class="px-6 pt-5 pb-4 border-b border-border-dark/50 bg-surface-darker/20">
+                    <h4 class="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[14px]">monitor_heart</span>
+                        Estado de integración
+                    </h4>
+                    <div class="grid grid-cols-3 gap-3">
+                        <!-- Config status -->
+                        <div class="bg-surface-darker rounded-xl p-3 border border-border-dark/50">
+                            <p class="text-[10px] text-text-disabled uppercase tracking-wider mb-1">Configuración</p>
+                            @if (_status.IsConfigured)
+                            {
+                                <p class="text-[11px] font-bold text-green-400 flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[13px]">check_circle</span>
+                                    DB: @_status.GestorDatabaseId
+                                </p>
+                                <p class="text-[10px] text-text-disabled mt-0.5">API: ****@_status.ApiKeyLast4</p>
+                            }
+                            else
+                            {
+                                <p class="text-[11px] font-bold text-yellow-400 flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[13px]">warning</span>
+                                    Sin configurar
+                                </p>
+                            }
+                        </div>
+
+                        <!-- Last test -->
+                        <div class="bg-surface-darker rounded-xl p-3 border border-border-dark/50">
+                            <p class="text-[10px] text-text-disabled uppercase tracking-wider mb-1">Última verificación</p>
+                            @if (!string.IsNullOrEmpty(_status.LastTestedAt))
+                            {
+                                <p class="text-[11px] font-bold @(_status.LastTestOk ? "text-green-400" : "text-red-400") flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[13px]">@(_status.LastTestOk ? "check_circle" : "cancel")</span>
+                                    @(_status.LastTestOk ? "OK" : "Error")
+                                </p>
+                                <p class="text-[10px] text-text-disabled mt-0.5">@FormatDate(_status.LastTestedAt)</p>
+                            }
+                            else
+                            {
+                                <p class="text-[11px] text-text-disabled">Sin datos</p>
+                            }
+                        </div>
+
+                        <!-- Last sync -->
+                        <div class="bg-surface-darker rounded-xl p-3 border border-border-dark/50">
+                            <p class="text-[10px] text-text-disabled uppercase tracking-wider mb-1">Última sync</p>
+                            @if (!string.IsNullOrEmpty(_status.LastSyncAt))
+                            {
+                                <p class="text-[11px] font-bold @(_status.LastSyncOk ? "text-green-400" : "text-red-400") flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[13px]">@(_status.LastSyncOk ? "sync" : "sync_problem")</span>
+                                    @(_status.LastSyncOk ? "OK" : "Error")
+                                </p>
+                                <p class="text-[10px] text-text-disabled mt-0.5">@FormatDate(_status.LastSyncAt)</p>
+                            }
+                            else
+                            {
+                                <p class="text-[11px] text-text-disabled">Sin datos</p>
+                            }
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(_status.LastTestError) && _status.LastTestOk == false)
+                    {
+                        <div class="mt-2 flex items-start gap-2 bg-red-900/20 border border-red-800/40 rounded-lg px-3 py-2">
+                            <span class="material-symbols-outlined text-red-400 text-[14px] mt-0.5">error</span>
+                            <p class="text-[11px] text-red-300">@_status.LastTestError</p>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(_status.LastSyncError) && _status.LastSyncOk == false)
+                    {
+                        <div class="mt-2 flex items-start gap-2 bg-orange-900/20 border border-orange-800/40 rounded-lg px-3 py-2">
+                            <span class="material-symbols-outlined text-orange-400 text-[14px] mt-0.5">sync_problem</span>
+                            <p class="text-[11px] text-orange-300">@_status.LastSyncError</p>
+                        </div>
+                    }
+
+                    <!-- Connectivity actions (Tarea 3.1) -->
+                    <div class="flex gap-2 mt-3">
+                        <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all disabled:opacity-50
+                                       @(_verifyResult?.Success == true ? "border-green-600 text-green-400 bg-green-900/20" :
+                                         _verifyResult?.Success == false ? "border-red-600 text-red-400 bg-red-900/20" :
+                                         "border-border-dark text-text-secondary hover:text-white hover:border-text-secondary bg-surface-darker")"
+                                @onclick="VerifyConnection" disabled="@(_verifying || !_status.IsConfigured)">
+                            @if (_verifying)
+                            {
+                                <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+                            }
+                            else
+                            {
+                                <span class="material-symbols-outlined text-[14px]">wifi_find</span>
+                            }
+                            @(_verifying ? "Verificando..." : "Verificar conexión")
+                            @if (_verifyResult != null)
+                            {
+                                <span class="opacity-70">(@_verifyResult.LatencyMs ms)</span>
+                            }
+                        </button>
+
+                        <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-dark text-xs font-bold text-text-secondary
+                                       hover:text-white hover:border-text-secondary bg-surface-darker transition-all disabled:opacity-50"
+                                @onclick="TriggerSync" disabled="@(_syncing || !_status.IsConfigured)">
+                            @if (_syncing)
+                            {
+                                <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+                            }
+                            else
+                            {
+                                <span class="material-symbols-outlined text-[14px]">sync</span>
+                            }
+                            @(_syncing ? "Sincronizando..." : "Sincronizar ahora")
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Configuration form (Tareas 3.2 / 3.3) -->
+                <div class="p-6 flex flex-col gap-4">
+                    <h4 class="text-[11px] font-bold text-text-secondary uppercase tracking-wider flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[14px]">edit</span>
+                        Configuración
+                    </h4>
+
+                    @if (!string.IsNullOrEmpty(_msg))
+                    {
+                        <div class="p-3 rounded-lg @(_msgOk ? "bg-green-500/10 text-green-400 border border-green-500/20" : "bg-red-500/10 text-red-400 border border-red-500/20") text-xs flex items-start gap-2">
+                            <span class="material-symbols-outlined text-[14px] mt-0.5">@(_msgOk ? "check_circle" : "error")</span>
+                            @_msg
+                        </div>
+                    }
+
+                    <!-- Razón social -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-[11px] font-bold text-text-secondary uppercase tracking-wider">Razón social</label>
+                        <input type="text" @bind="_form.TenantName"
+                               class="w-full bg-surface-darker border border-border-dark rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-primary placeholder:text-text-disabled"
+                               placeholder="Nombre legal de la empresa" />
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Database ID -->
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-[11px] font-bold text-text-secondary uppercase tracking-wider">GestorMax DB ID</label>
+                            <input type="number" min="1" @bind="_form.GestorDatabaseId"
+                                   class="w-full bg-surface-darker border border-border-dark rounded-lg px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-primary"
+                                   placeholder="Ej: 101" />
+                        </div>
+
+                        <!-- Base URL -->
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-[11px] font-bold text-text-secondary uppercase tracking-wider">URL base ERP</label>
+                            <input type="url" @bind="_form.BaseUrl"
+                                   class="w-full bg-surface-darker border border-border-dark rounded-lg px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-primary"
+                                   placeholder="https://api.gestormax.com" />
+                        </div>
+                    </div>
+
+                    <!-- API Key -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-[11px] font-bold text-text-secondary uppercase tracking-wider">API Key</label>
+                        <div class="relative">
+                            <input type="@(_showKey ? "text" : "password")" @bind="_form.ApiKey"
+                                   class="w-full bg-surface-darker border border-border-dark rounded-lg px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-primary pr-10"
+                                   placeholder="@(_status.IsConfigured ? "Dejar vacío para mantener la clave actual" : "API Key de GestorMax")" />
+                            <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-text-disabled hover:text-white transition-colors"
+                                    @onclick="() => _showKey = !_showKey">
+                                <span class="material-symbols-outlined text-sm">@(_showKey ? "visibility_off" : "visibility")</span>
+                            </button>
+                        </div>
+                        @if (_status.IsConfigured)
+                        {
+                            <p class="text-[10px] text-text-disabled">Clave actual: ****@_status.ApiKeyLast4 — La clave se cifra con AES-256 antes de guardarse.</p>
+                        }
+                        else
+                        {
+                            <p class="text-[10px] text-text-disabled">La clave se cifra con AES-256 antes de guardarse.</p>
+                        }
+                    </div>
+                </div>
+
+                <!-- Footer actions -->
+                <div class="px-6 py-4 bg-surface-darker/50 border-t border-border-dark flex justify-end gap-3">
+                    <button class="px-5 py-2 rounded-lg text-sm font-bold text-text-secondary hover:text-white transition-colors"
+                            @onclick="CloseModal">
+                        Cancelar
+                    </button>
+                    <button class="flex items-center justify-center min-w-[140px] gap-2 px-5 py-2 rounded-lg text-sm font-bold text-white
+                                   bg-primary hover:bg-red-700 transition-colors shadow-lg shadow-primary/20 disabled:opacity-50"
+                            @onclick="Save" disabled="@_saving">
+                        @if (_saving)
+                        {
+                            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        }
+                        else
+                        {
+                            <span class="material-symbols-outlined text-[18px]">save</span>
+                        }
+                        @(_saving ? "Guardando..." : "Guardar y sincronizar")
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<TenantMessage>? _tenants;
+    private ErpIntegrationStatusForm _form = new();
+    private CompanyStatusResponse? _status;
+    private VerifyConnectionResponse? _verifyResult;
+
+    private bool _showModal;
+    private bool _showKey;
+    private bool _saving;
+    private bool _verifying;
+    private bool _syncing;
+    private string _msg = "";
+    private bool _msgOk;
+    private string _activeTenantId = "";
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        try
+        {
+            var res = await IdentityClient.GetAllTenantsAsync(new Empty());
+            _tenants = res.Tenants.ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading tenants: {ex.Message}");
+        }
+    }
+
+    private async Task OpenModal(TenantMessage t)
+    {
+        _activeTenantId = t.Id;
+        _verifyResult = null;
+        _msg = "";
+        _showKey = false;
+
+        try
+        {
+            _status = await IdentityClient.GetCompanyStatusAsync(new GetCompanyStatusRequest { TenantId = t.Id });
+        }
+        catch
+        {
+            _status = new CompanyStatusResponse { TenantName = t.Name };
+        }
+
+        _form = new ErpIntegrationStatusForm
+        {
+            TenantName = _status.TenantName,
+            GestorDatabaseId = _status.GestorDatabaseId,
+            BaseUrl = string.IsNullOrWhiteSpace(_status.BaseUrl) ? "https://api.gestormax.com" : _status.BaseUrl,
+            ApiKey = ""
+        };
+
+        _showModal = true;
+    }
+
+    private void CloseModal()
+    {
+        _showModal = false;
+        _status = null;
+        _verifyResult = null;
+    }
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(_form.TenantName)) { _msg = "La razón social es obligatoria."; _msgOk = false; return; }
+        if (_form.GestorDatabaseId <= 0) { _msg = "El Database ID debe ser un número positivo."; _msgOk = false; return; }
+        if (string.IsNullOrWhiteSpace(_form.BaseUrl)) { _msg = "La URL base es obligatoria."; _msgOk = false; return; }
+
+        _saving = true; _msg = "Guardando configuración y sincronizando catálogos..."; _msgOk = true;
+        StateHasChanged();
+
+        try
+        {
+            var res = await IdentityClient.SaveCompanyConfigurationAsync(new SaveCompanyConfigurationRequest
+            {
+                TenantId = _activeTenantId,
+                TenantName = _form.TenantName,
+                ApiKey = _form.ApiKey ?? "",
+                GestorDatabaseId = _form.GestorDatabaseId,
+                BaseUrl = _form.BaseUrl
+            });
+
+            _msg = res.Success ? "Configuración guardada. Sincronización completada." : res.Message;
+            _msgOk = res.Success;
+
+            if (res.Success)
+            {
+                // Refresh status panel
+                _status = await IdentityClient.GetCompanyStatusAsync(
+                    new GetCompanyStatusRequest { TenantId = _activeTenantId });
+                _form.ApiKey = "";
+                await Load();
+            }
+        }
+        catch (Exception ex)
+        {
+            _msg = $"Error: {ex.Message}";
+            _msgOk = false;
+        }
+        finally
+        {
+            _saving = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task VerifyConnection()
+    {
+        _verifying = true; _verifyResult = null;
+        StateHasChanged();
+        try
+        {
+            _verifyResult = await IdentityClient.VerifyConnectionAsync(
+                new VerifyConnectionRequest { TenantId = _activeTenantId });
+            // Refresh status panel to show updated LastTestedAt
+            _status = await IdentityClient.GetCompanyStatusAsync(
+                new GetCompanyStatusRequest { TenantId = _activeTenantId });
+        }
+        catch (Exception ex)
+        {
+            _verifyResult = new VerifyConnectionResponse { Success = false, Message = ex.Message };
+        }
+        finally
+        {
+            _verifying = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task TriggerSync()
+    {
+        _syncing = true;
+        StateHasChanged();
+        try
+        {
+            var res = await IdentityClient.TriggerCatalogSyncAsync(
+                new TriggerSyncRequest { TenantId = _activeTenantId });
+            _msg = res.Success ? "Sincronización completada." : res.Message;
+            _msgOk = res.Success;
+            _status = await IdentityClient.GetCompanyStatusAsync(
+                new GetCompanyStatusRequest { TenantId = _activeTenantId });
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            _msg = $"Error de sync: {ex.Message}";
+            _msgOk = false;
+        }
+        finally
+        {
+            _syncing = false;
+            StateHasChanged();
+        }
+    }
+
+    private static (string color, string icon) GetStatusBadge(string summary, bool hasConfig)
+    {
+        if (!hasConfig) return ("border-border-dark text-text-disabled", "help");
+        return summary switch
+        {
+            "Operativo"               => ("border-green-700 text-green-400 bg-green-900/20", "check_circle"),
+            "Error de conexión"       => ("border-red-700 text-red-400 bg-red-900/20", "wifi_off"),
+            "Error de sincronización" => ("border-orange-700 text-orange-400 bg-orange-900/20", "sync_problem"),
+            "Configurado"             => ("border-blue-700 text-blue-400 bg-blue-900/20", "settings"),
+            "Deshabilitado"           => ("border-border-dark text-text-disabled", "block"),
+            _                         => ("border-border-dark text-text-disabled", "help")
+        };
+    }
+
+    private static string FormatDate(string iso)
+    {
+        if (DateTimeOffset.TryParse(iso, out var dt))
+            return dt.ToLocalTime().ToString("dd/MM/yy HH:mm");
+        return iso;
+    }
+
+    private class ErpIntegrationStatusForm
+    {
+        public string TenantName { get; set; } = "";
+        public string? ApiKey { get; set; }
+        public int GestorDatabaseId { get; set; }
+        public string BaseUrl { get; set; } = "https://api.gestormax.com";
+    }
+}

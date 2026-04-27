@@ -1,0 +1,6 @@
+@GestorGanadero.Server_HostAddress = https://localhost:5073
+
+GET {{GestorGanadero.Server_HostAddress}}/weatherforecast
+Accept: application/json
+
+###

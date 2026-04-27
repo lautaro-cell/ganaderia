@@ -1,0 +1,325 @@
+@using GestorGanadero.Services.Common.Contracts
+@using GestorGanadero.Services.Catalog.Contracts
+@using GestorGanadero.Client.Services
+@using GestorGanadero.Client.Catalog
+@inject AppStateContainer State
+@inject CatalogService.CatalogServiceClient GrpcClient
+@inject CatalogCacheService CatalogCache
+@inject IJSRuntime JS
+
+<div class="flex flex-col gap-6">
+    <!-- Breadcrumbs -->
+    <div class="flex items-center gap-2 text-[11px] font-medium text-text-secondary uppercase tracking-widest opacity-60">
+        <a href="/" class="hover:text-white transition-colors no-underline">Inicio</a>
+        <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+        <span class="cursor-default">Administración</span>
+        <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+        <span class="text-primary font-bold">Campos</span>
+    </div>
+
+    <div class="flex flex-col gap-1">
+        <h2 class="text-white text-2xl font-bold tracking-tight flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">terrain</span>
+            Gestión de Campos
+        </h2>
+        <p class="text-text-secondary text-sm">Centros de costo productivos. Un campo debe tener al menos una actividad habilitada.</p>
+    </div>
+
+    <!-- Table -->
+    <div class="overflow-hidden rounded-xl border border-border-dark bg-surface-dark shadow-xl">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-surface-darker/50 border-b border-border-dark">
+                        <th class="px-5 py-4 text-xs font-bold uppercase tracking-wider text-text-secondary">Nombre</th>
+                        <th class="px-5 py-4 text-xs font-bold uppercase tracking-wider text-text-secondary">Razón Social</th>
+                        <th class="px-5 py-4 text-xs font-bold uppercase tracking-wider text-text-secondary">Superficie</th>
+                        <th class="px-5 py-4 text-xs font-bold uppercase tracking-wider text-text-secondary">Actividades</th>
+                        <th class="px-5 py-4 text-xs font-bold uppercase tracking-wider text-text-secondary text-center">Estado</th>
+                        <th class="px-5 py-4 text-xs font-bold uppercase tracking-wider text-text-secondary text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border-dark/30">
+                    @if (_fields == null)
+                    {
+                        <tr><td colspan="6" class="px-5 py-10 text-center">
+                            <div class="flex flex-col items-center gap-3">
+                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                <p class="text-text-secondary text-sm">Cargando campos...</p>
+                            </div>
+                        </td></tr>
+                    }
+                    else if (!_fields.Any())
+                    {
+                        <tr><td colspan="6" class="px-5 py-10 text-center text-text-disabled">No hay campos registrados.</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var f in _fields)
+                        {
+                            <tr class="hover:bg-white/5 transition-colors group">
+                                <td class="px-5 py-4">
+                                    <div class="flex flex-col">
+                                        <span class="text-white font-bold text-sm uppercase">@f.Name</span>
+                                        @if (f.GpsLatitude != 0 || f.GpsLongitude != 0)
+                                        {
+                                            <span class="text-text-disabled text-[10px] font-mono">@f.GpsLatitude.ToString("F4"), @f.GpsLongitude.ToString("F4")</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="px-5 py-4 text-text-secondary text-sm">@(string.IsNullOrWhiteSpace(f.LegalName) ? "-" : f.LegalName)</td>
+                                <td class="px-5 py-4 text-text-secondary text-sm">@(f.AreaHectares > 0 ? $"{f.AreaHectares:N0} ha" : "-")</td>
+                                <td class="px-5 py-4">
+                                    @if (f.ActivityIds.Count == 0)
+                                    {
+                                        <span class="text-[10px] px-2 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20 font-bold">Sin actividad</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold">@f.ActivityIds.Count actividad(es)</span>
+                                    }
+                                </td>
+                                <td class="px-5 py-4 text-center">
+                                    @if (f.IsActive)
+                                    {
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-green-500/10 text-green-400 border border-green-500/20">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-green-400"></span>Activo
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-surface-darker text-text-disabled border border-border-dark">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-text-disabled"></span>Inactivo
+                                        </span>
+                                    }
+                                </td>
+                                <td class="px-5 py-4 text-right">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <button class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-surface-darker border border-border-dark text-text-secondary hover:text-white hover:border-text-secondary transition-all text-xs font-bold" @onclick="() => Edit(f)">
+                                            <span class="material-symbols-outlined text-sm">edit</span>Editar
+                                        </button>
+                                        <button class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all text-xs font-bold" @onclick="() => Delete(f)">
+                                            <span class="material-symbols-outlined text-sm">delete</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="mt-2 bg-surface-dark border border-border-dark rounded-2xl p-6 flex flex-col gap-5">
+        <h3 class="text-white text-lg font-bold flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">@(string.IsNullOrEmpty(_model.Id) ? "add_circle" : "edit_square")</span>
+            @(string.IsNullOrEmpty(_model.Id) ? "Crear Campo" : "Editar Campo")
+        </h3>
+
+        <!-- Row 1: Nombre + Razón Social -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-1">
+                <label class="text-xs font-bold text-text-secondary uppercase tracking-wider">Nombre *</label>
+                <input type="text" @bind="_model.Name" class="w-full bg-surface-darker border border-border-dark rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary transition-colors" placeholder="Nombre del campo" />
+            </div>
+            <div class="flex flex-col gap-1">
+                <label class="text-xs font-bold text-text-secondary uppercase tracking-wider">Razón Social</label>
+                <input type="text" @bind="_model.LegalName" class="w-full bg-surface-darker border border-border-dark rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary transition-colors" placeholder="Nombre legal del establecimiento" />
+            </div>
+        </div>
+
+        <!-- Row 2: Descripción + Superficie -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-1">
+                <label class="text-xs font-bold text-text-secondary uppercase tracking-wider">Descripción</label>
+                <input type="text" @bind="_model.Description" class="w-full bg-surface-darker border border-border-dark rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary transition-colors" placeholder="Descripción opcional" />
+            </div>
+            <div class="flex flex-col gap-1">
+                <label class="text-xs font-bold text-text-secondary uppercase tracking-wider">Superficie (hectáreas)</label>
+                <input type="number" step="0.01" value="@(_model.AreaHectares > 0 ? _model.AreaHectares.ToString() : "")"
+                       @onchange="e => { if (double.TryParse(e.Value?.ToString(), out var v)) _model.AreaHectares = v; }"
+                       class="w-full bg-surface-darker border border-border-dark rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary transition-colors" placeholder="0.00" />
+            </div>
+        </div>
+
+        <!-- Row 3: GPS -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-1">
+                <label class="text-xs font-bold text-text-secondary uppercase tracking-wider flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[14px]">location_on</span> Latitud GPS
+                </label>
+                <input type="number" step="0.000001" value="@(_model.GpsLatitude != 0 ? _model.GpsLatitude.ToString() : "")"
+                       @onchange="e => { if (double.TryParse(e.Value?.ToString(), out var v)) _model.GpsLatitude = v; }"
+                       class="w-full bg-surface-darker border border-border-dark rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary transition-colors" placeholder="-34.6037" />
+            </div>
+            <div class="flex flex-col gap-1">
+                <label class="text-xs font-bold text-text-secondary uppercase tracking-wider flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[14px]">location_on</span> Longitud GPS
+                </label>
+                <input type="number" step="0.000001" value="@(_model.GpsLongitude != 0 ? _model.GpsLongitude.ToString() : "")"
+                       @onchange="e => { if (double.TryParse(e.Value?.ToString(), out var v)) _model.GpsLongitude = v; }"
+                       class="w-full bg-surface-darker border border-border-dark rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary transition-colors" placeholder="-58.3816" />
+            </div>
+        </div>
+
+        <!-- Row 4: Actividades habilitadas -->
+        <div class="flex flex-col gap-2">
+            <label class="text-xs font-bold text-text-secondary uppercase tracking-wider">Actividades Habilitadas *</label>
+            @if (_activities == null)
+            {
+                <p class="text-text-disabled text-xs">Cargando actividades...</p>
+            }
+            else if (!_activities.Any())
+            {
+                <p class="text-text-disabled text-xs">No hay actividades disponibles.</p>
+            }
+            else
+            {
+                <div class="flex flex-wrap gap-2">
+                    @foreach (var act in _activities)
+                    {
+                        var isSelected = _selectedActivityIds.Contains(act.Id);
+                        <button type="button"
+                                class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-all @(isSelected ? "bg-primary/10 border-primary text-primary" : "bg-surface-darker border-border-dark text-text-secondary hover:border-text-secondary")"
+                                @onclick="() => ToggleActivity(act.Id)">
+                            @if (isSelected) { <span class="material-symbols-outlined text-[14px] mr-1">check</span> }
+                            @act.Name
+                        </button>
+                    }
+                </div>
+                @if (_selectedActivityIds.Count == 0)
+                {
+                    <p class="text-amber-400 text-xs flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">warning</span> Seleccione al menos una actividad.</p>
+                }
+            }
+        </div>
+
+        <!-- Row 5: IsActive + Tenant -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="flex items-center gap-3 px-4 py-3 bg-surface-darker rounded-xl border border-border-dark">
+                <input type="checkbox" @bind="_model.IsActive" id="fieldAct" class="w-4 h-4 rounded border-border-dark bg-surface-dark text-primary focus:ring-primary focus:ring-offset-0" />
+                <label for="fieldAct" class="text-sm font-medium text-white cursor-pointer select-none">Campo Activo</label>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_msg))
+        {
+            <div class="flex items-center gap-2 p-3 rounded-lg @(_ok ? "bg-green-500/10 text-green-400 border border-green-500/20" : "bg-red-500/10 text-red-400 border border-red-500/20") text-sm">
+                <span class="material-symbols-outlined text-lg">@(_ok ? "check_circle" : "error")</span>
+                <span>@_msg</span>
+            </div>
+        }
+
+        <button class="flex items-center justify-center gap-2 w-full h-12 bg-primary hover:bg-red-700 transition-colors text-white font-bold rounded-xl shadow-lg shadow-primary/20 disabled:opacity-50"
+                @onclick="Save" disabled="@_saving">
+            @if (_saving)
+            {
+                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+            }
+            else { <span class="material-symbols-outlined">save</span> }
+            <span>@(string.IsNullOrEmpty(_model.Id) ? "Crear Campo" : "Guardar Cambios")</span>
+        </button>
+
+        @if (!string.IsNullOrEmpty(_model.Id))
+        {
+            <button class="text-text-secondary hover:text-white text-xs font-bold uppercase tracking-widest transition-colors mt-1" @onclick="CancelEdit">
+                Cancelar Edición
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    private List<FieldMessage>? _fields;
+    private List<ActivityMessage>? _activities;
+    private FieldMessage _model = new() { IsActive = true };
+    private HashSet<string> _selectedActivityIds = new();
+    private bool _saving;
+    private string _msg = "";
+    private bool _ok;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _model.TenantId = State.ActiveTenantId;
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
+        var req = new GetCatalogRequest { TenantId = State.ActiveTenantId };
+        try
+        {
+            var fr = await GrpcClient.GetFieldsAsync(req);
+            _fields = fr.Fields.ToList();
+            var ar = await GrpcClient.GetActivitiesAsync(req);
+            _activities = ar.Activities.ToList();
+        }
+        catch (Exception ex) { Console.WriteLine($"Error cargando campos: {ex.Message}"); }
+    }
+
+    private void ToggleActivity(string id)
+    {
+        if (!_selectedActivityIds.Remove(id)) _selectedActivityIds.Add(id);
+    }
+
+    private void Edit(FieldMessage f)
+    {
+        _model = new FieldMessage
+        {
+            Id = f.Id, Name = f.Name, Description = f.Description, LegalName = f.LegalName,
+            AreaHectares = f.AreaHectares, GpsLatitude = f.GpsLatitude, GpsLongitude = f.GpsLongitude,
+            IsActive = f.IsActive, TenantId = f.TenantId
+        };
+        _selectedActivityIds = new HashSet<string>(f.ActivityIds);
+        _msg = "";
+    }
+
+    private void CancelEdit()
+    {
+        _model = new FieldMessage { IsActive = true, TenantId = State.ActiveTenantId };
+        _selectedActivityIds = new HashSet<string>();
+        _msg = "";
+    }
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(_model.Name)) { _ok = false; _msg = "El nombre es obligatorio."; return; }
+        if (_selectedActivityIds.Count == 0) { _ok = false; _msg = "Seleccione al menos una actividad."; return; }
+
+        _saving = true; _msg = ""; StateHasChanged();
+        try
+        {
+            _model.ActivityIds.Clear();
+            _model.ActivityIds.AddRange(_selectedActivityIds);
+            _model.TenantId = State.ActiveTenantId;
+
+            var r = string.IsNullOrEmpty(_model.Id)
+                ? await GrpcClient.CreateFieldAsync(_model)
+                : await GrpcClient.UpdateFieldAsync(_model);
+
+            if (r.Success)
+            {
+                CatalogCache.InvalidateTenant(State.ActiveTenantId);
+                _ok = true; _msg = string.IsNullOrEmpty(_model.Id) ? "Campo creado." : "Campo actualizado.";
+                CancelEdit(); await Load();
+            }
+            else { _ok = false; _msg = r.Message; }
+        }
+        catch (Exception ex) { _ok = false; _msg = $"Error: {ex.Message}"; }
+        finally { _saving = false; StateHasChanged(); }
+    }
+
+    private async Task Delete(FieldMessage f)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"¿Eliminar el campo '{f.Name}'?")) return;
+        try
+        {
+            var r = await GrpcClient.DeleteFieldAsync(new DeleteEntityRequest { Id = f.Id, TenantId = State.ActiveTenantId });
+            if (r.Success) { CatalogCache.InvalidateTenant(State.ActiveTenantId); if (_model.Id == f.Id) CancelEdit(); await Load(); }
+        }
+        catch (Exception ex) { _ok = false; _msg = $"Error al eliminar: {ex.Message}"; }
+    }
+}

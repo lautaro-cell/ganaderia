@@ -1,0 +1,41 @@
+@using GestorGanadero.Services.Catalog.Contracts
+
+@if (IsOpen)
+{
+  <div class="drawer" style="position:fixed; right:0; top:0; bottom:0; width:420px; background:#111; border-left:1px solid #333; padding:16px; overflow:auto;">
+    <h3>Actividad</h3>
+    <div>
+      <label>Nombre</label>
+      <input @bind="Name" style="width:100%; padding:6px;" />
+    </div>
+    <div>
+      <label>Global</label>
+      <input type="checkbox" @bind="IsGlobal" />
+    </div>
+    <button class="btn" style="margin-top:12px; background:#C0392B; color:#fff; padding:8px 12px; border-radius:6px;" @onclick="Save">Guardar</button>
+  </div>
+}
+
+@code {
+  [Parameter] public bool IsOpen { get; set; }
+  [Parameter] public ActivityMessage? Activity { get; set; }
+  [Parameter] public EventCallback OnClose { get; set; }
+  [Parameter] public EventCallback<ActivityMessage> OnSave { get; set; }
+  private string Name { get; set; } = string.Empty;
+  private bool IsGlobal { get; set; }
+  protected override void OnParametersSet()
+  {
+    if (Activity != null)
+    {
+      Name = Activity.Name;
+      IsGlobal = Activity.IsGlobal;
+    }
+  }
+  private async Task Save()
+  {
+    var a = Activity ?? new ActivityMessage();
+    a.Name = Name;
+    a.IsGlobal = IsGlobal;
+    await OnSave.InvokeAsync(a);
+  }
+}

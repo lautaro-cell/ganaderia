@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Protobuf Include="Protos\Common\shared_types.proto" GrpcServices="Both" />
+    <Protobuf Include="Protos\Domain_Identity\identity.proto" GrpcServices="Both" />
+    <Protobuf Include="Protos\Domain_Catalog\catalog.proto" GrpcServices="Both" />
+    <Protobuf Include="Protos\Domain_Operations\operations.proto" GrpcServices="Both" />
+    <Protobuf Include="Protos\Domain_Reporting\reporting.proto" GrpcServices="Both" />
+    <Protobuf Include="Protos\Domain_Sync\sync.proto" GrpcServices="Both" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.34.1" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.76.0" />
+    <PackageReference Include="Grpc.Net.Client.Web" Version="2.76.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.78.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>

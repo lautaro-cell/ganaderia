@@ -1,0 +1,19 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:5000",
+  "backendAuthType": "public",
+  "executionArgs": {
+    "projectName": "ganaderia",
+    "projectPath": "C:\\Users\\HWFOttaviano\\ganaderia",
+    "testIds": [],
+    "additionalInstruction": "",
+    "serverMode": "development",
+    "envs": {
+      "API_KEY": "sk-user-xjVLV5d37y445UGeZCMi1VfsbTt6MFWiEO4JMWdt09Gzhxp2J3gq9KSWso4wi3N6nvtejx-V-PBodGIVAVOJ0FlGjSFMukZn1GDJsDObtQPl9dKm_By-ujXAuS50ykAYpKA"
+    }
+  },
+  "serverPort": 56229,
+  "proxy": "http://51e7806c-4b9d-465c-b1b0-c7cd89314b16:RiadmgbPDX6juui1ssU0gGmnC39AgakP@tun.testsprite.com:8080"
+}

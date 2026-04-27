@@ -1,0 +1,438 @@
+@page "/reportes/balance"
+@using GestorGanadero.Client.Services
+@using GestorGanadero.Client.Catalog
+@using GestorGanadero.Client.Reporting
+@using GestorGanadero.Services.Reporting.Contracts
+@using GestorGanadero.Services.Catalog.Contracts
+@using Google.Protobuf.WellKnownTypes
+@using Microsoft.JSInterop
+@using System.Text
+@inject AppStateContainer State
+@inject ReportingClientService ReportingSvc
+@inject CatalogClientService CatalogSvc
+@inject IJSRuntime JS
+@implements IDisposable
+
+<div class="flex flex-col gap-6 p-6">
+
+    <!-- Header -->
+    <div class="flex justify-between items-start flex-wrap gap-3">
+        <div class="flex flex-col gap-1">
+            <h1 class="text-3xl font-black tracking-tight text-white m-0">Balance Contable</h1>
+            <p class="text-text-secondary text-sm">
+                Saldos por cuenta, campo y categoría · @PeriodLabel()
+            </p>
+        </div>
+        <div class="flex gap-3">
+            <button class="bg-surface-dark border border-border-dark text-white rounded-lg px-4 py-2 text-sm font-bold flex items-center gap-2 hover:bg-border-dark transition-colors disabled:opacity-50"
+                    disabled="@(_report == null || !_report.Items.Any())"
+                    @onclick="ExportCsv">
+                <span class="material-symbols-outlined text-[18px]">download</span> Exportar CSV
+            </button>
+        </div>
+    </div>
+
+    <!-- Filters Card -->
+    <div class="bg-surface-dark border border-border-dark rounded-2xl p-6 shadow-xl shadow-black/20">
+
+        <!-- Fila 1: Modalidad + Período + Campo + Categoría -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+            <!-- Toggle Mes / Acumulado (6.1) -->
+            <div class="flex flex-col gap-2">
+                <span class="text-xs font-bold text-text-secondary uppercase tracking-widest">Modalidad</span>
+                <div class="flex bg-background-main p-1 rounded-lg border border-border-input">
+                    <button class="flex-1 px-4 py-1.5 text-xs font-bold rounded-md transition-colors
+                                   @(_modalidad == "mes" ? "bg-primary text-white" : "bg-transparent text-text-secondary hover:text-white")"
+                            @onclick='async () => { _modalidad = "mes"; await FetchBalance(); }'>
+                        Mes
+                    </button>
+                    <button class="flex-1 px-4 py-1.5 text-xs font-bold rounded-md transition-colors
+                                   @(_modalidad == "acumulado" ? "bg-primary text-white" : "bg-transparent text-text-secondary hover:text-white")"
+                            @onclick='async () => { _modalidad = "acumulado"; await FetchBalance(); }'>
+                        Acumulado
+                    </button>
+                </div>
+            </div>
+
+            <!-- Selector de período (6.2) -->
+            @if (_modalidad == "mes")
+            {
+                <div class="flex flex-col gap-2">
+                    <span class="text-xs font-bold text-text-secondary uppercase tracking-widest">Mes</span>
+                    <input type="month" value="@_month"
+                           @onchange="@(async e => { _month = e.Value?.ToString() ?? _month; await FetchBalance(); })"
+                           class="w-full bg-background-main border border-border-input rounded-lg px-4 py-2.5 text-white text-sm outline-none focus:ring-1 focus:ring-primary" />
+                </div>
+            }
+            else
+            {
+                <div class="flex flex-col gap-2">
+                    <span class="text-xs font-bold text-text-secondary uppercase tracking-widest">Fecha de Corte</span>
+                    <input type="date" @bind="_date"
+                           class="w-full bg-background-main border border-border-input rounded-lg px-4 py-2.5 text-white text-sm outline-none focus:ring-1 focus:ring-primary" />
+                </div>
+            }
+
+            <!-- Campo (6.3) -->
+            <div class="flex flex-col gap-2">
+                <span class="text-xs font-bold text-text-secondary uppercase tracking-widest">Campo</span>
+                <select @bind="_fieldId"
+                        class="w-full bg-background-main border border-border-input rounded-lg px-4 py-2.5 text-white text-sm outline-none focus:ring-1 focus:ring-primary">
+                    <option value="">Todos los campos</option>
+                    @foreach (var f in _fields)
+                    {
+                        <option value="@f.Id">@f.Name</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Categoría (6.3) -->
+            <div class="flex flex-col gap-2">
+                <span class="text-xs font-bold text-text-secondary uppercase tracking-widest">Categoría</span>
+                <select @bind="_categoryId"
+                        class="w-full bg-background-main border border-border-input rounded-lg px-4 py-2.5 text-white text-sm outline-none focus:ring-1 focus:ring-primary">
+                    <option value="">Todas las categorías</option>
+                    @foreach (var c in _categories)
+                    {
+                        <option value="@c.Id">@c.Name</option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        <!-- Fila 2: Vista categoría + Consultar -->
+        <div class="mt-4 pt-4 border-t border-border-dark flex flex-wrap justify-between items-center gap-4">
+            <div class="flex flex-col gap-2">
+                <span class="text-xs font-bold text-text-secondary uppercase tracking-widest">Vista Categoría</span>
+                <div class="flex bg-background-main p-1 rounded-lg border border-border-input">
+                    <button class="px-6 py-1.5 text-xs font-bold rounded-md transition-colors
+                                   @(_view == "cliente" ? "bg-primary text-white" : "bg-transparent text-text-secondary hover:text-white")"
+                            @onclick='async () => { _view = "cliente"; await FetchBalance(); }'>
+                        Cliente
+                    </button>
+                    <button class="px-6 py-1.5 text-xs font-bold rounded-md transition-colors
+                                   @(_view == "gestor" ? "bg-primary text-white" : "bg-transparent text-text-secondary hover:text-white")"
+                            @onclick='async () => { _view = "gestor"; await FetchBalance(); }'>
+                        Gestor
+                    </button>
+                </div>
+            </div>
+
+            <button class="bg-primary hover:bg-red-700 text-white rounded-lg px-8 py-2.5 text-sm font-bold flex items-center gap-2 shadow-lg shadow-primary/20 transition-all disabled:opacity-50"
+                    @onclick="FetchBalance" disabled="@_loading">
+                @if (_loading)
+                {
+                    <div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                }
+                else
+                {
+                    <span class="material-symbols-outlined text-[18px]">refresh</span>
+                }
+                Consultar
+            </button>
+        </div>
+    </div>
+
+    <!-- KPI cards físicos (6.4) -->
+    @if (_report != null && _report.Items.Any())
+    {
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-surface-dark border border-border-dark rounded-xl p-4 flex flex-col gap-1">
+                <p class="text-[10px] font-bold text-text-secondary uppercase tracking-widest">Stock Cabezas</p>
+                <p class="text-white text-2xl font-black font-mono">@_report.Items.Sum(i => i.HeadCount)</p>
+            </div>
+            <div class="bg-surface-dark border border-border-dark rounded-xl p-4 flex flex-col gap-1">
+                <p class="text-[10px] font-bold text-text-secondary uppercase tracking-widest">Stock KG</p>
+                <p class="text-white text-2xl font-black font-mono">@_report.Items.Sum(i => i.TotalWeight).ToString("N0")</p>
+            </div>
+            <div class="bg-surface-dark border border-border-dark rounded-xl p-4 flex flex-col gap-1">
+                <p class="text-[10px] font-bold text-text-secondary uppercase tracking-widest">KG Movimiento</p>
+                <p class="text-white text-2xl font-black font-mono">@_report.Items.Sum(i => i.WeightKgMovement).ToString("N0")</p>
+            </div>
+            <div class="bg-surface-dark border border-border-dark rounded-xl p-4 flex flex-col gap-1">
+                <p class="text-[10px] font-bold text-text-secondary uppercase tracking-widest">Saldo Neto</p>
+                <p class="@(_report.Items.Sum(i => i.NetBalance) >= 0 ? "text-emerald-400" : "text-primary") text-2xl font-black font-mono">
+                    @_report.Items.Sum(i => i.NetBalance).ToString("N2")
+                </p>
+            </div>
+        </div>
+    }
+
+    <!-- Results Table con subtotales por grupo (6.5) -->
+    <div class="bg-surface-dark border border-border-dark rounded-2xl shadow-xl shadow-black/20 overflow-hidden">
+        @if (_loading)
+        {
+            <div class="flex justify-center py-16">
+                <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
+            </div>
+        }
+        else if (_report == null || !_report.Items.Any())
+        {
+            <div class="flex flex-col items-center justify-center py-16 text-center text-text-secondary">
+                <span class="material-symbols-outlined text-5xl mb-4">analytics</span>
+                <p class="text-white text-lg font-bold">No hay datos para los filtros seleccionados</p>
+                <p class="text-sm">Ajusta los filtros y vuelve a consultar.</p>
+            </div>
+        }
+        else
+        {
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm whitespace-nowrap">
+                    <thead class="bg-background-main border-b border-border-dark text-text-secondary uppercase text-[10px] tracking-widest">
+                        <tr>
+                            <th class="px-5 py-4 font-bold">Cuenta</th>
+                            <th class="px-5 py-4 font-bold">Campo</th>
+                            <th class="px-5 py-4 font-bold">Categoría</th>
+                            <th class="px-5 py-4 font-bold">Actividad</th>
+                            <th class="px-5 py-4 font-bold text-right text-blue-400">Debe</th>
+                            <th class="px-5 py-4 font-bold text-right text-emerald-400">Haber</th>
+                            <th class="px-5 py-4 font-bold text-right">Saldo</th>
+                            <th class="px-5 py-4 font-bold text-right border-l border-border-dark">Cabezas</th>
+                            <th class="px-5 py-4 font-bold text-right">KG Stock</th>
+                            <th class="px-5 py-4 font-bold text-right">KG Mov.</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border-dark">
+
+                    @{ var groupOrder = new[] { "ACTIVO", "PASIVO", "RESULTADO" };
+                       var grouped = _report.Items.GroupBy(i => i.AccountGroup).ToDictionary(g => g.Key, g => g.ToList());
+                       double grandDebe = 0, grandHaber = 0, grandSaldo = 0;
+                       int grandCabezas = 0;
+                       double grandKgStock = 0, grandKgMov = 0; }
+
+                    @foreach (var groupName in groupOrder)
+                    {
+                        if (!grouped.TryGetValue(groupName, out var items) || !items.Any()) continue;
+
+                        var gDebe    = items.Sum(i => i.DebitTotal);
+                        var gHaber   = items.Sum(i => i.CreditTotal);
+                        var gSaldo   = items.Sum(i => i.NetBalance);
+                        var gCab     = items.Sum(i => i.HeadCount);
+                        var gKgStock = items.Sum(i => i.TotalWeight);
+                        var gKgMov   = items.Sum(i => i.WeightKgMovement);
+
+                        grandDebe    += gDebe;
+                        grandHaber   += gHaber;
+                        grandSaldo   += gSaldo;
+                        grandCabezas += gCab;
+                        grandKgStock += gKgStock;
+                        grandKgMov   += gKgMov;
+
+                        <!-- Cabecera de grupo (6.5) -->
+                        <tr class="bg-background-main cursor-pointer select-none"
+                            @onclick="() => ToggleGroup(groupName)">
+                            <td colspan="4" class="px-5 py-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-base text-text-secondary">
+                                        @(_expandedGroups.Contains(groupName) ? "expand_more" : "chevron_right")
+                                    </span>
+                                    <span class="@GroupBadgeClass(groupName) text-[10px] font-bold uppercase px-2 py-0.5 rounded-full">
+                                        @groupName
+                                    </span>
+                                    <span class="text-text-secondary text-xs ml-1">@items.Count registro(s)</span>
+                                </div>
+                            </td>
+                            <td class="px-5 py-3 text-right font-mono font-bold text-blue-400 text-xs">@gDebe.ToString("N0")</td>
+                            <td class="px-5 py-3 text-right font-mono font-bold text-emerald-400 text-xs">@gHaber.ToString("N0")</td>
+                            <td class="px-5 py-3 text-right font-mono font-bold text-white text-xs">@gSaldo.ToString("N2")</td>
+                            <td class="px-5 py-3 text-right font-mono font-bold text-white text-xs border-l border-border-dark">@gCab</td>
+                            <td class="px-5 py-3 text-right font-mono font-bold text-white text-xs">@gKgStock.ToString("N1")</td>
+                            <td class="px-5 py-3 text-right font-mono font-bold text-white text-xs">@gKgMov.ToString("N1")</td>
+                        </tr>
+
+                        <!-- Filas de detalle (colapsables) -->
+                        @if (_expandedGroups.Contains(groupName))
+                        {
+                            @foreach (var item in items)
+                            {
+                                <tr class="hover:bg-[#2a2a2a] transition-colors">
+                                    <td class="px-5 py-3 pl-10">
+                                        <span class="font-mono text-xs text-white bg-background-main border border-border-dark px-2 py-0.5 rounded">
+                                            @item.AccountCode
+                                        </span>
+                                    </td>
+                                    <td class="px-5 py-3 text-text-body text-xs">@item.FieldName</td>
+                                    <td class="px-5 py-3 text-text-body text-xs">@item.CategoryName</td>
+                                    <td class="px-5 py-3">
+                                        <span class="px-2 py-0.5 rounded-md bg-border-dark text-white text-[10px] font-medium">@item.ActivityName</span>
+                                    </td>
+                                    <td class="px-5 py-3 text-right font-mono text-xs text-blue-300">@item.DebitTotal.ToString("N0")</td>
+                                    <td class="px-5 py-3 text-right font-mono text-xs text-emerald-300">@item.CreditTotal.ToString("N0")</td>
+                                    <td class="px-5 py-3 text-right font-mono text-xs text-white font-bold">@item.NetBalance.ToString("N2")</td>
+                                    <td class="px-5 py-3 text-right font-mono text-xs text-primary font-bold border-l border-border-dark">@item.HeadCount</td>
+                                    <td class="px-5 py-3 text-right font-mono text-xs text-primary">@item.TotalWeight.ToString("N1")</td>
+                                    <td class="px-5 py-3 text-right font-mono text-xs text-text-secondary">@item.WeightKgMovement.ToString("N1")</td>
+                                </tr>
+                            }
+                        }
+                    }
+                    </tbody>
+
+                    <!-- Totales generales -->
+                    <tfoot class="bg-background-main border-t-2 border-border-dark font-bold text-white text-sm">
+                        <tr>
+                            <td colspan="4" class="px-5 py-4 text-text-secondary text-xs font-bold uppercase tracking-widest">
+                                Total General
+                                <span class="ml-2 font-mono text-white normal-case">(@_report.Items.Count reg.)</span>
+                            </td>
+                            <td class="px-5 py-4 text-right font-mono text-blue-400">@grandDebe.ToString("N0")</td>
+                            <td class="px-5 py-4 text-right font-mono text-emerald-400">@grandHaber.ToString("N0")</td>
+                            <td class="px-5 py-4 text-right font-mono @(grandSaldo >= 0 ? "text-emerald-400" : "text-primary")">@grandSaldo.ToString("N2")</td>
+                            <td class="px-5 py-4 text-right font-mono border-l border-border-dark">@grandCabezas</td>
+                            <td class="px-5 py-4 text-right font-mono">@grandKgStock.ToString("N1")</td>
+                            <td class="px-5 py-4 text-right font-mono text-text-secondary">@grandKgMov.ToString("N1")</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    // --- Catálogos ---
+    private List<FieldMessage>          _fields     = new();
+    private List<AnimalCategoryMessage> _categories = new();
+
+    // --- Filtros ---
+    private string   _modalidad  = "mes";
+    private string   _month      = DateTime.Today.ToString("yyyy-MM");
+    private DateTime _date       = DateTime.Today;
+    private string   _fieldId    = "";
+    private string   _categoryId = "";
+    private string   _view       = "cliente";
+
+    // --- Estado ---
+    private bool          _loading;
+    private BalanceReport? _report;
+
+    // --- Grupos expandidos (6.5) ---
+    private HashSet<string> _expandedGroups = new() { "ACTIVO", "PASIVO", "RESULTADO" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.OnChange += OnTenantChanged;
+        await LoadCatalogs();
+        await FetchBalance();
+    }
+
+    private async void OnTenantChanged()
+    {
+        await LoadCatalogs();
+        await FetchBalance();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadCatalogs()
+    {
+        if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
+        var req = new GetCatalogRequest { TenantId = State.ActiveTenantId };
+        try
+        {
+            var f = await CatalogSvc.GetFieldsAsync(req);
+            _fields = f.Data?.Fields.ToList() ?? new();
+            var c = await CatalogSvc.GetAnimalCategoriesAsync(req);
+            _categories = c.Data?.Categories.ToList() ?? new();
+        }
+        catch { }
+    }
+
+    // Calcula (startDate, endDate) según modalidad (6.1 + 6.2)
+    private (Timestamp? start, Timestamp? end) BuildDateRange()
+    {
+        if (_modalidad == "mes")
+        {
+            var startDt = DateTime.Parse(_month + "-01");
+            var endDt   = startDt.AddMonths(1).AddSeconds(-1);
+            return (
+                Timestamp.FromDateTime(DateTime.SpecifyKind(startDt, DateTimeKind.Utc)),
+                Timestamp.FromDateTime(DateTime.SpecifyKind(endDt,   DateTimeKind.Utc))
+            );
+        }
+        // acumulado: desde 1-ene del año de la fecha de corte
+        var yearStart = new DateTime(_date.Year, 1, 1);
+        return (
+            Timestamp.FromDateTime(DateTime.SpecifyKind(yearStart, DateTimeKind.Utc)),
+            Timestamp.FromDateTime(DateTime.SpecifyKind(_date,     DateTimeKind.Utc))
+        );
+    }
+
+    private async Task FetchBalance()
+    {
+        if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
+        _loading = true;
+        _report  = null;
+        StateHasChanged();
+        try
+        {
+            var (start, end) = BuildDateRange();
+            var request = new GetBalanceRequest
+            {
+                TenantId     = State.ActiveTenantId,
+                FieldId      = _fieldId,
+                CategoryId   = _categoryId,
+                CategoryView = _view,
+                StartDate    = start,
+                Date         = end,
+            };
+            var res = await ReportingSvc.GetBalanceAsync(request);
+            _report = res.Data;
+        }
+        catch (Exception ex) { Console.WriteLine($"Balance error: {ex.Message}"); }
+        finally { _loading = false; StateHasChanged(); }
+    }
+
+    private void ToggleGroup(string name)
+    {
+        if (_expandedGroups.Contains(name)) _expandedGroups.Remove(name);
+        else _expandedGroups.Add(name);
+    }
+
+    private string PeriodLabel()
+    {
+        if (_modalidad == "mes")
+        {
+            var d = DateTime.Parse(_month + "-01");
+            return $"{d:MMMM yyyy}";
+        }
+        return $"Acumulado al {_date:dd/MM/yyyy}";
+    }
+
+    private static string GroupBadgeClass(string group) => group switch
+    {
+        "ACTIVO"    => "bg-blue-500/15 text-blue-400",
+        "PASIVO"    => "bg-amber-500/15 text-amber-400",
+        "RESULTADO" => "bg-purple-500/15 text-purple-400",
+        _           => "bg-border-dark text-text-secondary"
+    };
+
+    private async Task ExportCsv()
+    {
+        if (_report == null) return;
+        var sb = new StringBuilder();
+        sb.AppendLine("Grupo,Cuenta,Campo,Categoría,Actividad,Debe,Haber,Saldo,Cabezas,KG Stock,KG Movimiento");
+        foreach (var i in _report.Items)
+        {
+            sb.AppendLine(string.Join(",",
+                i.AccountGroup, CsvEsc(i.AccountCode), CsvEsc(i.FieldName), CsvEsc(i.CategoryName),
+                CsvEsc(i.ActivityName),
+                i.DebitTotal.ToString("N2"), i.CreditTotal.ToString("N2"), i.NetBalance.ToString("N2"),
+                i.HeadCount.ToString(), i.TotalWeight.ToString("N2"), i.WeightKgMovement.ToString("N2")));
+        }
+        var bytes     = Encoding.UTF8.GetBytes(sb.ToString());
+        var stream    = new System.IO.MemoryStream(bytes);
+        var streamRef = new DotNetStreamReference(stream);
+        await JS.InvokeVoidAsync("downloadFileFromStream",
+            $"balance_{_month}_{_modalidad}.csv", streamRef);
+    }
+
+    private static string CsvEsc(string? v)
+    {
+        if (string.IsNullOrEmpty(v)) return string.Empty;
+        return (v.Contains(',') || v.Contains('"') || v.Contains('\n'))
+            ? $"\"{v.Replace("\"", "\"\"")}\"" : v;
+    }
+
+    public void Dispose() => State.OnChange -= OnTenantChanged;
+}

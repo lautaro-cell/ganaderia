@@ -1,0 +1,15 @@
+:root {
+  --color-primary: #C0392B;
+  --color-primary-dark: #922B21;
+  --color-accent: #E74C3C;
+  --color-bg: #121214;
+  --color-surface: #18181B;
+  --color-surface-2: #242427;
+  --color-border: #3F3F46;
+  --color-text: #FFFFFF;
+  --color-text-muted: #FFFFFF;
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --radius: 6px;
+  --transition: 0.18s cubic-bezier(.4,0,.2,1);
+}

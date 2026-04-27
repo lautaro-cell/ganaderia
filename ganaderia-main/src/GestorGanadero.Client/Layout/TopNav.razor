@@ -1,0 +1,135 @@
+@using GestorGanadero.Client.Services
+@using GestorGanadero.Services.Common.Contracts
+@using GestorGanadero.Services.Identity.Contracts
+@using GestorGanadero.Services.Catalog.Contracts
+@using GestorGanadero.Services.Operations.Contracts
+@using GestorGanadero.Services.Reporting.Contracts
+@using GestorGanadero.Services.Sync.Contracts
+@implements IDisposable
+@inject AppStateContainer State
+@inject NavigationManager Nav
+
+<header class="sticky top-0 z-50 flex items-center justify-between whitespace-nowrap border-b border-border-dark bg-background-dark px-4 md:px-10 py-4 shadow-sm">
+    <div class="flex items-center gap-3">
+        <div class="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary" style="width: 32px; height: 32px;">
+            <span class="material-symbols-outlined text-2xl">pets</span>
+        </div>
+        <h2 class="text-lg font-bold leading-tight tracking-tight text-white m-0">Gestor Ganadero</h2>
+    </div>
+
+    <div class="flex flex-1 justify-end gap-4 items-center">
+        <!-- Tenant Selector -->
+        @if (State.AvailableTenants != null && State.AvailableTenants.Any())
+        {
+            <div class="relative group">
+                <select @onchange="OnTenantChanged" value="@State.ActiveTenantId" class="min-w-[180px] max-w-[280px] cursor-pointer rounded-lg h-10 px-4 bg-surface-dark border border-border-dark hover:bg-border-dark hover:border-primary/50 transition-colors text-white text-sm font-bold appearance-none pr-10 outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+                    @foreach (var tenant in State.AvailableTenants)
+                    {
+                        <option value="@tenant.Id">@tenant.Name</option>
+                    }
+                </select>
+                <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" style="font-size: 20px;">expand_more</span>
+            </div>
+        }
+        else
+        {
+            <select disabled class="min-w-[180px] max-w-[280px] cursor-not-allowed rounded-lg h-10 px-4 bg-surface-dark border border-border-dark text-text-disabled text-sm font-bold appearance-none">
+                <option>Cargando empresas...</option>
+            </select>
+        }
+
+        <!-- User Info -->
+        <div class="flex items-center gap-3 pl-4 border-l border-border-dark relative" @onclick="ToggleDropdown">
+            <div class="hidden sm:flex flex-col items-end">
+                <span class="text-sm font-bold text-white leading-none">@(State.CurrentUser?.Name ?? "Usuario")</span>
+                <span class="text-xs text-text-secondary leading-none mt-1">@(State.CurrentUser?.Role ?? "Rol")</span>
+            </div>
+            
+            <button class="bg-primary/20 rounded-full size-10 flex items-center justify-center border-2 border-primary/20 text-primary font-bold overflow-hidden cursor-pointer hover:border-primary transition-colors" style="width: 40px; height: 40px;">
+                @if (State.CurrentUser != null)
+                {
+                    <span>@GetInitials(State.CurrentUser.Name)</span>
+                }
+                else
+                {
+                    <span class="material-symbols-outlined">person</span>
+                }
+            </button>
+
+            <!-- Dropdown Menu -->
+            @if (_dropdownOpen)
+            {
+                <div class="absolute right-0 top-full mt-2 w-56 bg-[#1E1818] rounded-xl border border-[#392828] shadow-xl overflow-hidden z-50">
+                    <div class="px-4 py-3 border-b border-[#392828]">
+                        <p class="text-white font-semibold text-sm truncate">@(State.CurrentUser?.Name ?? "Usuario")</p>
+                        <p class="text-text-secondary text-xs truncate">@(State.CurrentUser?.Email ?? "")</p>
+                    </div>
+                    <div class="py-1">
+                        <button @onclick="GoToProfile" class="w-full flex items-center gap-3 px-4 py-2.5 text-left text-text-secondary hover:text-white hover:bg-[#271c1c] transition-colors border-none bg-transparent">
+                            <span class="material-symbols-outlined text-lg">account_circle</span>
+                            <span class="text-sm">Mi Perfil</span>
+                        </button>
+                        <button @onclick="Logout" class="w-full flex items-center gap-3 px-4 py-2.5 text-left text-red-400 hover:text-red-300 hover:bg-red-900/20 transition-colors border-none bg-transparent">
+                            <span class="material-symbols-outlined text-lg">logout</span>
+                            <span class="text-sm">Cerrar Sesión</span>
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</header>
+
+@code {
+    private bool _dropdownOpen = false;
+
+    protected override void OnInitialized()
+    {
+        State.OnChange += StateHasChanged;
+    }
+
+    private void ToggleDropdown()
+    {
+        _dropdownOpen = !_dropdownOpen;
+    }
+
+    private void GoToProfile()
+    {
+        _dropdownOpen = false;
+        Nav.NavigateTo("/perfil");
+    }
+
+    private async Task Logout()
+    {
+        _dropdownOpen = false;
+        // The actual logout requires JS interop to clear local storage.
+        // Assuming there is an injected IJSRuntime or IAuthService in the app for logout.
+        Nav.NavigateTo("/login", forceLoad: true);
+    }
+
+    private void OnTenantChanged(ChangeEventArgs e)
+    {
+        var tenantId = e.Value?.ToString();
+        var tenant = State.AvailableTenants.FirstOrDefault(t => t.Id == tenantId);
+        
+        if (tenant != null)
+        {
+            State.ActiveTenantId = tenant.Id;
+            State.ActiveTenantName = tenant.Name;
+        }
+    }
+
+    private string GetInitials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "??";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1) return parts[0][0].ToString().ToUpper();
+        return (parts[0][0].ToString() + parts[parts.Length - 1][0].ToString()).ToUpper();
+    }
+
+    public void Dispose()
+    {
+        State.OnChange -= StateHasChanged;
+    }
+}
+

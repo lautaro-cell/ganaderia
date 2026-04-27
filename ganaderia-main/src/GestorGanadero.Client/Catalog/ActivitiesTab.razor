@@ -1,0 +1,41 @@
+@using GestorGanadero.Client.Catalog
+@using System.Collections.Generic
+@using System.Linq
+@inject CatalogClientService Catalog
+
+<div>
+  <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+    <h3 style="margin:0;">Actividades</h3>
+    <button class="btn" style="background:#444; color:#fff; border:none; padding:6px 12px; border-radius:6px;" @onclick="OpenNew">Nueva</button>
+  </div>
+  <table class="table" style="width:100%; border-collapse: collapse;">
+    <thead><tr><th>Nombre</th><th>Global</th><th>Acciones</th></tr></thead>
+    <tbody>
+      @foreach (var a in Activities)
+      {
+        <tr>
+          <td>@a.Name</td>
+          <td><span class="badge" style="background:@(a.IsGlobal?"#1e7e34":"#6c757d"); padding:4px 8px; border-radius:999px;">@(a.IsGlobal?"Sí":"No")</span></td>
+          <td><button class="btn" style="background:#444; color:#fff; padding:6px 10px; border-radius:6px;" @onclick="() => Edit(a)">Editar</button></td>
+        </tr>
+      }
+    </tbody>
+  </table>
+  <ActivityFormDrawer IsOpen="IsFormOpen" Activity="SelectedActivity" OnClose="CloseForm" OnSave="HandleSave" />
+</div>
+
+@code {
+  private List<GestorGanadero.Services.Catalog.Contracts.ActivityMessage> Activities = new();
+  private bool IsFormOpen = false;
+  private GestorGanadero.Services.Catalog.Contracts.ActivityMessage? SelectedActivity;
+
+  protected override async Task OnInitializedAsync()
+  {
+    var r = await Catalog.GetActivitiesAsync(new GestorGanadero.Services.Catalog.Contracts.GetCatalogRequest { TenantId = "TenantA" });
+    if (r.Success && r.Data != null) Activities = r.Data.Activities.ToList();
+  }
+  private void OpenNew() { SelectedActivity = new GestorGanadero.Services.Catalog.Contracts.ActivityMessage(); IsFormOpen = true; }
+  private void CloseForm() { IsFormOpen = false; }
+  private void Edit(GestorGanadero.Services.Catalog.Contracts.ActivityMessage a) { SelectedActivity = a; IsFormOpen = true; }
+  private Task HandleSave(GestorGanadero.Services.Catalog.Contracts.ActivityMessage a) { IsFormOpen = false; return Task.CompletedTask; }
+}

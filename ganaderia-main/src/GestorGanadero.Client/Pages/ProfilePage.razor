@@ -1,0 +1,157 @@
+@page "/perfil"
+@using GestorGanadero.Client.Identity
+@using GestorGanadero.Services.Identity.Contracts
+@using GestorGanadero.Client.Shared
+@using GestorGanadero.Client.Services
+@inject IdentityClientService IdentityClientService
+@inject AppStateContainer State
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+    <div class="w-full max-w-lg bg-[#1E1818] border border-[#392828] rounded-[28px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+        <!-- Header -->
+        <div class="flex items-center justify-between px-8 py-6">
+            <h2 class="text-xl font-bold text-white">Mi Perfil</h2>
+            <button class="text-text-secondary hover:text-white transition-colors" @onclick="GoBack">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+
+        @if (Profile == null && !HasError)
+        {
+            <div class="flex flex-col items-center justify-center py-20 gap-4">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                <p class="text-text-secondary animate-pulse text-sm font-medium">Cargando perfil...</p>
+            </div>
+        }
+        else if (HasError)
+        {
+            <div class="p-8 text-center">
+                <div class="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-xl flex items-center gap-3">
+                    <span class="material-symbols-outlined">error</span>
+                    <span>Error al cargar el perfil. Intente nuevamente.</span>
+                </div>
+                <button class="mt-4 text-primary font-bold hover:underline" @onclick="OnInitializedAsync">Reintentar</button>
+            </div>
+        }
+        else
+        {
+            <div class="px-8 pb-8 flex flex-col gap-8">
+                <!-- Avatar Section -->
+                <div class="flex flex-col items-center gap-4">
+                    <div class="relative group">
+                        <div class="w-32 h-32 rounded-full bg-[#271c1c] border-2 border-[#392828] flex items-center justify-center text-primary text-5xl font-black shadow-inner overflow-hidden">
+                            @if (!string.IsNullOrEmpty(Profile?.ProfileImageUrl))
+                            {
+                                <img src="@Profile.ProfileImageUrl" class="w-full h-full object-cover" />
+                            }
+                            else
+                            {
+                                <span class="material-symbols-outlined text-6xl">person</span>
+                            }
+                        </div>
+                    </div>
+                    
+                    <button class="flex items-center gap-2 px-4 py-2 rounded-xl border border-[#392828] bg-[#271c1c] text-white text-sm font-semibold hover:bg-[#322424] transition-colors shadow-sm">
+                        <span class="material-symbols-outlined text-lg">photo_camera</span>
+                        <span>Cambiar Foto</span>
+                    </button>
+                </div>
+
+                <!-- Form Fields -->
+                <div class="flex flex-col gap-5">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="flex flex-col gap-2">
+                            <label class="text-xs font-bold text-text-secondary px-1">Nombre</label>
+                            <input type="text" @bind="_firstName" class="w-full bg-transparent border border-[#392828] rounded-2xl px-5 h-12 text-sm text-white focus:outline-none focus:border-primary transition-colors" placeholder="Tu nombre" />
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <label class="text-xs font-bold text-text-secondary px-1">Apellido</label>
+                            <input type="text" @bind="_lastName" class="w-full bg-transparent border border-[#392828] rounded-2xl px-5 h-12 text-sm text-white focus:outline-none focus:border-primary transition-colors" placeholder="Tu apellido" />
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        <label class="text-xs font-bold text-text-secondary px-1">Email</label>
+                        <input type="email" @bind="Profile.Email" class="w-full bg-transparent border border-[#392828] rounded-2xl px-5 h-12 text-sm text-white/50 focus:outline-none cursor-not-allowed" disabled />
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        <label class="text-xs font-bold text-text-secondary px-1">Teléfono</label>
+                        <input type="tel" class="w-full bg-transparent border border-[#392828] rounded-2xl px-5 h-12 text-sm text-white focus:outline-none focus:border-primary transition-colors" placeholder="+54 11 1234-5678" />
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex gap-4 pt-2">
+                    <button class="flex-1 h-14 rounded-3xl bg-transparent border border-[#392828] text-white font-bold hover:bg-[#271c1c] transition-colors" @onclick="GoBack">
+                        Cancelar
+                    </button>
+                    <button class="flex-1 h-14 rounded-3xl bg-primary hover:bg-red-700 transition-colors text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/20" @onclick="Save">
+                        @if (_saving)
+                        {
+                            <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                        }
+                        else
+                        {
+                            <span class="material-symbols-outlined">save</span>
+                        }
+                        <span>Guardar</span>
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private UserProfile? Profile;
+    private bool HasError = false;
+    private bool _saving = false;
+    private string _firstName = "";
+    private string _lastName = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        HasError = false;
+        var profRes = await IdentityClientService.GetMyProfileAsync();
+        if (profRes.Success) 
+        { 
+            Profile = profRes.Data;
+            SplitName();
+        } 
+        else HasError = true;
+    }
+
+    private void SplitName()
+    {
+        if (string.IsNullOrWhiteSpace(Profile?.Name)) return;
+        var parts = Profile.Name.Split(' ', 2);
+        _firstName = parts[0];
+        _lastName = parts.Length > 1 ? parts[1] : "";
+    }
+
+    private void GoBack()
+    {
+        Nav.NavigateTo("/");
+    }
+
+    private async Task Save()
+    {
+        if (Profile == null) return;
+        _saving = true;
+        
+        // Update full name
+        Profile.Name = $"{_firstName} {_lastName}".Trim();
+        
+        // Simulate save delay
+        await Task.Delay(800);
+        
+        // Update State
+        State.CurrentUser = Profile;
+        
+        _saving = false;
+        GoBack();
+    }
+}

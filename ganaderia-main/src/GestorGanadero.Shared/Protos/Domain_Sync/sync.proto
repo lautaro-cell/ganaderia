@@ -1,0 +1,30 @@
+syntax = "proto3";
+import "google/protobuf/timestamp.proto";
+
+option csharp_namespace = "GestorGanadero.Services.Sync.Contracts";
+package sync.v1;
+
+message SyncEntry {
+  string id = 1;
+  google.protobuf.Timestamp date = 2;
+  string description = 3;
+  double amount = 4;
+  string account_code = 5;
+  string status = 6;
+  string entry_type = 7;
+  int32 head_count = 8;
+  string weight_kg = 9;
+}
+
+service SyncService {
+  rpc GetPendingSyncEvents (PendingSyncFilter) returns (PendingSyncList);
+  rpc SyncToERP (SyncRequest) returns (SyncResult);
+  rpc SyncCatalog (SyncCatalogRequest) returns (SyncCatalogResponse);
+}
+
+message PendingSyncFilter { string tenant_id = 1; }
+message PendingSyncList   { repeated SyncEntry entries = 1; }
+message SyncRequest       { repeated string entry_ids = 1; }
+message SyncResult        { int32 count = 1; string log = 2; }
+message SyncCatalogRequest { string tenant_id = 1; }
+message SyncCatalogResponse { bool success = 1; string message = 2; }

@@ -1,0 +1,39 @@
+@using GestorGanadero.Services.Identity.Contracts
+@if (IsOpen)
+{
+  <div class="drawer" style="position:fixed; right:0; top:0; bottom:0; width:420px; background:#111; border-left:1px solid #333; padding:16px; overflow:auto;">
+    <h3>Invitar Usuario</h3>
+    <div>
+      <label>Email</label>
+      <input @bind="Email" style="width:100%; padding:6px; margin-bottom:8px;" />
+    </div>
+    <div>
+      <label>Nombre</label>
+      <input @bind="Name" style="width:100%; padding:6px; margin-bottom:8px;" />
+    </div>
+    <div>
+      <label>Rol</label>
+      <select @bind="SelectedRole" style="width:100%; padding:6px; border-radius:6px; background:#111; color:#fff; border:1px solid #333;">
+        <option value="Administrador">Administrador</option>
+        <option value="Usuario">Usuario</option>
+      </select>
+    </div>
+    <button class="btn" style="margin-top:12px; background:#C0392B; color:#fff; padding:8px 12px; border-radius:6px; border:none;" @onclick="OnInvite">Invitar</button>
+  </div>
+}
+
+@code {
+  [Parameter] public bool IsOpen { get; set; }
+  [Parameter] public EventCallback OnClose { get; set; }
+  [Parameter] public EventCallback<InviteUserRequest> OnInviteAsync { get; set; }
+  private string Email { get; set; } = string.Empty;
+  private string Name { get; set; } = string.Empty;
+  private string SelectedRole { get; set; } = "Usuario";
+
+  private async Task OnInvite()
+  {
+    var req = new InviteUserRequest { Email = Email, Name = Name, RoleName = SelectedRole };
+    await OnInviteAsync.InvokeAsync(req);
+    if (OnClose.HasDelegate) await OnClose.InvokeAsync();
+  }
+}

@@ -1,0 +1,323 @@
+@page "/"
+@page "/eventos"
+@using GestorGanadero.Client.Services
+@using GestorGanadero.Services.Operations.Contracts
+@using Google.Protobuf.WellKnownTypes
+@inject AppStateContainer State
+@inject OperationsService.OperationsServiceClient GrpcClient
+@implements IDisposable
+
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+    <div class="bg-surface-dark rounded-xl p-6 border border-border-dark flex items-center gap-4">
+        <div class="w-12 h-12 rounded-lg bg-emerald-900/20 flex items-center justify-center text-emerald-500">
+            <span class="material-symbols-outlined text-2xl">inventory_2</span>
+        </div>
+        <div>
+            <p class="text-text-secondary text-[10px] font-bold uppercase tracking-widest">Stock Total</p>
+            <p class="text-white text-3xl font-black">@(_events?.Sum(e => e.HeadCount) ?? 0)</p>
+            <p class="text-text-secondary text-xs">cabezas</p>
+        </div>
+    </div>
+    <div class="bg-surface-dark rounded-xl p-6 border border-border-dark flex items-center gap-4">
+        <div class="w-12 h-12 rounded-lg bg-blue-900/20 flex items-center justify-center text-blue-500">
+            <span class="material-symbols-outlined text-2xl">event_note</span>
+        </div>
+        <div>
+            <p class="text-text-secondary text-[10px] font-bold uppercase tracking-widest">Actividad Reciente</p>
+            <p class="text-white text-3xl font-black">@(_events?.Count(e => e.OccurredOn.ToDateTime() > DateTime.Now.AddMonths(-1)) ?? 0)</p>
+            <p class="text-text-secondary text-xs">eventos este mes</p>
+        </div>
+    </div>
+    <div class="bg-surface-dark rounded-xl p-6 border border-border-dark flex items-center gap-4">
+        <div class="w-12 h-12 rounded-lg bg-emerald-900/20 flex items-center justify-center text-emerald-500">
+            <span class="material-symbols-outlined text-2xl">check_circle</span>
+        </div>
+        <div>
+            <p class="text-text-secondary text-[10px] font-bold uppercase tracking-widest">Estado</p>
+            <p class="text-white text-xl font-bold flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Al día
+            </p>
+            <p class="text-text-secondary text-xs">sistema operativo</p>
+        </div>
+    </div>
+</div>
+
+<div class="flex flex-wrap justify-between items-center mb-6 gap-4">
+    <div class="flex flex-col gap-1">
+        <h1 class="text-white text-3xl font-black leading-tight tracking-tight">Lista de Eventos</h1>
+        <p class="text-text-secondary text-sm">Gestiona y audita los movimientos de tu ganado.</p>
+    </div>
+    <div class="flex items-center gap-3">
+        <div class="flex flex-col gap-1">
+            <label class="text-xs font-bold text-text-secondary uppercase tracking-widest">Mes</label>
+            <input type="month" value="@_monthFilter"
+                   @onchange="OnMonthChanged"
+                   class="bg-surface-dark border border-border-dark rounded-lg px-4 py-2 text-white text-sm outline-none focus:ring-1 focus:ring-primary" />
+        </div>
+    </div>
+</div>
+
+<!-- Template Grid -->
+<div class="bg-surface-dark rounded-2xl shadow-xl shadow-black/20 overflow-hidden border border-border-dark mb-8">
+    <div class="pt-6 px-6 pb-4 border-b border-border-dark">
+        <h3 class="text-white text-lg font-bold flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">add_circle</span>Registrar Nuevo Evento
+        </h3>
+    </div>
+    <div class="p-6">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            @if (_templates == null)
+            {
+                <div class="col-span-full flex justify-center py-8">
+                    <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+                </div>
+            }
+            else if (!_templates.Any())
+            {
+                <div class="col-span-full flex flex-col items-center py-10 gap-2 text-text-secondary">
+                    <span class="material-symbols-outlined text-4xl">category</span>
+                    <p class="text-sm">No hay tipos de evento. Cree uno en Administración → Tipos de Evento.</p>
+                </div>
+            }
+            else
+            {
+                @foreach (var t in _templates)
+                {
+                    bool canOpen = t.IsConfigured;
+                    <div class="relative bg-background-main border rounded-xl p-4 flex flex-col items-center gap-3 transition-all shadow-sm @(canOpen ? "border-border-dark cursor-pointer hover:border-primary/50 hover:bg-[#271c1c] hover:-translate-y-1" : "border-border-dark/40 cursor-not-allowed opacity-60")"
+                         @onclick="() => { if (canOpen) OpenDrawer(t); else ShowUnconfiguredWarning(t.Name); }">
+                        <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:@(t.ColorCode + "18"); color:@(canOpen ? t.ColorCode : "#6b7280");">
+                            <span class="material-symbols-outlined text-2xl">@(!string.IsNullOrEmpty(t.Icon) ? t.Icon : "event_note")</span>
+                        </div>
+                        <span class="@(canOpen ? "text-white" : "text-text-secondary") text-xs font-bold text-center leading-tight">@t.Name</span>
+                        @if (canOpen)
+                        {
+                            <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500" title="Configurado"></span>
+                        }
+                        else
+                        {
+                            <span class="absolute top-1 right-1" title="Sin cuentas contables configuradas">
+                                <span class="material-symbols-outlined text-amber-400 text-base">warning</span>
+                            </span>
+                        }
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_unconfiguredWarning))
+    {
+        <div class="mx-6 mb-4 flex items-center gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm">
+            <span class="material-symbols-outlined text-xl flex-shrink-0">warning</span>
+            <span>@_unconfiguredWarning</span>
+            <button class="ml-auto text-amber-400 hover:text-white transition-colors" @onclick="() => _unconfiguredWarning = string.Empty">
+                <span class="material-symbols-outlined text-lg">close</span>
+            </button>
+        </div>
+    }
+</div>
+
+<!-- Events Table -->
+<div class="bg-surface-dark border border-border-dark rounded-2xl shadow-xl shadow-black/20 overflow-hidden">
+    @if (_events == null)
+    {
+        <div class="flex flex-col items-center justify-center py-16 gap-4">
+            <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+            <span class="text-text-secondary text-sm">Cargando eventos...</span>
+        </div>
+    }
+    else if (!_events.Any())
+    {
+        <div class="flex flex-col items-center justify-center py-16 text-center text-text-secondary">
+            <span class="material-symbols-outlined text-5xl mb-4">inbox</span>
+            <p class="text-white text-lg font-bold">No hay eventos</p>
+        </div>
+    }
+    else
+    {
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm whitespace-nowrap">
+                <thead class="bg-background-main border-b border-border-dark text-text-secondary uppercase text-[10px] tracking-widest">
+                    <tr>
+                        <th class="px-6 py-4 font-bold">Fecha</th>
+                        <th class="px-6 py-4 font-bold">Tipo</th>
+                        <th class="px-6 py-4 font-bold">Campo</th>
+                        <th class="px-6 py-4 font-bold text-right">Cabezas</th>
+                        <th class="px-6 py-4 font-bold text-right">Peso Prom.</th>
+                        <th class="px-6 py-4 font-bold text-right">Total KG</th>
+                        <th class="px-6 py-4 font-bold text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border-dark">
+                    @foreach (var ev in _events)
+                    {
+                        <tr class="hover:bg-[#271c1c] transition-colors">
+                            <td class="px-6 py-4 text-white font-medium">@ev.OccurredOn.ToDateTime().ToLocalTime().ToString("dd MMM, HH:mm")</td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 rounded-full text-xs font-bold" style="background:@(GetColor(ev.TypeName) + "18"); color:@GetColor(ev.TypeName);">
+                                    @ev.TypeName
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-text-body">@ev.FieldName</td>
+                            <td class="px-6 py-4 text-right text-white font-mono font-bold">@ev.HeadCount</td>
+                            <td class="px-6 py-4 text-right text-text-secondary font-mono">@ev.WeightPerHead.ToString("N1") kg</td>
+                            <td class="px-6 py-4 text-right text-white font-mono font-bold">@ev.TotalWeight.ToString("N0") kg</td>
+                            <td class="px-6 py-4 text-center">
+                                <button class="p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Eliminar" @onclick="() => DeleteEvent(ev)">
+                                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<!-- Pagination -->
+@if (_totalCount > _pageSize)
+{
+    int totalPages = (int)Math.Ceiling((double)_totalCount / _pageSize);
+    <div class="flex items-center justify-between mt-4 px-1">
+        <span class="text-text-secondary text-xs">
+            Mostrando <span class="text-white font-mono">@(_pageIndex * _pageSize + 1)–@Math.Min((_pageIndex + 1) * _pageSize, _totalCount)</span>
+            de <span class="text-white font-mono">@_totalCount</span> eventos
+        </span>
+        <div class="flex items-center gap-2">
+            <button class="px-3 py-1.5 rounded-lg bg-surface-dark border border-border-dark text-text-secondary hover:text-white disabled:opacity-40 transition-colors text-sm"
+                    disabled="@(_pageIndex == 0)"
+                    @onclick="PrevPage">
+                <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+            </button>
+            <span class="text-white text-sm font-mono">@(_pageIndex + 1) / @totalPages</span>
+            <button class="px-3 py-1.5 rounded-lg bg-surface-dark border border-border-dark text-text-secondary hover:text-white disabled:opacity-40 transition-colors text-sm"
+                    disabled="@(_pageIndex + 1 >= totalPages)"
+                    @onclick="NextPage">
+                <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+            </button>
+        </div>
+    </div>
+}
+
+@if (_selectedTemplate != null)
+{
+    <GestorGanadero.Client.Components.Eventos.EventoDrawer 
+        SelectedTemplate="@_selectedTemplate" 
+        OnClose="() => _selectedTemplate = null" 
+        OnSaved="OnEventSaved" />
+}
+
+@code {
+    private List<EventTemplate>? _templates;
+    private List<EventDetail>? _events;
+    private EventTemplate? _selectedTemplate;
+    private string _unconfiguredWarning = string.Empty;
+    private Action? _stateChangedAction;
+    private string _monthFilter = DateTime.Today.ToString("yyyy-MM");
+    private int _pageIndex;
+    private const int _pageSize = 20;
+    private int _totalCount;
+
+    private string GetColor(string? typeName) => (typeName ?? string.Empty).ToLower() switch
+    {
+        var t when t.Contains("nac") => "#22c55e",
+        var t when t.Contains("comp") => "#3b82f6",
+        var t when t.Contains("vent") => "#8b5cf6",
+        var t when t.Contains("mort") => "#ef4444",
+        var t when t.Contains("san") => "#f97316",
+        var t when t.Contains("alim") => "#eab308",
+        var t when t.Contains("pese") => "#06b6d4",
+        var t when t.Contains("mov") => "#14b8a6",
+        _ => "#ffffff"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _stateChangedAction = () => InvokeAsync(StateHasChanged);
+        State.OnChange += _stateChangedAction;
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
+        try
+        {
+            var tRes = await GrpcClient.GetEventTemplatesAsync(new GetTemplatesRequest { TenantId = State.ActiveTenantId });
+            _templates = tRes.Templates.ToList();
+
+            var startDt = DateTime.Parse(_monthFilter + "-01");
+            var endDt   = startDt.AddMonths(1).AddSeconds(-1);
+
+            var eRes = await GrpcClient.GetEventsAsync(new GetEventsRequest
+            {
+                TenantId  = State.ActiveTenantId,
+                StartDate = Timestamp.FromDateTime(DateTime.SpecifyKind(startDt, DateTimeKind.Utc)),
+                EndDate   = Timestamp.FromDateTime(DateTime.SpecifyKind(endDt,   DateTimeKind.Utc)),
+                PageIndex = _pageIndex,
+                PageSize  = _pageSize
+            });
+            _events = eRes.Events.ToList();
+            _totalCount = eRes.TotalCount;
+        }
+        catch (Exception ex) { Console.WriteLine(ex.Message); }
+    }
+
+    private async Task OnMonthChanged(ChangeEventArgs e)
+    {
+        _monthFilter = e.Value?.ToString() ?? _monthFilter;
+        _pageIndex = 0;
+        await LoadData();
+        StateHasChanged();
+    }
+
+    private async Task PrevPage()
+    {
+        if (_pageIndex > 0) { _pageIndex--; await LoadData(); StateHasChanged(); }
+    }
+
+    private async Task NextPage()
+    {
+        var totalPages = (int)Math.Ceiling((double)_totalCount / _pageSize);
+        if (_pageIndex + 1 < totalPages)
+        {
+            _pageIndex++;
+            await LoadData();
+            StateHasChanged();
+        }
+    }
+
+    private void OpenDrawer(EventTemplate? t)
+    {
+        _unconfiguredWarning = string.Empty;
+        _selectedTemplate = t;
+    }
+
+    private void ShowUnconfiguredWarning(string typeName)
+    {
+        _unconfiguredWarning = $"El tipo de evento \"{typeName}\" no tiene cuentas contables configuradas. Configúrelo en Administración → Tipos de Evento antes de registrar movimientos.";
+    }
+
+    private async Task OnEventSaved()
+    {
+        _selectedTemplate = null;
+        await LoadData();
+    }
+
+    private async Task DeleteEvent(EventDetail ev)
+    {
+        try
+        {
+            var res = await GrpcClient.DeleteEventAsync(new DeleteEventRequest { Id = ev.Id, TenantId = State.ActiveTenantId });
+            if (res.Success) await LoadData();
+        }
+        catch (Exception ex) { Console.WriteLine(ex.Message); }
+    }
+
+    public void Dispose()
+    {
+        if (_stateChangedAction != null) State.OnChange -= _stateChangedAction;
+    }
+}

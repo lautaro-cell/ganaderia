@@ -1,0 +1,468 @@
+@using GestorGanadero.Client.Services
+@using GestorGanadero.Services.Operations.Contracts
+@using GestorGanadero.Services.Common.Contracts
+@using GestorGanadero.Services.Catalog.Contracts
+@using Google.Protobuf.WellKnownTypes
+@using Microsoft.AspNetCore.Components.Forms
+@inject AppStateContainer State
+@inject OperationsService.OperationsServiceClient GrpcClient
+@inject GestorGanadero.Client.Catalog.CatalogClientService CatalogSvc
+
+@if (SelectedTemplate != null)
+{
+    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-end" @onclick="HandleClose">
+        <div class="w-full max-w-[520px] h-full bg-surface-dark border-l border-border-dark flex flex-col shadow-2xl animate-[slideInRight_0.3s_ease-out]" @onclick:stopPropagation>
+
+            <!-- Header -->
+            <div class="p-6 border-b border-border-dark flex items-center justify-between flex-shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background:@(SelectedTemplate.ColorCode + "20"); color:@SelectedTemplate.ColorCode;">
+                        <span class="material-symbols-outlined text-xl">@(!string.IsNullOrEmpty(SelectedTemplate.Icon) ? SelectedTemplate.Icon : "event_note")</span>
+                    </div>
+                    <div>
+                        <h2 class="text-white text-lg font-bold leading-tight">@SelectedTemplate.Name</h2>
+                        <p class="text-text-secondary text-xs mt-0.5">@SelectedTemplate.Code</p>
+                    </div>
+                </div>
+                <button class="text-text-secondary hover:text-white transition-colors" @onclick="HandleClose">
+                    <span class="material-symbols-outlined text-2xl">close</span>
+                </button>
+            </div>
+
+            <!-- No configurado -->
+            @if (!SelectedTemplate.IsConfigured)
+            {
+                <div class="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
+                    <div class="w-16 h-16 rounded-2xl bg-amber-500/10 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-3xl text-amber-400">warning</span>
+                    </div>
+                    <div>
+                        <h3 class="text-white font-bold text-lg">Sin cuentas contables</h3>
+                        <p class="text-text-secondary text-sm mt-2 max-w-xs leading-relaxed">
+                            Este tipo de evento no tiene cuentas de débito y crédito configuradas.<br />
+                            Configúrelo en <span class="text-white font-medium">Administración → Tipos de Evento</span>.
+                        </p>
+                    </div>
+                    <button class="px-5 py-2.5 rounded-xl border border-border-dark text-white text-sm font-bold hover:bg-surface-darker transition-colors mt-2" @onclick="HandleClose">
+                        Cerrar
+                    </button>
+                </div>
+            }
+            else
+            {
+                <!-- Cuerpo del formulario -->
+                <div class="flex-1 overflow-y-auto">
+                    <EditForm Model="@_form" OnValidSubmit="HandleSave" class="flex flex-col h-full">
+                        <DataAnnotationsValidator />
+                        <div class="flex flex-col gap-5 p-6">
+
+                            <!-- Fecha -->
+                            <div class="flex flex-col gap-2">
+                                <label class="text-white text-sm font-medium">Fecha del Evento <span class="text-primary">*</span></label>
+                                <InputDate @bind-Value="_form.EventDate"
+                                           class="form-input w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 text-white focus:ring-primary focus:border-primary h-12 outline-none" />
+                                <ValidationMessage For="@(() => _form.EventDate)" class="text-primary text-xs" />
+                            </div>
+
+                            <!-- Cabezas y Peso -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="flex flex-col gap-2">
+                                    <label class="text-white text-sm font-medium">Cabezas <span class="text-primary">*</span></label>
+                                    <InputNumber @bind-Value="HeadCount"
+                                                 class="form-input w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 text-white focus:ring-primary focus:border-primary h-12 outline-none"
+                                                 placeholder="0" />
+                                    <ValidationMessage For="@(() => _form.HeadCount)" class="text-primary text-xs" />
+                                </div>
+                                <div class="flex flex-col gap-2">
+                                    <label class="text-white text-sm font-medium">Kg / Cabeza</label>
+                                    <InputNumber @bind-Value="WeightPerHead"
+                                                 class="form-input w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 text-white focus:ring-primary focus:border-primary h-12 outline-none"
+                                                 placeholder="0.0" />
+                                </div>
+                            </div>
+
+                            <!-- Total KG calculado -->
+                            <div class="flex items-center justify-between px-4 py-3 rounded-xl bg-background-main border border-border-dark">
+                                <span class="text-text-secondary text-sm">Total KG estimado</span>
+                                <span class="text-white font-mono font-bold text-lg">@(_form.TotalKg.ToString("N1")) kg</span>
+                            </div>
+
+                            <!-- Campo (siempre) -->
+                            <div class="flex flex-col gap-2">
+                                <label class="text-white text-sm font-medium">Campo <span class="text-primary">*</span></label>
+                                <div class="relative">
+                                    <InputSelect @bind-Value="_form.FieldId"
+                                                 class="form-select w-full bg-[#271c1c] border-[#543b3b] rounded-xl text-white focus:ring-primary focus:border-primary h-12 pr-10 outline-none">
+                                        <option value="">Seleccione un campo...</option>
+                                        @foreach (var f in _fields)
+                                        {
+                                            <option value="@f.Id">@f.Name</option>
+                                        }
+                                    </InputSelect>
+                                    <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">expand_more</span>
+                                </div>
+                                <ValidationMessage For="@(() => _form.FieldId)" class="text-primary text-xs" />
+                            </div>
+
+                            <!-- Bloque Origen/Destino (requiere_origin_destination) -->
+                            @if (SelectedTemplate.RequiresOriginDestination)
+                            {
+                                <div class="flex flex-col gap-4 p-4 rounded-xl bg-background-main border border-border-dark">
+                                    <p class="text-text-secondary text-xs font-bold uppercase tracking-widest">Origen → Destino</p>
+
+                                    <!-- Fila Origen -->
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div class="flex flex-col gap-2">
+                                            <label class="text-white text-sm font-medium">Actividad origen <span class="text-primary">*</span></label>
+                                            <div class="relative">
+                                                <InputSelect @bind-Value="OriginActivityId"
+                                                             class="form-select w-full bg-[#271c1c] border-[#543b3b] rounded-xl text-white focus:ring-primary focus:border-primary h-12 pr-10 outline-none">
+                                                    <option value="">Seleccione...</option>
+                                                    @foreach (var a in _activities)
+                                                    {
+                                                        <option value="@a.Id">@a.Name</option>
+                                                    }
+                                                </InputSelect>
+                                                <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">expand_more</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex flex-col gap-2">
+                                            <label class="text-white text-sm font-medium">Categoría origen <span class="text-primary">*</span></label>
+                                            <div class="relative">
+                                                <InputSelect @bind-Value="_form.CategoryOriginId"
+                                                             class="form-select w-full bg-[#271c1c] border-[#543b3b] rounded-xl text-white focus:ring-primary focus:border-primary h-12 pr-10 outline-none">
+                                                    <option value="">Seleccione...</option>
+                                                    @foreach (var c in CategoriesForActivity(_form.ActivityOriginId))
+                                                    {
+                                                        <option value="@c.Id">@c.Name</option>
+                                                    }
+                                                </InputSelect>
+                                                <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">expand_more</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center gap-2 text-text-secondary text-xs">
+                                        <span class="material-symbols-outlined text-base">arrow_downward</span>
+                                        <span>Movimiento hacia</span>
+                                    </div>
+
+                                    <!-- Fila Destino -->
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div class="flex flex-col gap-2">
+                                            <label class="text-white text-sm font-medium">Actividad destino <span class="text-primary">*</span></label>
+                                            <div class="relative">
+                                                <InputSelect @bind-Value="DestinationActivityId"
+                                                             class="form-select w-full bg-[#271c1c] border-[#543b3b] rounded-xl text-white focus:ring-primary focus:border-primary h-12 pr-10 outline-none">
+                                                    <option value="">Seleccione...</option>
+                                                    @foreach (var a in _activities)
+                                                    {
+                                                        <option value="@a.Id">@a.Name</option>
+                                                    }
+                                                </InputSelect>
+                                                <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">expand_more</span>
+                                            </div>
+                                        </div>
+                                        <div class="flex flex-col gap-2">
+                                            <label class="text-white text-sm font-medium">Categoría destino <span class="text-primary">*</span></label>
+                                            <div class="relative">
+                                                <InputSelect @bind-Value="_form.CategoryDestinationId"
+                                                             class="form-select w-full bg-[#271c1c] border-[#543b3b] rounded-xl text-white focus:ring-primary focus:border-primary h-12 pr-10 outline-none">
+                                                    <option value="">Seleccione...</option>
+                                                    @foreach (var c in CategoriesForActivity(_form.ActivityDestinationId))
+                                                    {
+                                                        <option value="@c.Id">@c.Name</option>
+                                                    }
+                                                </InputSelect>
+                                                <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">expand_more</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Campo destino (opcional según RequiresDestinationField) -->
+                                @if (SelectedTemplate.RequiresDestinationField)
+                                {
+                                    <div class="flex flex-col gap-2">
+                                        <label class="text-white text-sm font-medium">Campo destino <span class="text-primary">*</span></label>
+                                        <div class="relative">
+                                            <InputSelect @bind-Value="_form.FieldDestinationId"
+                                                         class="form-select w-full bg-[#271c1c] border-[#543b3b] rounded-xl text-white focus:ring-primary focus:border-primary h-12 pr-10 outline-none">
+                                                <option value="">Seleccione...</option>
+                                                @foreach (var f in _fields.Where(f => f.Id != _form.FieldId))
+                                                {
+                                                    <option value="@f.Id">@f.Name</option>
+                                                }
+                                            </InputSelect>
+                                            <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">expand_more</span>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <!-- Categoría simple (sin origen/destino) -->
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="flex flex-col gap-2">
+                                        <label class="text-white text-sm font-medium">Actividad</label>
+                                        <div class="relative">
+                                            <InputSelect @bind-Value="SimpleActivityId"
+                                                         class="form-select w-full bg-[#271c1c] border-[#543b3b] rounded-xl text-white focus:ring-primary focus:border-primary h-12 pr-10 outline-none">
+                                                <option value="">Seleccione...</option>
+                                                @foreach (var a in _activities)
+                                                {
+                                                    <option value="@a.Id">@a.Name</option>
+                                                }
+                                            </InputSelect>
+                                            <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">expand_more</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col gap-2">
+                                        <label class="text-white text-sm font-medium">Categoría</label>
+                                        <div class="relative">
+                                            <InputSelect @bind-Value="_form.CategoryOriginId"
+                                                         class="form-select w-full bg-[#271c1c] border-[#543b3b] rounded-xl text-white focus:ring-primary focus:border-primary h-12 pr-10 outline-none">
+                                                <option value="">Seleccione...</option>
+                                                @foreach (var c in CategoriesForActivity(_form.ActivityOriginId))
+                                                {
+                                                    <option value="@c.Id">@c.Name</option>
+                                                }
+                                            </InputSelect>
+                                            <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none text-xl">expand_more</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- Observaciones -->
+                            <div class="flex flex-col gap-2">
+                                <label class="text-white text-sm font-medium">Observaciones</label>
+                                <InputTextArea @bind-Value="_form.Observations"
+                                               class="form-input w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 py-3 text-white focus:ring-primary focus:border-primary outline-none resize-none"
+                                               rows="2" placeholder="Detalles adicionales..." />
+                            </div>
+
+                            <!-- Preview del asiento contable -->
+                            <div class="flex flex-col gap-3 p-4 rounded-xl bg-background-main border border-border-dark">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-text-secondary text-base">account_balance</span>
+                                    <p class="text-text-secondary text-xs font-bold uppercase tracking-widest">Asiento estimado</p>
+                                </div>
+
+                                @{ var previewAmount = _form.TotalKg > 0 ? _form.TotalKg : _form.HeadCount; }
+
+                                <div class="flex flex-col gap-1.5">
+                                    <!-- Línea DEBE -->
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-3">
+                                            <span class="w-14 text-center text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400">DEBE</span>
+                                            <span class="text-white text-sm font-mono">@SelectedTemplate.DebitAccountCode</span>
+                                        </div>
+                                        <span class="text-white font-mono text-sm font-bold">@previewAmount.ToString("N2")</span>
+                                    </div>
+                                    <!-- Línea HABER -->
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-3">
+                                            <span class="w-14 text-center text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400">HABER</span>
+                                            <span class="text-white text-sm font-mono">@SelectedTemplate.CreditAccountCode</span>
+                                        </div>
+                                        <span class="text-white font-mono text-sm font-bold">@previewAmount.ToString("N2")</span>
+                                    </div>
+                                </div>
+
+                                @if (previewAmount == 0)
+                                {
+                                    <p class="text-text-secondary text-xs italic">Ingrese cabezas o peso para ver el importe estimado.</p>
+                                }
+                            </div>
+
+                            <!-- Error -->
+                            @if (!string.IsNullOrEmpty(_error))
+                            {
+                                <div class="flex items-center gap-2 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400">
+                                    <span class="material-symbols-outlined text-xl flex-shrink-0">error</span>
+                                    <span class="text-sm">@_error</span>
+                                </div>
+                            }
+
+                        </div>
+
+                        <!-- Footer con botones -->
+                        <div class="p-6 border-t border-border-dark flex justify-end gap-3 flex-shrink-0">
+                            <button type="button"
+                                    class="px-6 py-2.5 rounded-xl border border-border-dark text-white font-bold hover:bg-surface-darker transition-colors"
+                                    @onclick="HandleClose">
+                                Cancelar
+                            </button>
+                            <button type="submit"
+                                    class="flex min-w-[140px] items-center justify-center rounded-xl px-6 py-2.5 bg-primary hover:bg-red-700 transition-colors text-white font-bold shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled="@_saving">
+                                @if (_saving)
+                                {
+                                    <div class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+                                    <span>Guardando...</span>
+                                }
+                                else
+                                {
+                                    <span>Guardar Evento</span>
+                                }
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public EventTemplate? SelectedTemplate { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnSaved { get; set; }
+
+    private EventoFormModel _form = new();
+    private List<FieldMessage> _fields = new();
+    private List<AnimalCategoryMessage> _categories = new();
+    private List<ActivityMessage> _activities = new();
+    private bool _saving;
+    private string _error = string.Empty;
+
+    // Propiedades intermedias para recalcular totales y filtros al cambiar valores
+
+    private int HeadCount
+    {
+        get => _form.HeadCount;
+        set { _form.HeadCount = value; _form.RecalculateTotal(); }
+    }
+
+    private double WeightPerHead
+    {
+        get => _form.WeightPerHead;
+        set { _form.WeightPerHead = value; _form.RecalculateTotal(); }
+    }
+
+    // Actividad simple (sin origen/destino): mapea a ActivityOriginId del form
+    private string SimpleActivityId
+    {
+        get => _form.ActivityOriginId;
+        set { _form.ActivityOriginId = value; _form.CategoryOriginId = string.Empty; }
+    }
+
+    // Actividad origen (con origen/destino)
+    private string OriginActivityId
+    {
+        get => _form.ActivityOriginId;
+        set { _form.ActivityOriginId = value; _form.CategoryOriginId = string.Empty; }
+    }
+
+    // Actividad destino
+    private string DestinationActivityId
+    {
+        get => _form.ActivityDestinationId;
+        set { _form.ActivityDestinationId = value; _form.CategoryDestinationId = string.Empty; }
+    }
+
+    private IEnumerable<AnimalCategoryMessage> CategoriesForActivity(string activityId)
+    {
+        if (string.IsNullOrEmpty(activityId)) return _categories;
+        return _categories.Where(c => c.ActivityId == activityId);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (SelectedTemplate != null)
+        {
+            _error = string.Empty;
+            _form = new EventoFormModel { EventDate = DateTime.Today };
+            await LoadCatalogs();
+        }
+    }
+
+    private async Task LoadCatalogs()
+    {
+        if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
+        try
+        {
+            var req = new GetCatalogRequest { TenantId = State.ActiveTenantId };
+            if (!_fields.Any())
+            {
+                var f = await CatalogSvc.GetFieldsAsync(req);
+                _fields = f.Data?.Fields.ToList() ?? new();
+            }
+            if (!_categories.Any())
+            {
+                var c = await CatalogSvc.GetAnimalCategoriesAsync(req);
+                _categories = c.Data?.Categories.ToList() ?? new();
+            }
+            if (!_activities.Any())
+            {
+                var a = await CatalogSvc.GetActivitiesAsync(req);
+                _activities = a.Data?.Activities.ToList() ?? new();
+            }
+        }
+        catch { }
+    }
+
+    private async Task HandleSave()
+    {
+        _saving = true;
+        _error = string.Empty;
+        try
+        {
+            var grpcRequest = new RegisterEventRequest
+            {
+                TemplateId   = SelectedTemplate!.Id,
+                OccurredOn   = Timestamp.FromDateTime(DateTime.SpecifyKind(_form.EventDate, DateTimeKind.Utc)),
+                HeadCount    = _form.HeadCount,
+                WeightPerHead = _form.WeightPerHead.ToString("F2"),
+                PrimaryValue  = _form.TotalKg,
+                FieldId       = _form.FieldId ?? string.Empty,
+                Observations  = _form.Observations ?? string.Empty,
+                ActivityId    = _form.ActivityOriginId ?? string.Empty,
+                CategoryId    = _form.CategoryOriginId ?? string.Empty,
+                ActivityDestinationId  = _form.ActivityDestinationId ?? string.Empty,
+                CategoryDestinationId  = _form.CategoryDestinationId ?? string.Empty,
+                FieldDestinationId     = _form.FieldDestinationId ?? string.Empty,
+            };
+
+            var res = await GrpcClient.RegisterEventAsync(grpcRequest);
+            if (res.Success)
+                await OnSaved.InvokeAsync();
+            else
+                _error = res.Message;
+        }
+        catch (Exception ex)
+        {
+            _error = $"Error al guardar: {ex.Message}";
+        }
+        finally { _saving = false; }
+    }
+
+    private async Task HandleClose() => await OnClose.InvokeAsync();
+
+    // Modelo de formulario interno
+    private class EventoFormModel
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "La fecha es obligatoria.")]
+        public DateTime EventDate { get; set; } = DateTime.Today;
+
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "Ingrese al menos 1 cabeza.")]
+        public int HeadCount { get; set; }
+
+        public double WeightPerHead { get; set; }
+
+        public double TotalKg { get; set; }
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Seleccione un campo.")]
+        public string? FieldId { get; set; }
+
+        public string? FieldDestinationId { get; set; }
+        public string ActivityOriginId { get; set; } = string.Empty;
+        public string CategoryOriginId { get; set; } = string.Empty;
+        public string ActivityDestinationId { get; set; } = string.Empty;
+        public string CategoryDestinationId { get; set; } = string.Empty;
+        public string? Observations { get; set; }
+
+        public void RecalculateTotal() => TotalKg = HeadCount * WeightPerHead;
+    }
+}
