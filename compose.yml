@@ -1,13 +1,10 @@
-
 services:
   gestor_ganadero:
     image: postgres:16
     container_name: gestor_ganadero
-    environment:
-      POSTGRES_PASSWORD: admin
-      POSTGRES_USER: gestor_admin
-      POSTGRES_DB: gestor_ganadero
-    ports:  
+    env_file:
+      - .env
+    ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
