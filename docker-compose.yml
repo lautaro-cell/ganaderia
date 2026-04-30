@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:16
+    container_name: gestorganadero-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-gestor_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin}
+      POSTGRES_DB: ${POSTGRES_DB:-gestor_ganadero}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    image: gestorganadero-app
+    container_name: gestorganadero-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=${POSTGRES_DB:-gestor_ganadero};Username=${POSTGRES_USER:-gestor_admin};Password=${POSTGRES_PASSWORD:-admin}
+    env_file:
+      - .env
+    ports:
+      - "5073:5073"
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
