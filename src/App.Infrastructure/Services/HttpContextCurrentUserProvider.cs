@@ -27,4 +27,16 @@ public class HttpContextCurrentUserProvider : ICurrentUserProvider
             return Guid.TryParse(value, out var userId) ? userId : null;
         }
     }
+
+    public bool IsSuperAdmin
+    {
+        get
+        {
+            var context = _httpContextAccessor.HttpContext;
+            if (context?.User == null) return false;
+
+            var roleClaim = context.User.FindFirst("role");
+            return roleClaim != null && roleClaim.Value.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+        }
+    }
 }

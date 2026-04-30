@@ -1,6 +1,8 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using App.Application.Interfaces;
+using App.Domain.Enums;
 using App.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,15 +18,18 @@ public class AuthController : ControllerBase
 {
     private readonly GestorGanaderoDbContext _context;
     private readonly IConfiguration _configuration;
+    private readonly IUserService _userService;
     private readonly ILogger<AuthController> _logger;
 
     public AuthController(
         GestorGanaderoDbContext context,
         IConfiguration configuration,
+        IUserService userService,
         ILogger<AuthController> logger)
     {
         _context = context;
         _configuration = configuration;
+        _userService = userService;
         _logger = logger;
     }
 
@@ -71,6 +76,7 @@ public class AuthController : ControllerBase
             .FirstOrDefaultAsync(t => t.Id == user.TenantId);
 
         var token = GenerateJwtToken(user.Id, user.Email, user.Role.ToString(), user.TenantId);
+        var isSuperAdmin = user.Role == UserRole.SuperAdmin;
 
         return Ok(new LoginResponse
         {
@@ -79,8 +85,30 @@ public class AuthController : ControllerBase
             Email = user.Email,
             Role = user.Role.ToString(),
             TenantId = user.TenantId.ToString(),
-            TenantName = tenant?.Name ?? ""
+            TenantName = tenant?.Name ?? "",
+            IsSuperAdmin = isSuperAdmin
         });
+    }
+
+    [HttpPost("set-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> SetPassword([FromBody] SetPasswordRequest request)
+    {
+        if (string.IsNullOrEmpty(request.Token) || string.IsNullOrEmpty(request.NewPassword))
+            return BadRequest(new { message = "Token y nueva contraseña son requeridos." });
+
+        if (request.NewPassword.Length < 6)
+            return BadRequest(new { message = "La contraseña debe tener al menos 6 caracteres." });
+
+        try
+        {
+            await _userService.SetPasswordAsync(request.Token, request.NewPassword);
+            return Ok(new { message = "Contraseña configurada correctamente. Ya puedes iniciar sesión." });
+        }
+        catch (KeyNotFoundException)
+        {
+            return BadRequest(new { message = "Token inválido o expirado. Solicita una nueva invitación." });
+        }
     }
 
     private string GenerateJwtToken(Guid userId, string email, string role, Guid tenantId)
@@ -95,6 +123,8 @@ public class AuthController : ControllerBase
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+        var isSuperAdmin = string.Equals(role, UserRole.SuperAdmin.ToString(), StringComparison.OrdinalIgnoreCase);
+
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
@@ -103,6 +133,7 @@ public class AuthController : ControllerBase
             new Claim("role", role),
             new Claim(ClaimTypes.Role, role),
             new Claim("tenant_id", tenantId.ToString()),
+            new Claim("is_super_admin", isSuperAdmin.ToString().ToLowerInvariant()),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
@@ -131,5 +162,12 @@ public class LoginResponse
     public string Role { get; set; } = string.Empty;
     public string TenantId { get; set; } = string.Empty;
     public string TenantName { get; set; } = string.Empty;
+    public bool IsSuperAdmin { get; set; }
+}
+
+public class SetPasswordRequest
+{
+    public string Token { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
 }
 

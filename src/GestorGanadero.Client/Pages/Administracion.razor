@@ -30,25 +30,26 @@
         case Section.Cuentas: <CuentasAdmin /> break;
         case Section.Planes: <PlanesAdmin /> break;
         case Section.Empresas: <EmpresasAdmin /> break;
+        case Section.Auditores: <AuditoresAdmin /> break;
         case Section.Usuarios: <UsersAdmin /> break;
         default: <div class="text-text-secondary text-center py-12">Sección en construcción</div> break;
     }
 </div>
 
 @code {
-    private enum Section { Campos, Actividades, Categorias, TiposEvento, Cuentas, Planes, Empresas, Usuarios }
+    private enum Section { Campos, Actividades, Categorias, TiposEvento, Cuentas, Planes, Empresas, Auditores, Usuarios }
     private Section _section = Section.Campos;
 
     private string GetLabel(Section s) => s switch {
         Section.Campos => "Campos", Section.Actividades => "Actividades", Section.Categorias => "Categorías",
         Section.TiposEvento => "Tipos Evento", Section.Cuentas => "Cuentas",
-        Section.Planes => "Planes", Section.Empresas => "Empresas", Section.Usuarios => "Usuarios", _ => ""
+        Section.Planes => "Planes", Section.Empresas => "Empresas", Section.Auditores => "Auditores", Section.Usuarios => "Usuarios", _ => ""
     };
     
     private string GetIcon(Section s) => s switch {
         Section.Campos => "terrain", Section.Actividades => "work", Section.Categorias => "pets",
         Section.TiposEvento => "event", Section.Cuentas => "account_balance",
-        Section.Planes => "grid_view", Section.Empresas => "business", Section.Usuarios => "group", _ => ""
+        Section.Planes => "grid_view", Section.Empresas => "business", Section.Auditores => "verified_user", Section.Usuarios => "group", _ => ""
     };
 
     protected override void OnInitialized() => State.OnChange += StateHasChanged;

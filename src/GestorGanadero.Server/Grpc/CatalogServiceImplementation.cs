@@ -278,27 +278,30 @@ public class CatalogServiceImplementation : CatalogService.CatalogServiceBase
         return new ActionResponse { Success = true };
     }
 
-    public override async Task<ErpAccountList> GetErpAccounts(GetCatalogRequest request, ServerCallContext context)
+    public override async Task<PlanCuentaList> GetPlanes(GetCatalogRequest request, ServerCallContext context)
     {
-        if (!Guid.TryParse(request.TenantId, out var tenantId))
-            throw new RpcException(new Status(StatusCode.InvalidArgument, "TenantId inválido."));
+        var planes = await _catalogService.GetPlanesAsync(Guid.Parse(request.TenantId));
+        var response = new PlanCuentaList();
+        response.Planes.AddRange(planes.Select(p => new PlanCuentaMessage { Id = p.Id.ToString(), Code = p.Code, Name = p.Name, TenantId = p.TenantId.ToString() }));
+        return response;
+    }
 
-        try
-        {
-            var accounts = await _erpAccountService.GetAccountsForSelectorAsync(tenantId);
-            var response = new ErpAccountList();
-            response.Accounts.AddRange(accounts.Select(a => new ErpAccountMessage
-            {
-                Code = a.Code,
-                Name = a.Name,
-                Type = a.Type
-            }));
-            return response;
-        }
-        catch (InvalidOperationException ex)
-        {
-            throw new RpcException(new Status(StatusCode.FailedPrecondition, ex.Message));
-        }
+    public override async Task<ActionResponse> CreatePlan(PlanCuentaMessage request, ServerCallContext context)
+    {
+        var id = await _catalogService.CreatePlanAsync(new PlanCuentaDto(Guid.Empty, request.Code, request.Name, Guid.Parse(request.TenantId)));
+        return new ActionResponse { Success = true, ObjectId = id.ToString() };
+    }
+
+    public override async Task<ActionResponse> UpdatePlan(PlanCuentaMessage request, ServerCallContext context)
+    {
+        await _catalogService.UpdatePlanAsync(new PlanCuentaDto(Guid.Parse(request.Id), request.Code, request.Name, Guid.Parse(request.TenantId)));
+        return new ActionResponse { Success = true, Message = "Plan actualizado." };
+    }
+
+    public override async Task<ActionResponse> DeletePlan(DeleteEntityRequest request, ServerCallContext context)
+    {
+        await _catalogService.DeletePlanAsync(Guid.Parse(request.Id));
+        return new ActionResponse { Success = true, Message = "Plan eliminado." };
     }
 
     public override async Task<ErpConceptList> GetErpConcepts(GetCatalogRequest request, ServerCallContext context)
@@ -319,4 +322,3 @@ public class CatalogServiceImplementation : CatalogService.CatalogServiceBase
         return response;
     }
 }
-

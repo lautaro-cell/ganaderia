@@ -357,6 +357,47 @@ public class CatalogService : ICatalogService
         }
     }
 
+    // --- Planes ---
+    public async Task<IEnumerable<PlanCuentaDto>> GetPlanesAsync(Guid tenantId)
+    {
+        return await _context.PlanesCuenta
+            .Where(p => p.TenantId == tenantId)
+            .Select(p => new PlanCuentaDto(p.Id, p.Code, p.Name, p.TenantId))
+            .ToListAsync();
+    }
+
+    public async Task<Guid> CreatePlanAsync(PlanCuentaDto dto)
+    {
+        var plan = new PlanCuenta
+        {
+            Code = dto.Code,
+            Name = dto.Name,
+            TenantId = _tenantProvider.TenantId
+        };
+        _context.PlanesCuenta.Add(plan);
+        await _context.SaveChangesAsync();
+        return plan.Id;
+    }
+
+    public async Task UpdatePlanAsync(PlanCuentaDto dto)
+    {
+        var plan = await _context.PlanesCuenta.FindAsync(dto.Id);
+        if (plan == null) throw new KeyNotFoundException("Plan no encontrado");
+        plan.Code = dto.Code;
+        plan.Name = dto.Name;
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task DeletePlanAsync(Guid id)
+    {
+        var plan = await _context.PlanesCuenta.FindAsync(id);
+        if (plan != null)
+        {
+            _context.PlanesCuenta.Remove(plan);
+            await _context.SaveChangesAsync();
+        }
+    }
+
     // --- Erp Concepts ---
     public async Task<IEnumerable<ErpConceptDto>> GetErpConceptsAsync(Guid tenantId)
     {

@@ -1,4 +1,4 @@
-﻿@page "/"
+@page "/"
 @page "/eventos"
 @using GestorGanadero.Client.Services
 @using GestorGanadero.Services.Operations.Contracts
@@ -54,69 +54,14 @@
                    @onchange="OnMonthChanged"
                    class="bg-surface-dark border border-border-dark rounded-lg px-4 py-2 text-white text-sm outline-none focus:ring-1 focus:ring-primary" />
         </div>
+        <button class="bg-primary hover:bg-red-700 text-white rounded-lg px-6 py-2.5 mt-5 text-sm font-bold flex items-center gap-2 shadow-lg shadow-primary/20 transition-all"
+                @onclick="() => _isModalOpen = true">
+            <span class="material-symbols-outlined text-[18px]">add_circle</span>
+            Registrar evento
+        </button>
     </div>
 </div>
 
-<!-- Template Grid -->
-<div class="bg-surface-dark rounded-2xl shadow-xl shadow-black/20 overflow-hidden border border-border-dark mb-8">
-    <div class="pt-6 px-6 pb-4 border-b border-border-dark">
-        <h3 class="text-white text-lg font-bold flex items-center gap-2">
-            <span class="material-symbols-outlined text-primary">add_circle</span>Registrar Nuevo Evento
-        </h3>
-    </div>
-    <div class="p-6">
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            @if (_templates == null)
-            {
-                <div class="col-span-full flex justify-center py-8">
-                    <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-                </div>
-            }
-            else if (!_templates.Any())
-            {
-                <div class="col-span-full flex flex-col items-center py-10 gap-2 text-text-secondary">
-                    <span class="material-symbols-outlined text-4xl">category</span>
-                    <p class="text-sm">No hay tipos de evento. Cree uno en Administración → Tipos de Evento.</p>
-                </div>
-            }
-            else
-            {
-                @foreach (var t in _templates)
-                {
-                    bool canOpen = t.IsConfigured;
-                    <div class="relative bg-background-main border rounded-xl p-4 flex flex-col items-center gap-3 transition-all shadow-sm @(canOpen ? "border-border-dark cursor-pointer hover:border-primary/50 hover:bg-[#271c1c] hover:-translate-y-1" : "border-border-dark/40 cursor-not-allowed opacity-60")"
-                         @onclick="() => { if (canOpen) OpenDrawer(t); else ShowUnconfiguredWarning(t.Name); }">
-                        <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:@(t.ColorCode + "18"); color:@(canOpen ? t.ColorCode : "#6b7280");">
-                            <span class="material-symbols-outlined text-2xl">@(!string.IsNullOrEmpty(t.Icon) ? t.Icon : "event_note")</span>
-                        </div>
-                        <span class="@(canOpen ? "text-white" : "text-text-secondary") text-xs font-bold text-center leading-tight">@t.Name</span>
-                        @if (canOpen)
-                        {
-                            <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500" title="Configurado"></span>
-                        }
-                        else
-                        {
-                            <span class="absolute top-1 right-1" title="Sin cuentas contables configuradas">
-                                <span class="material-symbols-outlined text-amber-400 text-base">warning</span>
-                            </span>
-                        }
-                    </div>
-                }
-            }
-        </div>
-    </div>
-
-    @if (!string.IsNullOrEmpty(_unconfiguredWarning))
-    {
-        <div class="mx-6 mb-4 flex items-center gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm">
-            <span class="material-symbols-outlined text-xl flex-shrink-0">warning</span>
-            <span>@_unconfiguredWarning</span>
-            <button class="ml-auto text-amber-400 hover:text-white transition-colors" @onclick="() => _unconfiguredWarning = string.Empty">
-                <span class="material-symbols-outlined text-lg">close</span>
-            </button>
-        </div>
-    }
-</div>
 
 <!-- Events Table -->
 <div class="bg-surface-dark border border-border-dark rounded-2xl shadow-xl shadow-black/20 overflow-hidden">
@@ -201,19 +146,18 @@
     </div>
 }
 
-@if (_selectedTemplate != null)
+@if (_isModalOpen && _templates != null)
 {
     <GestorGanadero.Client.Components.Eventos.EventoDrawer 
-        SelectedTemplate="@_selectedTemplate" 
-        OnClose="() => _selectedTemplate = null" 
+        Templates="@_templates"
+        OnClose="() => _isModalOpen = false" 
         OnSaved="OnEventSaved" />
 }
 
 @code {
     private List<EventTemplate>? _templates;
     private List<EventDetail>? _events;
-    private EventTemplate? _selectedTemplate;
-    private string _unconfiguredWarning = string.Empty;
+    private bool _isModalOpen;
     private Action? _stateChangedAction;
     private string _monthFilter = DateTime.Today.ToString("yyyy-MM");
     private int _pageIndex;
@@ -289,20 +233,11 @@
         }
     }
 
-    private void OpenDrawer(EventTemplate? t)
-    {
-        _unconfiguredWarning = string.Empty;
-        _selectedTemplate = t;
-    }
 
-    private void ShowUnconfiguredWarning(string typeName)
-    {
-        _unconfiguredWarning = $"El tipo de evento \"{typeName}\" no tiene cuentas contables configuradas. Configúrelo en Administración → Tipos de Evento antes de registrar movimientos.";
-    }
 
     private async Task OnEventSaved()
     {
-        _selectedTemplate = null;
+        _isModalOpen = false;
         await LoadData();
     }
 

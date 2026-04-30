@@ -62,7 +62,11 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("SuperAdminOnly", policy =>
+        policy.RequireClaim("is_super_admin", "true"));
+});
 
 builder.Services.AddDbContext<GestorGanaderoDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"), o => o.UseNodaTime()));
@@ -76,15 +80,18 @@ builder.Services.AddScoped<ITranslationService, TranslationService>();
 builder.Services.AddScoped<ILivestockEventService, LivestockEventService>();
 builder.Services.AddScoped<ICatalogService, CatalogService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ITenantManagementService, TenantManagementService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<ISyncCatalogService, SyncCatalogService>();
 builder.Services.AddScoped<IEncryptionService, EncryptionService>();
+builder.Services.AddSingleton<IEmailService, EmailService>();
 builder.Services.AddScoped<IErpSyncService, ErpSyncService>();
 builder.Services.AddScoped<IAccountConfigurationService, AccountConfigurationService>();
 builder.Services.AddScoped<IErpAccountQueryService, ErpAccountQueryService>();
 builder.Services.AddScoped<ICompanyConfigurationService, CompanyConfigurationService>();
 builder.Services.AddHttpClient<IErpConnectivityService, ErpConnectivityService>();
 builder.Services.AddHttpClient<IERPProvider, GestorMaxProvider>();
+builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection(SmtpOptions.SectionName));
 builder.Services.AddTransient<App.Domain.Services.AccountingEntryGenerator>();
 
 builder.Services.AddControllersWithViews();

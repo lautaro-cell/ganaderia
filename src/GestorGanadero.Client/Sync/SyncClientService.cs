@@ -24,6 +24,12 @@ namespace GestorGanadero.Client.Sync
             try { return AppResult<SyncResult>.SuccessResult(await _client.SyncToERPAsync(req)); }
             catch (RpcException e) { return AppResult<SyncResult>.Failure(e.Status.Detail); }
         }
+
+        public async Task<AppResult<SyncCatalogResponse>> SyncCatalogAsync(SyncCatalogRequest req)
+        {
+            try { return AppResult<SyncCatalogResponse>.SuccessResult(await _client.SyncCatalogAsync(req)); }
+            catch (RpcException e) { return AppResult<SyncCatalogResponse>.Failure(e.Status.Detail); }
+        }
     }
 }
 

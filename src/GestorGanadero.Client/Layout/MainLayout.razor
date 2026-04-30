@@ -1,5 +1,7 @@
 @inherits LayoutComponentBase
 @using GestorGanadero.Client.Layout
+@using GestorGanadero.Client.Services
+@inject AppStateContainer State
 
 <div class="bg-background-main text-text-body font-display min-h-screen flex flex-col">
     <TopNav />
@@ -21,6 +23,12 @@
             <NavLink href="admin" class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-text-secondary hover:text-white transition-colors pb-3 pt-4 px-2 min-w-fit no-underline" ActiveClass="!border-b-primary !text-white">
                 <span class="text-sm font-bold leading-normal tracking-tight">Administración</span>
             </NavLink>
+            @if (State.IsSuperAdmin)
+            {
+                <NavLink href="superadmin" class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-text-secondary hover:text-amber-400 transition-colors pb-3 pt-4 px-2 min-w-fit no-underline" ActiveClass="!border-b-amber-400 !text-amber-400">
+                    <span class="text-sm font-bold leading-normal tracking-tight">SuperAdmin</span>
+                </NavLink>
+            }
         </div>
     </nav>
 

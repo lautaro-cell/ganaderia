@@ -8,11 +8,22 @@
 
 <div class="flex flex-col gap-6">
     <!-- Header -->
-    <div class="flex items-center gap-3">
-        <span class="material-symbols-outlined text-primary text-2xl">business</span>
-        <h2 class="text-white text-xl font-bold">Gestión de Empresas</h2>
+    <div class="flex items-center justify-between">
+        <div>
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-primary text-2xl">business</span>
+                <h2 class="text-white text-xl font-bold">Gestión de Empresas</h2>
+            </div>
+            <p class="text-text-secondary text-sm mt-1">Configuración de credenciales ERP y estado de conectividad con GestorMax.</p>
+        </div>
+        @if (State.IsSuperAdmin)
+        {
+            <button @onclick="OpenCreateModal" class="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-xl transition-colors">
+                <span class="material-symbols-outlined text-lg">add</span>
+                Crear Empresa
+            </button>
+        }
     </div>
-    <p class="text-text-secondary text-sm -mt-4">Configuración de credenciales ERP y estado de conectividad con GestorMax.</p>
 
     <!-- Table -->
     <div class="bg-background-main border border-border-dark rounded-2xl overflow-hidden shadow-xl shadow-black/20">
@@ -68,11 +79,20 @@
                                 @(string.IsNullOrEmpty(t.LastSyncAt) ? "—" : FormatDate(t.LastSyncAt))
                             </td>
                             <td class="px-6 py-4 text-right">
-                                <button class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-surface-darker border border-border-dark text-text-secondary hover:text-white hover:border-text-secondary transition-all text-xs font-bold ml-auto"
-                                        @onclick="() => OpenModal(t)">
-                                    <span class="material-symbols-outlined text-sm">settings</span>
-                                    Configurar
-                                </button>
+                                <div class="flex items-center justify-end gap-2">
+                                    <button class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-surface-darker border border-border-dark text-text-secondary hover:text-white hover:border-text-secondary transition-all text-xs font-bold"
+                                            @onclick="() => OpenModal(t)">
+                                        <span class="material-symbols-outlined text-sm">settings</span>
+                                        Configurar
+                                    </button>
+                                    @if (State.IsSuperAdmin)
+                                    {
+                                        <button class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors text-xs font-bold"
+                                                @onclick="() => DeleteTenant(t)">
+                                            <span class="material-symbols-outlined text-sm">delete</span>
+                                        </button>
+                                    }
+                                </div>
                             </td>
                         </tr>
                     }
@@ -80,6 +100,55 @@
             </tbody>
         </table>
     </div>
+
+    <!-- Create Modal -->
+    @if (_showCreateModal)
+    {
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" @onclick="CloseCreateModal">
+            <div class="w-full max-w-md bg-surface-dark border border-border-dark rounded-2xl shadow-2xl overflow-hidden" @onclick:stopPropagation>
+                <div class="flex items-center justify-between px-6 py-4 border-b border-border-dark bg-surface-darker/50">
+                    <h3 class="text-base font-bold text-white flex items-center gap-2">
+                        <span class="material-symbols-outlined text-green-400">add_business</span>
+                        Nueva Empresa
+                    </h3>
+                    <button class="text-text-secondary hover:text-white transition-colors" @onclick="CloseCreateModal">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                <div class="p-6 flex flex-col gap-4">
+                    <label class="flex flex-col gap-2">
+                        <span class="text-white text-sm font-medium">Nombre de la Empresa</span>
+                        <input @bind="_createTenantName" @bind:event="oninput"
+                               class="w-full bg-surface-darker border border-border-dark rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-primary transition-colors"
+                               placeholder="Ej: Ganadería Los Pinos" />
+                    </label>
+                    @if (!string.IsNullOrEmpty(_createError))
+                    {
+                        <p class="text-red-400 text-sm">@_createError</p>
+                    }
+                </div>
+                <div class="px-6 py-4 bg-surface-darker/50 border-t border-border-dark flex justify-end gap-3">
+                    <button class="px-5 py-2 rounded-lg text-sm font-bold text-text-secondary hover:text-white transition-colors"
+                            @onclick="CloseCreateModal">
+                        Cancelar
+                    </button>
+                    <button class="flex items-center justify-center min-w-[120px] gap-2 px-5 py-2 rounded-lg text-sm font-bold text-white bg-green-600 hover:bg-green-700 transition-colors disabled:opacity-50"
+                            @onclick="CreateTenant" disabled="@_creatingTenant">
+                        @if (_creatingTenant)
+                        {
+                            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            <span>Creando...</span>
+                        }
+                        else
+                        {
+                            <span class="material-symbols-outlined text-[18px]">add</span>
+                            <span>Crear</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
 
     <!-- Modal -->
     @if (_showModal && _status != null)
@@ -320,6 +389,12 @@
     private bool _msgOk;
     private string _activeTenantId = "";
 
+    // SuperAdmin create/delete
+    private bool _showCreateModal;
+    private string _createTenantName = string.Empty;
+    private bool _creatingTenant;
+    private string? _createError;
+
     protected override async Task OnInitializedAsync() => await Load();
 
     private async Task Load()
@@ -481,6 +556,66 @@
         if (DateTimeOffset.TryParse(iso, out var dt))
             return dt.ToLocalTime().ToString("dd/MM/yy HH:mm");
         return iso;
+    }
+
+    private void OpenCreateModal()
+    {
+        _createTenantName = string.Empty;
+        _createError = null;
+        _showCreateModal = true;
+    }
+
+    private void CloseCreateModal()
+    {
+        _showCreateModal = false;
+        _createTenantName = string.Empty;
+        _createError = null;
+    }
+
+    private async Task CreateTenant()
+    {
+        if (string.IsNullOrWhiteSpace(_createTenantName))
+        {
+            _createError = "El nombre de la empresa es requerido.";
+            return;
+        }
+
+        _creatingTenant = true;
+        _createError = null;
+        StateHasChanged();
+
+        try
+        {
+            await IdentityClient.CreateTenantAsync(new CreateTenantRequest { Name = _createTenantName });
+            CloseCreateModal();
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            _createError = ex.Message;
+        }
+        finally
+        {
+            _creatingTenant = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteTenant(TenantMessage t)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"¿Eliminar la empresa '{t.Name}'? Esta acción no se puede deshacer.");
+        if (!confirmed) return;
+
+        try
+        {
+            await IdentityClient.DeleteTenantAsync(new DeleteEntityRequest { Id = t.Id });
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting tenant: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", $"Error al eliminar: {ex.Message}");
+        }
     }
 
     private class ErpIntegrationStatusForm

@@ -148,7 +148,7 @@
             </div>
             <div class="bg-surface-dark border border-border-dark rounded-xl p-4 flex flex-col gap-1">
                 <p class="text-[10px] font-bold text-text-secondary uppercase tracking-widest">KG Movimiento</p>
-                <p class="text-white text-2xl font-black font-mono">@_report.Items.Sum(i => i.WeightKgMovement).ToString("N0")</p>
+                <p class="text-white text-2xl font-black font-mono">@((_report.Items.Sum(i => i.WeightKgMovement) / 2).ToString("N0"))</p>
             </div>
             <div class="bg-surface-dark border border-border-dark rounded-xl p-4 flex flex-col gap-1">
                 <p class="text-[10px] font-bold text-text-secondary uppercase tracking-widest">Saldo Neto</p>
@@ -281,7 +281,7 @@
                             <td class="px-5 py-4 text-right font-mono @(grandSaldo >= 0 ? "text-emerald-400" : "text-primary")">@grandSaldo.ToString("N2")</td>
                             <td class="px-5 py-4 text-right font-mono border-l border-border-dark">@grandCabezas</td>
                             <td class="px-5 py-4 text-right font-mono">@grandKgStock.ToString("N1")</td>
-                            <td class="px-5 py-4 text-right font-mono text-text-secondary">@grandKgMov.ToString("N1")</td>
+                            <td class="px-5 py-4 text-right font-mono text-text-secondary">@((grandKgMov / 2).ToString("N1"))</td>
                         </tr>
                     </tfoot>
                 </table>

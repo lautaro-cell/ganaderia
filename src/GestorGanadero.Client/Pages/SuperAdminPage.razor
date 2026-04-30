@@ -1,0 +1,307 @@
+@page "/superadmin"
+@layout GestorGanadero.Client.Layout.MainLayout
+@using GestorGanadero.Services.Common.Contracts
+@using GestorGanadero.Services.Identity.Contracts
+@using GestorGanadero.Client.Services
+@using Google.Protobuf.WellKnownTypes
+@inject AppStateContainer State
+@inject IdentityService.IdentityServiceClient GrpcClient
+@inject NavigationManager Nav
+
+<div class="flex flex-col gap-6">
+    <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined text-amber-400 text-2xl">shield</span>
+        <div>
+            <h2 class="text-white text-xl font-bold">SuperAdmin Dashboard</h2>
+            <p class="text-text-secondary text-sm">Gestión global de empresas y usuarios del sistema.</p>
+        </div>
+    </div>
+
+    @if (!State.IsSuperAdmin)
+    {
+        <div class="flex items-center gap-3 p-6 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400">
+            <span class="material-symbols-outlined text-2xl">gpp_bad</span>
+            <p class="text-sm">No tienes permisos de SuperAdmin. Esta página requiere el rol SuperAdmin.</p>
+        </div>
+    }
+    else
+    {
+        <!-- Crear Empresa -->
+        <div class="bg-background-main border border-border-dark rounded-2xl p-6 shadow-xl shadow-black/20">
+            <h3 class="text-white text-lg font-bold mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-green-400">add_business</span>
+                Crear Nueva Empresa
+            </h3>
+            <div class="flex items-end gap-4">
+                <div class="flex-1">
+                    <label class="block text-sm font-medium text-text-secondary mb-1.5">Nombre de la Empresa</label>
+                    <input @bind="_newTenantName" @bind:event="oninput"
+                           class="w-full bg-surface-dark border border-border-dark rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                           placeholder="Ej: Ganadería Los Pinos" />
+                </div>
+                <button @onclick="CreateTenant"
+                        disabled="@_creating"
+                        class="flex items-center gap-2 px-6 py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition-colors">
+                    @if (_creating)
+                    {
+                        <div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                        <span>Creando...</span>
+                    }
+                    else
+                    {
+                        <span class="material-symbols-outlined text-lg">add</span>
+                        <span>Crear Empresa</span>
+                    }
+                </button>
+            </div>
+            @if (!string.IsNullOrEmpty(_createError))
+            {
+                <p class="text-red-400 text-sm mt-2">@_createError</p>
+            }
+        </div>
+
+        <!-- Lista de Empresas -->
+        <div class="bg-background-main border border-border-dark rounded-2xl overflow-hidden shadow-xl shadow-black/20">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-border-dark">
+                <h3 class="text-white text-lg font-bold flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">business</span>
+                    Empresas (@(_tenants?.Count ?? 0))
+                </h3>
+                <button @onclick="LoadTenants" class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-surface-darker border border-border-dark text-text-secondary hover:text-white transition-colors text-xs font-bold">
+                    <span class="material-symbols-outlined text-sm">refresh</span>
+                    Actualizar
+                </button>
+            </div>
+
+            <table class="w-full text-left text-sm">
+                <thead class="bg-surface-darker text-text-secondary uppercase text-[10px] tracking-widest border-b border-border-dark">
+                    <tr>
+                        <th class="px-6 py-4">Empresa</th>
+                        <th class="px-6 py-4 text-center">Creada</th>
+                        <th class="px-6 py-4 text-center">Estado ERP</th>
+                        <th class="px-6 py-4 text-right">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border-dark/30">
+                    @if (_tenants == null)
+                    {
+                        <tr>
+                            <td colspan="4" class="px-6 py-12 text-center">
+                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                            </td>
+                        </tr>
+                    }
+                    else if (!_tenants.Any())
+                    {
+                        <tr><td colspan="4" class="px-6 py-12 text-center text-text-disabled">No hay empresas.</td></tr>
+                    }
+                    else
+                    {
+                        @foreach (var t in _tenants)
+                        {
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="px-6 py-4">
+                                    <span class="text-white font-bold text-sm">@t.Name</span>
+                                </td>
+                                <td class="px-6 py-4 text-center text-xs text-text-secondary font-mono">
+                                    @(string.IsNullOrEmpty(t.LastSyncAt) ? "—" : FormatSimpleDate(t.LastSyncAt))
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    @{
+                                        var (badgeColor, badgeIcon) = GetStatusBadge(t);
+                                    }
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border @badgeColor">
+                                        <span class="material-symbols-outlined text-[12px]">@badgeIcon</span>
+                                        @(t.HasErpConfig ? t.StatusSummary : "Sin configurar")
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <button class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-surface-darker border border-border-dark text-text-secondary hover:text-white transition-colors text-xs font-bold"
+                                                @onclick="GoToAdmin">
+                                            <span class="material-symbols-outlined text-sm">settings</span>
+                                            Configurar
+                                        </button>
+                                        <button class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors text-xs font-bold"
+                                                @onclick="() => ConfirmDelete(t)"
+                                                disabled="@_deletingId == t.Id">
+                                            @if (_deletingId == t.Id)
+                                            {
+                                                <div class="animate-spin rounded-full h-3.5 w-3.5 border-t-2 border-b-2 border-red-400"></div>
+                                                <span>Eliminando...</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="material-symbols-outlined text-sm">delete</span>
+                                                <span>Eliminar</span>
+                                            }
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Diálogo de confirmación -->
+        @if (_showDeleteConfirm)
+        {
+            <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" @onclick="() => _showDeleteConfirm = false">
+                <div class="w-full max-w-md bg-surface-dark border border-border-dark rounded-2xl shadow-2xl p-6" @onclick:stopPropagation>
+                    <div class="flex items-center gap-3 mb-4">
+                        <span class="material-symbols-outlined text-red-400 text-3xl">warning</span>
+                        <div>
+                            <h3 class="text-white text-base font-bold">Eliminar Empresa</h3>
+                            <p class="text-text-secondary text-sm">Esta acción no se puede deshacer.</p>
+                        </div>
+                    </div>
+                    <p class="text-text-secondary text-sm mb-6">
+                        ¿Estás seguro de eliminar <strong class="text-white">@_tenantToDelete?.Name</strong>?<br />
+                        Los campos, usuarios y datos asociados quedarán sin empresa asignada.
+                    </p>
+                    <div class="flex gap-3 justify-end">
+                        <button @onclick="() => _showDeleteConfirm = false"
+                                class="px-4 py-2 rounded-lg bg-surface-darker border border-border-dark text-text-secondary hover:text-white transition-colors text-sm font-bold">
+                            Cancelar
+                        </button>
+                        <button @onclick="DeleteTenant"
+                                disabled="@(_deleting)"
+                                class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:cursor-not-allowed text-white text-sm font-bold transition-colors">
+                            @if (_deleting)
+                            {
+                                <span>Eliminando...</span>
+                            }
+                            else
+                            {
+                                <span>Eliminar Empresa</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private List<TenantMessage>? _tenants;
+    private string _newTenantName = string.Empty;
+    private bool _creating;
+    private string? _createError;
+    private bool _showDeleteConfirm;
+    private TenantMessage? _tenantToDelete;
+    private bool _deleting;
+    private string? _deletingId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (State.IsSuperAdmin)
+            await LoadTenants();
+    }
+
+    private async Task LoadTenants()
+    {
+        try
+        {
+            var response = await GrpcClient.GetAllTenantsAsync(new Empty());
+            _tenants = response.Tenants.ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading tenants: {ex.Message}");
+        }
+    }
+
+    private async Task CreateTenant()
+    {
+        if (string.IsNullOrWhiteSpace(_newTenantName))
+        {
+            _createError = "El nombre de la empresa es requerido.";
+            return;
+        }
+
+        _creating = true;
+        _createError = null;
+        StateHasChanged();
+
+        try
+        {
+            await GrpcClient.CreateTenantAsync(new CreateTenantRequest { Name = _newTenantName });
+            _newTenantName = string.Empty;
+            await LoadTenants();
+        }
+        catch (Exception ex)
+        {
+            _createError = ex.Message;
+        }
+        finally
+        {
+            _creating = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ConfirmDelete(TenantMessage tenant)
+    {
+        _tenantToDelete = tenant;
+        _showDeleteConfirm = true;
+    }
+
+    private async Task DeleteTenant()
+    {
+        if (_tenantToDelete == null) return;
+
+        _deleting = true;
+        _deletingId = _tenantToDelete.Id;
+        StateHasChanged();
+
+        try
+        {
+            await GrpcClient.DeleteTenantAsync(new DeleteEntityRequest { Id = _tenantToDelete.Id });
+            _showDeleteConfirm = false;
+            _tenantToDelete = null;
+            await LoadTenants();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting tenant: {ex.Message}");
+        }
+        finally
+        {
+            _deleting = false;
+            _deletingId = null;
+            StateHasChanged();
+        }
+    }
+
+    private static (string badgeColor, string badgeIcon) GetStatusBadge(TenantMessage t)
+    {
+        if (!t.HasErpConfig)
+            return ("border-border-dark text-text-secondary", "link_off");
+
+        var status = t.StatusSummary ?? "";
+        if (status.Contains("Operativo", StringComparison.OrdinalIgnoreCase))
+            return ("border-green-500/30 text-green-400 bg-green-500/10", "check_circle");
+        if (status.Contains("Error de conexión", StringComparison.OrdinalIgnoreCase))
+            return ("border-red-500/30 text-red-400 bg-red-500/10", "error");
+        if (status.Contains("Error de sincro", StringComparison.OrdinalIgnoreCase))
+            return ("border-amber-500/30 text-amber-400 bg-amber-500/10", "sync_problem");
+        if (status.Contains("Configurado", StringComparison.OrdinalIgnoreCase))
+            return ("border-blue-500/30 text-blue-400 bg-blue-500/10", "settings");
+        return ("border-border-dark text-text-secondary", "help");
+    }
+
+    private static string FormatSimpleDate(string iso)
+    {
+        if (DateTime.TryParse(iso, out var dt))
+            return dt.ToString("dd/MM/yyyy HH:mm");
+        return iso;
+    }
+
+    private void GoToAdmin()
+    {
+        Nav.NavigateTo("/admin?tab=empresas");
+    }
+}

@@ -7,6 +7,7 @@ public enum UserRole
     Administrator,
     Auditor,
     Client,
-    Guest
+    Guest,
+    SuperAdmin
 }
 

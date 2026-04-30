@@ -20,14 +20,12 @@ public class HttpContextTenantProvider : ITenantProvider
             var context = _httpContextAccessor.HttpContext;
             if (context == null) return Guid.Empty;
 
-            // 1. Prioritize JWT Claim (tenant_id)
             var claim = context.User?.FindFirst("tenant_id");
             if (claim != null && Guid.TryParse(claim.Value, out var claimTenantId))
             {
                 return claimTenantId;
             }
 
-            // 2. Fallback to Header (X-Tenant-Id)
             if (context.Request.Headers.TryGetValue(TenantHeaderName, out var tenantIdStr))
             {
                 if (Guid.TryParse(tenantIdStr, out var tenantId))
@@ -37,6 +35,18 @@ public class HttpContextTenantProvider : ITenantProvider
             }
 
             return Guid.Empty;
+        }
+    }
+
+    public bool IsSuperAdmin
+    {
+        get
+        {
+            var context = _httpContextAccessor.HttpContext;
+            if (context?.User == null) return false;
+
+            var roleClaim = context.User.FindFirst("role");
+            return roleClaim != null && roleClaim.Value.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

@@ -1,0 +1,31 @@
+@using GestorGanadero.Services.Identity.Contracts
+@using GestorGanadero.Client.Services
+@inject AppStateContainer State
+@inject IdentityService.IdentityServiceClient IdentityClient
+
+<div class="flex flex-col gap-6">
+    <!-- Breadcrumbs -->
+    <div class="flex items-center gap-2 text-[11px] font-medium text-text-secondary uppercase tracking-widest opacity-60">
+        <a href="/" class="hover:text-white transition-colors no-underline">Inicio</a>
+        <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+        <span class="cursor-default">Administración</span>
+        <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+        <span class="text-primary font-bold">Auditores</span>
+    </div>
+
+    <!-- Header -->
+    <div class="flex flex-col gap-1">
+        <h2 class="text-white text-2xl font-bold tracking-tight flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">verified_user</span>
+            Gestión de Auditores
+        </h2>
+        <p class="text-text-secondary text-sm">Asigne auditores externos para la revisión y control de múltiples establecimientos.</p>
+    </div>
+
+    <!-- Content Placeholder -->
+    <div class="flex flex-col items-center justify-center py-20 bg-surface-darker/30 rounded-2xl border border-dashed border-border-dark">
+        <span class="material-symbols-outlined text-6xl text-text-disabled mb-4 opacity-20">shield_person</span>
+        <h3 class="text-text-secondary font-bold text-lg">Sección en Desarrollo</h3>
+        <p class="text-text-disabled text-sm max-w-md text-center">Esta funcionalidad permitirá vincular usuarios con rol de Auditor a múltiples empresas sin necesidad de invitaciones individuales.</p>
+    </div>
+</div>

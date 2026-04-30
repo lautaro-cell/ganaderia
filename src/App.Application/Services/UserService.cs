@@ -4,6 +4,8 @@ using App.Application.Interfaces;
 using App.Domain.Entities;
 using App.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using NodaTime;
 
 namespace App.Application.Services;
 
@@ -12,15 +14,21 @@ public class UserService : IUserService
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserProvider _currentUserProvider;
     private readonly IEncryptionService _encryptionService;
+    private readonly IEmailService _emailService;
+    private readonly ILogger<UserService> _logger;
 
     public UserService(
         IApplicationDbContext context,
         ICurrentUserProvider currentUserProvider,
-        IEncryptionService encryptionService)
+        IEncryptionService encryptionService,
+        IEmailService emailService,
+        ILogger<UserService> logger)
     {
         _context = context;
         _currentUserProvider = currentUserProvider;
         _encryptionService = encryptionService;
+        _emailService = emailService;
+        _logger = logger;
     }
 
     public async Task<UserDto> GetMyProfileAsync()
@@ -75,6 +83,8 @@ public class UserService : IUserService
         var role = Enum.TryParse<UserRole>(request.RoleName, true, out var r) ? r : UserRole.Guest;
         var temporaryPassword = Convert.ToBase64String(RandomNumberGenerator.GetBytes(12));
         var hashedPassword = BCrypt.Net.BCrypt.HashPassword(temporaryPassword);
+        var resetToken = Guid.NewGuid().ToString("N");
+        var tokenExpiry = SystemClock.Instance.GetCurrentInstant() + Duration.FromDays(7);
 
         var user = new User
         {
@@ -83,11 +93,32 @@ public class UserService : IUserService
             PasswordHash = hashedPassword,
             TenantId = request.TenantId,
             Role = role,
-            IsActive = false
+            IsActive = false,
+            PasswordResetToken = resetToken,
+            PasswordResetTokenExpiry = tokenExpiry
         };
 
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
+
+        var inviter = _currentUserProvider.UserId.HasValue
+            ? await _context.Users
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(u => u.Id == _currentUserProvider.UserId.Value)
+            : null;
+
+        var fromEmail = inviter?.Email ?? "noreply@sistema.com";
+        var fromName = inviter?.Name ?? inviter?.Email ?? "Administrador";
+
+        try
+        {
+            await _emailService.SendInvitationAsync(request.Email, request.Name, fromEmail, fromName, resetToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Fallo al enviar email de invitación a {Email}. Usuario creado igual.", request.Email);
+        }
+
         return user.Id;
     }
 
@@ -136,5 +167,27 @@ public class UserService : IUserService
             _context.Users.Remove(user);
             await _context.SaveChangesAsync();
         }
+    }
+
+    public async Task SetPasswordAsync(string token, string newPassword)
+    {
+        var now = SystemClock.Instance.GetCurrentInstant();
+
+        var user = await _context.Users
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u =>
+                u.PasswordResetToken == token &&
+                u.PasswordResetTokenExpiry != null &&
+                u.PasswordResetTokenExpiry > now);
+
+        if (user == null)
+            throw new KeyNotFoundException("Token inválido o expirado.");
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+        user.PasswordResetToken = null;
+        user.PasswordResetTokenExpiry = null;
+        user.IsActive = true;
+
+        await _context.SaveChangesAsync();
     }
 }

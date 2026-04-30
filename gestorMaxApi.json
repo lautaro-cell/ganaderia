@@ -1,34 +1,3715 @@
 {
-    "/v3/GestorG4/ListConceptos": {
-        "get": {
-            "tags": [
-                "GestorG4"
-            ],
-            "summary": "Lista los Conceptos (incluyendo o no Grupos, Subgrupos...)",
-            "parameters": [
-                {
-                    "name": "databaseId",
-                    "in": "query",
-                    "description": "Id de la Base de Datos",
-                    "schema": {
-                        "type": "integer",
-                        "format": "int32"
-                    }
-                },
-                {
-                    "name": "soloFisicos",
-                    "in": "query",
-                    "description": "Mostrar sólo Conceptos Físicos",
-                    "schema": {
-                        "type": "boolean"
+    "openapi": "3.1.1",
+    "info": {
+        "title": "Gestor API",
+        "version": "3"
+    },
+    "paths": {
+        "/v3/Analytics/ListSources": {
+            "get": {
+                "tags": [
+                    "Analytics"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
                     }
                 }
-            ],
-            "responses": {
-                "200": {
-                    "description": "OK"
+            }
+        },
+        "/v3/Analytics/ListDatas": {
+            "get": {
+                "tags": [
+                    "Analytics"
+                ],
+                "parameters": [
+                    {
+                        "name": "onlyActives",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean",
+                            "default": false
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Analytics/ListMetrics": {
+            "get": {
+                "tags": [
+                    "Analytics"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Analytics/ListLastMeasurements": {
+            "get": {
+                "tags": [
+                    "Analytics"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Analytics/LastMeasurement": {
+            "get": {
+                "tags": [
+                    "Analytics"
+                ],
+                "parameters": [
+                    {
+                        "name": "dataId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Analytics/ListMeasurements": {
+            "get": {
+                "tags": [
+                    "Analytics"
+                ],
+                "parameters": [
+                    {
+                        "name": "dataId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "fechaDesde",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "fechaHasta",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Analytics/LastMultiMeasurements": {
+            "get": {
+                "tags": [
+                    "Analytics"
+                ],
+                "parameters": [
+                    {
+                        "name": "dataIds",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Analytics/ListMultiMeasurements": {
+            "get": {
+                "tags": [
+                    "Analytics"
+                ],
+                "parameters": [
+                    {
+                        "name": "dataIds",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "fechaDesde",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "fechaHasta",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Analytics/LastMeasurementByDate": {
+            "get": {
+                "tags": [
+                    "Analytics"
+                ],
+                "parameters": [
+                    {
+                        "name": "dataId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "fechaHasta",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Analytics/ListValues": {
+            "get": {
+                "tags": [
+                    "Analytics"
+                ],
+                "parameters": [
+                    {
+                        "name": "dataIds",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "dateFrom",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "dateTo",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Analytics/ListLastValues": {
+            "get": {
+                "tags": [
+                    "Analytics"
+                ],
+                "parameters": [
+                    {
+                        "name": "dataIds",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/SaldoPersonas": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "summary": "Consulta al Connect",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codigoEmpresa",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "fechaCorte",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/SaldoPersonasPorPlan": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "summary": "Consulta al Connect",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codigoEmpresa",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "prioridadPlan",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "fechaCorte",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/SaldoPersonasTotalesPorPlan": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "summary": "Consulta al Connect",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codigoEmpresa",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "prioridadPlan",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "fechaCorte",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/FlujoDeFondos": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "summary": "Consulta al Connect",
+                "description": "El parametro soloGestion es opcional",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codigoEmpresa",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "soloGestion",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/Empresas": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/Personas": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/PlanDeCuentasDeCentro": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codigoEmpresa",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/PlanDeCuentasDeGestion": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codigoEmpresa",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/PlanDeCuentas": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codigoEmpresa",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "tipoPlan",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/LuciusPlanDeCuentas": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codigoPlan",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/Productos": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/Monedas": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/ListasPrecios": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/ListasPreciosDetalle": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/CuentasCorrientes": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "summary": "Consulta al Connect",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codigoEmpresa",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/CuentasACobrar": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "summary": "Consulta al Connect",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codigoEmpresa",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/CuentasAPagar": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "summary": "Consulta al Connect",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codigoEmpresa",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/CuentasCorrientesSaldos": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "summary": "Consulta al Connect",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codigoEmpresa",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "prioridadPlan",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "fechaCorte",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/ChequesEmitidosCuenta": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "summary": "Consulta al Connect",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codigoEmpresa",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codigoCuenta",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/ListFisicosPorVencimiento": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "summary": "Consulta al Connect",
+                "description": "Los parametros tipoOperacion y codPersona son opcionales",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codigoEmpresa",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "fechaDesde",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "fechaHasta",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "tipoOperacion",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "codPersona",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/ListValoresEnCartera": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "summary": "Consulta al Connect",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codigoEmpresa",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "fechaHasta",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "codigoCuentaFondos",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/ListTiposInsumos": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/ListUnidades": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/ListMayorDiarioFisicos": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "summary": "Consulta al Connect",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codigoEmpresa",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "prioridad",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "prioridadCentro",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codMoneda",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "usarFechaImpuestos",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "fechaDesde",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "fechaHasta",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "iniEjerc",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "omitirAsientosDeCierre",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/ListBalanceContable": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "summary": "Consulta al Connect",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "soloApertura",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "codigoEmpresa",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "prioridad",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "prioridadCentro",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codigoMoneda",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "omitirInflacion",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "generarAjustes",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "fechaDesde",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "fechaHasta",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "usarFechaImpuestos",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean",
+                            "default": true
+                        }
+                    },
+                    {
+                        "name": "omitirAsientosDeCierre",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean",
+                            "default": false
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/ListBonificacionesPersonas": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/ListBonificacionesGrupos": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/ListLuciusBalance": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "summary": "Consulta al Connect",
+                "description": "Los parametros \"filtro\" son opcionales",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codigoEmpresa",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codMoneda",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "fechaDesde",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "fechaHasta",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "remedido",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "apertura",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "omitirCierre",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "filtroRubro",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filtroActividad",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filtroMacro",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filtroMicro",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filtroTipo",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filtroCampo",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/ListLuciusBalanceMensualizado": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codigoEmpresa",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codMoneda",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "fechaDesde",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "fechaHasta",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "remedido",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "apertura",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "omitirCierre",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "acumulado",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "filtroRubro",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filtroActividad",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filtroMacro",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filtroMicro",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filtroTipo",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filtroCampo",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/ListLuciusMayor": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "summary": "Consulta al Connect",
+                "description": "Los parametros \"filtro\" son opcionales",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codigoEmpresa",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codMoneda",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "fechaDesde",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "fechaHasta",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "remedido",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "soloApertura",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "omitirCierre",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "filtroRubro",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filtroActividad",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filtroMacro",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filtroMicro",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filtroTipo",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filtroCampo",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/ListMayorContable": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "summary": "Consulta al Connect",
+                "description": "Los parametros mostrarGestion y generarAjuste son opcionales",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codigoEmpresa",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "prioridad",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "prioridadCentro",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codMoneda",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "datosFisicos",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "usarFechaImpuestos",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "fechaDesde",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "fechaHasta",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "mostrarGestion",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "generarAjuste",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "omitirAsientosDeCierre",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/Gestor/FlujoDeFondosExt": {
+            "get": {
+                "tags": [
+                    "Gestor"
+                ],
+                "summary": "Consulta al Connect",
+                "description": "Los parametros databaseId y codigoEmpresa son obligatorios, los demas son opcionales. Ademas los parametros booleanos son por defecto verdaderos",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codigoEmpresa",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "soloGestion",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "incluirSaldosIniciales",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "incluirOperativos",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "incluirFinancieros",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "incluirVencidos",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "incluirAVencer",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "incluirImportesPositivos",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "incluirImportesNegativos",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/OperativoImportadoInsert": {
+            "post": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Importar una factura",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codEmpresa",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Invoice"
+                            }
+                        },
+                        "text/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Invoice"
+                            }
+                        },
+                        "application/*+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Invoice"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/GetEmpresa": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Obtiene los Datos de una Empresa",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codEmpresa",
+                        "in": "query",
+                        "description": "Empresas - Cód. Empr.",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListActividades": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Lista las Actividades",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codActividadPerfilImputacion",
+                        "in": "query",
+                        "description": "Perfiles de Imputación - Actividades - codActividadPerfilImputacion",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "soloHabilitados",
+                        "in": "query",
+                        "description": "Muestra sólo los Registros Habilitados",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListaDePreciosHereIsDataSerieSet": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Setea el Id de Here Is Data a un Concepto de una Lista de Precios",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codListaDePrecios",
+                        "in": "query",
+                        "description": "Listas de Precios - Encabezado - Cód. Lista",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "codConcepto",
+                        "in": "query",
+                        "description": "Conceptos - Cód. Cpto.",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "idSerieHereIsData",
+                        "in": "query",
+                        "description": "Id. Serie Here Is Data",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "coeficienteHereIsData",
+                        "in": "query",
+                        "description": "Coeficiente respecto de Serie Here Is Data",
+                        "schema": {
+                            "type": "number",
+                            "format": "double"
+                        }
+                    },
+                    {
+                        "name": "codUsuario",
+                        "in": "query",
+                        "description": "Personas - Cód. Pers.",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListaDePreciosPrecioUpdate": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Actualiza el Precio de un Concepto de una Lista de Precios para una Fecha determinada",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codListaDePrecios",
+                        "in": "query",
+                        "description": "Listas de Precios - Encabezado - Cód. Lista",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "codConcepto",
+                        "in": "query",
+                        "description": "Conceptos - Cód. Cpto.",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "vigenciaDesde",
+                        "in": "query",
+                        "description": "Vigencia Desde",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "precio",
+                        "in": "query",
+                        "description": "Precio",
+                        "schema": {
+                            "type": "number",
+                            "format": "double"
+                        }
+                    },
+                    {
+                        "name": "codUsuario",
+                        "in": "query",
+                        "description": "Personas - Cód. Pers.",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListBalanceLucius": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Devuelve un Balance con las Etiquetas del Lucius",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codEmpresa",
+                        "in": "query",
+                        "description": "Empresas - Cód. Empr.",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "fechaDesde",
+                        "in": "query",
+                        "description": "Fecha Desde",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "fechaHasta",
+                        "in": "query",
+                        "description": "Fecha Hasta",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "codMoneda",
+                        "in": "query",
+                        "description": "Monedas - Cód. Moneda",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "remedido",
+                        "in": "query",
+                        "description": "Remedido",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "omitirCierre",
+                        "in": "query",
+                        "description": "Omitir Asiento de Cierre",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "codMostrarApertura",
+                        "in": "query",
+                        "description": "Apertura: 1 - Mostrar Solo Apertura - 2 Discriminar Asiento Apertur",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "filtroRubro",
+                        "in": "query",
+                        "description": "Filtro por Rubro",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filtroActividad",
+                        "in": "query",
+                        "description": "Filtro por Actividad",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filtroMacro",
+                        "in": "query",
+                        "description": "Filtro por Macro",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filtroMicro",
+                        "in": "query",
+                        "description": "Filtro por Micro",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filtroTipo",
+                        "in": "query",
+                        "description": "Filtro por Tipo",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filtroCampo",
+                        "in": "query",
+                        "description": "Filtro por Campo",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListComprobantes": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Lista Comprobantes",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codTipoOperativoBasico",
+                        "in": "query",
+                        "description": "Operativos Básicos - Tipos - Cód. Tipo Oper.",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListConceptos": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Lista los Conceptos (incluyendo o no Grupos, Subgrupos...)",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "soloFisicos",
+                        "in": "query",
+                        "description": "Mostrar sólo Conceptos Físicos",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListConceptosListaDePrecios": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Lista los Conceptos de una Lista de Precio",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codListaDePrecios",
+                        "in": "query",
+                        "description": "Listas de Precios - Encabezado - Cód. Lista",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "soloPreciosFijos",
+                        "in": "query",
+                        "description": "Mostrar Sólo Conceptos con Precio Fijo",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListCuentasDeFondos": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Lista las Cuentas de Fondos",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codEmpresa",
+                        "in": "query",
+                        "description": "Empresas - Cód. Empr.",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "incluirPresupuestadas",
+                        "in": "query",
+                        "description": "Incluir Presupuestados",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListCuentasPlanCentrosLucius": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Lista las Cuentas del Plan de Centros de una Empresa",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codEmpresa",
+                        "in": "query",
+                        "description": "Empresas - Cód. Empr.",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "ocultarSumarias",
+                        "in": "query",
+                        "description": "Oculta las Sumarias",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListCuentasPlanGestionLucius": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Lista las Cuentas del Plan de Gestion de una Empresa",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codEmpresa",
+                        "in": "query",
+                        "description": "Empresas - Cód. Empr.",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "ocultarSumarias",
+                        "in": "query",
+                        "description": "Ocultar Sumarias",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListEmpresas": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Lista las Empresas",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListEtiquetasLucius": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Lista las Etiquetas definidas para el Lucius",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListFlujoDeFondos": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Lista el Flujo de Fondos",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codEmpresa",
+                        "in": "query",
+                        "description": "Empresas - Cód. Empr.",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "soloGestion",
+                        "in": "query",
+                        "description": "1: Excl. Sólo Gest. - 2: Incl. Sólo Gest. - 3: Sólo Gest.",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "excluirAntPendientes",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "excluirNoConciliadosDelSaldo",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListListasDePrecios": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Lista las Listas de Precios",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codListaDePrecios",
+                        "in": "query",
+                        "description": "Listas de Precios - Encabezado - Cód. Lista",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "excluirListasCompuestas",
+                        "in": "query",
+                        "description": "Excluir las Listas Compuestas",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListListasDePreciosPrecios": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Lista los Precios de una o todas las Listas de Precios",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codListaDePrecios",
+                        "in": "query",
+                        "description": "Listas de Precios - Encabezado - Cód. Lista",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListListasDePreciosPreciosVigentes": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Lista los Precios de una Lista Vigentes a una Fecha determinada",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codListaDePrecios",
+                        "in": "query",
+                        "description": "Listas de Precios - Encabezado - Cód. Lista",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "fechaVigencia",
+                        "in": "query",
+                        "description": "Fecha de Vigencia",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "soloAsociadosAHereIsData",
+                        "in": "query",
+                        "description": "Mostrar Sólo Conceptos Asociados a Here Is Data",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListLuciusReportesGenerados": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Devuelve todos los Reportes Lucius Generados",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codEmpresa",
+                        "in": "query",
+                        "description": "Empresas - Cód. Empr.",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "soloPublicados",
+                        "in": "query",
+                        "description": "Mostrar Sólo Reportes Publicados",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListMayorLucius": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Devuelve un Mayor con las Etiquetas del Lucius",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codEmpresa",
+                        "in": "query",
+                        "description": "Empresas - Cód. Empr.",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "fechaDesde",
+                        "in": "query",
+                        "description": "Fecha Desde",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "fechaHasta",
+                        "in": "query",
+                        "description": "Fecha Hasta",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "codMoneda",
+                        "in": "query",
+                        "description": "Monedas - Cód. Moneda",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "remedido",
+                        "in": "query",
+                        "description": "Remedido",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "omitirCierre",
+                        "in": "query",
+                        "description": "Omitir Asiento de Cierre",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "codMostrarApertura",
+                        "in": "query",
+                        "description": "Apertura: 1 - Mostrar Solo Apertura - 2 Discriminar Asiento Apertur",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "filtroRubro",
+                        "in": "query",
+                        "description": "Filtro por Rubro",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filtroActividad",
+                        "in": "query",
+                        "description": "Filtro por Actividad",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filtroMacro",
+                        "in": "query",
+                        "description": "Filtro por Macro",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filtroMicro",
+                        "in": "query",
+                        "description": "Filtro por Micro",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filtroTipo",
+                        "in": "query",
+                        "description": "Filtro por Tipo",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "filtroCampo",
+                        "in": "query",
+                        "description": "Filtro por Campo",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListMayorReporteLucius": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Lista un Mayor utilizado en los Reporte Lucius",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codReporteLuciusGenerado",
+                        "in": "query",
+                        "description": "Lucius - Reportes Generados - codReporteLuciusGenerado",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "codTipoMayor",
+                        "in": "query",
+                        "description": "Tipo de Mayor (0: Real - 1: Ppto. Orig. - 2: Ppto. Actualiz.)",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListMonedas": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Lista las Monedas e Indices",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListPersonas": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Lista las Personas",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListPlanDeCuentasCuentas": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Obtiene las Cuentas de un Plan de Cuentas",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codPlan",
+                        "in": "query",
+                        "description": "Planes de Cuentas - Encabezados - Cód. Plan (PlanesDeCuentas - codPlan)",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListPlanesDeCuentas": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Lista los Planes de Cuentas",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListReporteLuciusGenerado": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Lista un Reporte Lucius Previamente Generado con PrepareReporteLucius2",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codReporteLuciusGenerado",
+                        "in": "query",
+                        "description": "Lucius - Reportes Generados - Encabezado - codReporteLuciusGenerado",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "codReporteLucius",
+                        "in": "query",
+                        "description": "Lucius - Reportes - codReporteLucius",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "codActividadPerfilImputacion",
+                        "in": "query",
+                        "description": "Perfiles de Imputación - Actividades - codActividadPerfilImputacion",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "codCuentaCentro",
+                        "in": "query",
+                        "description": "Planes de Cuentas - Cuentas - Cód. Cuenta",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "formatoApi",
+                        "in": "query",
+                        "description": "",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListReportesLuciusDefinidos": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Lista los Reportes del Lucius definidos",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListTiposReportesLucius": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Lista los Tipos de Reportes del Lucius",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListUnidades": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Lista las Unidades",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListUsuarios": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Lista los Usuarios del GestorMax",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListBalance": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Devuelve el Balance de una Empresa",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codEmpresa",
+                        "in": "query",
+                        "description": "Empresas - Cód. Empr.",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "soloGestion",
+                        "in": "query",
+                        "description": "Datos de Solo Gestión: 1 - Excluir S.G. | 2 - Incluir S.G. | 3 - Sólo Movs. S.G",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "codFechaDocAlic",
+                        "in": "query",
+                        "description": "Tipos de Fechas: 1 - Cód. Fecha Doc. | 2 - Cód. Fecha Alic.",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "codMoneda",
+                        "in": "query",
+                        "description": "Monedas - Cód. Moneda",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "codImputacion",
+                        "in": "query",
+                        "description": "Imputaciones - Prioridades: 1 - Gestión | 2: Contabilidad",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "mostrarCentros",
+                        "in": "query",
+                        "description": "Mostrar Centros de Costos",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "fechaDesde",
+                        "in": "query",
+                        "description": "Fecha Desde",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "fechaHasta",
+                        "in": "query",
+                        "description": "Fecha Hasta",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "acumularSaldosSumarias",
+                        "in": "query",
+                        "description": "Acumula Saldos Sumarias",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "mostrarDatosFisicos",
+                        "in": "query",
+                        "description": "Mostrar Datos Físicos",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "mostrarValoresBase",
+                        "in": "query",
+                        "description": "Mostrar Valores Base",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "codMostrarApertura",
+                        "in": "query",
+                        "description": "Apertura: 1 - Mostrar Solo Apertura | 2 - Discriminar Asiento Apertura | Vacío - Muestra todo",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "generarAjustesRedondeo",
+                        "in": "query",
+                        "description": "Generar Ajustes x Redondeo",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "generarAjustesDevaluacion",
+                        "in": "query",
+                        "description": "Generar Ajustes x Devaulación",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "omitirAsientoCierre",
+                        "in": "query",
+                        "description": "_omitirAsientoCierre",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v3/GestorG4/ListMayor": {
+            "get": {
+                "tags": [
+                    "GestorG4"
+                ],
+                "summary": "Devuelve el Mayor de una Empresa",
+                "parameters": [
+                    {
+                        "name": "databaseId",
+                        "in": "query",
+                        "description": "Id de la Base de Datos",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "codEmpresa",
+                        "in": "query",
+                        "description": "Empresas - Cód. Empr.",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "soloGestion",
+                        "in": "query",
+                        "description": "Datos de Solo Gestión: 1 - Excluir S.G. | 2 - Incluir S.G. | 3 - Sólo Movs. S.G",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "codFechaDocAlic",
+                        "in": "query",
+                        "description": "Tipos de Fechas: 1 - Cód. Fecha Doc. | 2 - Cód. Fecha Alic.",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "codMoneda",
+                        "in": "query",
+                        "description": "Monedas - Cód. Moneda",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "codImputacion",
+                        "in": "query",
+                        "description": "Imputaciones - Prioridades: 1 - Gestión | 2: Contabilidad",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "mostrarCentros",
+                        "in": "query",
+                        "description": "Mostrar Centros de Costos",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "fechaDesde",
+                        "in": "query",
+                        "description": "Fecha Desde",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "fechaHasta",
+                        "in": "query",
+                        "description": "Fecha Hasta",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "mostrarDatosFisicos",
+                        "in": "query",
+                        "description": "Mostrar Datos Físicos",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "mostrarValoresBase",
+                        "in": "query",
+                        "description": "Mostrar Valores Base",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "codMostrarApertura",
+                        "in": "query",
+                        "description": "Apertura: 1 - Mostrar Solo Apertura | 2 - Discriminar Asiento Apertura | Vacío - Muestra todo",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    {
+                        "name": "generarAjustesRedondeo",
+                        "in": "query",
+                        "description": "Generar Ajustes x Redondeo",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "generarAjustesDevaluacion",
+                        "in": "query",
+                        "description": "Generar Ajustes x Devaulación",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "omitirAsientoCierre",
+                        "in": "query",
+                        "description": "Omitir Asiento de Cierre",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
                 }
             }
         }
-    }
+    },
+    "components": {
+        "schemas": {
+            "Concept": {
+                "type": "object",
+                "properties": {
+                    "descripcion": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "cantidad": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "precio": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "unidades": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "alicuotaIVA": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "baseCalculoPercepcion": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "alicuotaPercepcion": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "codJurisdiccionIIBB": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "totalConcepto": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "totalIVA": {
+                        "type": "number",
+                        "format": "double"
+                    }
+                },
+                "additionalProperties": false
+            },
+            "Invoice": {
+                "type": "object",
+                "properties": {
+                    "esCompra": {
+                        "type": "boolean"
+                    },
+                    "codComprobanteAfip": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "puntoVenta": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "numeroComprobante": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "condicionVenta": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "codInternoMonedaAFIP": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "cotizacion": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "fecha": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "persona": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "codTipoDocumentoAFIP": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "nroDocumento": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "condicionIva": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "direccion": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "localidad": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "provincia": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "codPostal": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "telefono": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "total": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "totalExento": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "totalGravado": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "totalNoGravado": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "totalPercepIIBB": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "totalPercepMun": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "totalPercepNac": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "totalPercepNoCateg": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "totalImpuestosInt": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "totalIVA": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "cai": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "fechaVencCAI": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "fileName": {
+                        "type": [
+                            "null",
+                            "string"
+                        ]
+                    },
+                    "fileData": {
+                        "type": [
+                            "null",
+                            "string"
+                        ],
+                        "format": "byte"
+                    },
+                    "concepts": {
+                        "type": [
+                            "null",
+                            "array"
+                        ],
+                        "items": {
+                            "$ref": "#/components/schemas/Concept"
+                        }
+                    }
+                },
+                "additionalProperties": false
+            }
+        },
+        "securitySchemes": {
+            "API Key": {
+                "type": "apiKey",
+                "description": "Authorization API Key",
+                "name": "X-Api-Key",
+                "in": "header"
+            }
+        }
+    },
+    "security": [
+        {
+            "API Key": []
+        }
+    ],
+    "tags": [
+        {
+            "name": "Analytics"
+        },
+        {
+            "name": "Gestor"
+        },
+        {
+            "name": "GestorG4"
+        }
+    ]
 }

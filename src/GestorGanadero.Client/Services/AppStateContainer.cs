@@ -22,6 +22,7 @@ namespace GestorGanadero.Client.Services
         private UserProfile? _currentUser;
         private DateRange? _activeDateRange;
         private List<TenantMessage> _availableTenants = new();
+        private bool _isSuperAdmin;
 
         public string ActiveTenantId
         {
@@ -69,6 +70,16 @@ namespace GestorGanadero.Client.Services
             set
             {
                 _activeDateRange = value;
+                NotifyStateChanged();
+            }
+        }
+
+        public bool IsSuperAdmin
+        {
+            get => _isSuperAdmin;
+            set
+            {
+                _isSuperAdmin = value;
                 NotifyStateChanged();
             }
         }

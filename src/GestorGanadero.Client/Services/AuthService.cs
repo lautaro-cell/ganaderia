@@ -41,6 +41,7 @@ namespace GestorGanadero.Client.Services
 
                 _state.ActiveTenantId = result.TenantId;
                 _state.ActiveTenantName = result.TenantName;
+                _state.IsSuperAdmin = result.IsSuperAdmin;
 
                 return true;
             }
@@ -71,6 +72,7 @@ namespace GestorGanadero.Client.Services
                 var tenantList = await _grpcClient.GetAvailableTenantsAsync(new Google.Protobuf.WellKnownTypes.Empty());
 
                 _state.CurrentUser = profile;
+                _state.IsSuperAdmin = profile.IsSuperAdmin;
                 _state.AvailableTenants = tenantList.Tenants.ToList();
 
                 if (_state.AvailableTenants.Any())
@@ -101,6 +103,7 @@ namespace GestorGanadero.Client.Services
             public string Token { get; set; } = string.Empty;
             public string TenantId { get; set; } = string.Empty;
             public string TenantName { get; set; } = string.Empty;
+            public bool IsSuperAdmin { get; set; }
         }
     }
 }

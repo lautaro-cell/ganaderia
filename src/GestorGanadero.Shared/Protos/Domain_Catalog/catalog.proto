@@ -35,6 +35,10 @@ service CatalogService {
   rpc DeleteAccount (common.v1.DeleteEntityRequest) returns (common.v1.ActionResponse);
 
   rpc GetPlanes (GetCatalogRequest) returns (PlanCuentaList);
+  rpc CreatePlan (PlanCuentaMessage) returns (common.v1.ActionResponse);
+  rpc UpdatePlan (PlanCuentaMessage) returns (common.v1.ActionResponse);
+  rpc DeletePlan (common.v1.DeleteEntityRequest) returns (common.v1.ActionResponse);
+
   rpc GetErpConcepts (GetCatalogRequest) returns (ErpConceptList);
 
   // Tarea 2.3: cuentas del ERP para selector en configuración contable

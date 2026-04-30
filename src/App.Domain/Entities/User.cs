@@ -13,6 +13,8 @@ public class User : BaseAuditableEntity
     public UserRole Role { get; set; }
     public bool IsActive { get; set; } = true;
     public Instant? LastLoginAt { get; set; }
+    public string? PasswordResetToken { get; set; }
+    public Instant? PasswordResetTokenExpiry { get; set; }
 
     public Tenant? Tenant { get; set; }
     public ICollection<UserField> UserFields { get; set; } = new List<UserField>();

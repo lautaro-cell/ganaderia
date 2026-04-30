@@ -6,102 +6,149 @@
 @inject IJSRuntime JS
 
 <div class="flex flex-col gap-6">
-    <!-- Header -->
-    <div class="flex items-center gap-3">
-        <span class="material-symbols-outlined text-primary text-2xl">grid_view</span>
-        <h2 class="text-white text-xl font-bold">Gestión de Planes de Cuenta</h2>
+    <!-- Breadcrumbs -->
+    <div class="flex items-center gap-2 text-[11px] font-medium text-text-secondary uppercase tracking-widest opacity-60">
+        <a href="/" class="hover:text-white transition-colors no-underline">Inicio</a>
+        <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+        <span class="cursor-default">Administración</span>
+        <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+        <span class="text-primary font-bold">Planes de Cuenta</span>
     </div>
-    <p class="text-text-secondary text-sm -mt-4">Definición de los planes contables del sistema.</p>
+
+    <!-- Header -->
+    <div class="flex flex-col gap-1">
+        <h2 class="text-white text-2xl font-bold tracking-tight flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">grid_view</span>
+            Gestión de Planes
+        </h2>
+        <p class="text-text-secondary text-sm">Defina los diferentes planes contables para agrupar sus cuentas.</p>
+    </div>
 
     <!-- Table -->
-    <div class="bg-background-main border border-border-dark rounded-2xl overflow-hidden shadow-xl shadow-black/20">
-        <table class="w-full text-left text-sm">
-            <thead class="bg-surface-darker text-text-secondary uppercase text-[10px] tracking-widest">
-                <tr>
-                    <th class="px-6 py-4">Código</th>
-                    <th class="px-6 py-4">Nombre</th>
-                    <th class="px-6 py-4 text-right">Acciones</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-border-dark">
-                @if (_items == null)
-                {
-                    <tr>
-                        <td colspan="3" class="px-6 py-8 text-center text-text-secondary">
-                            <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto"></div>
-                        </td>
+    <div class="overflow-hidden rounded-xl border border-border-dark bg-surface-dark shadow-xl">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-surface-darker/50 border-b border-border-dark">
+                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-text-secondary">Código</th>
+                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-text-secondary">Nombre del Plan</th>
+                        <th class="px-6 py-4 text-xs font-bold uppercase tracking-wider text-text-secondary text-right">Acciones</th>
                     </tr>
-                }
-                else if (!_items.Any())
-                {
-                    <tr>
-                        <td colspan="3" class="px-6 py-8 text-center text-text-secondary">No hay planes registrados</td>
-                    </tr>
-                }
-                else
-                {
-                    @foreach (var p in _items)
+                </thead>
+                <tbody class="divide-y divide-border-dark/30">
+                    @if (_items == null)
                     {
-                        <tr class="hover:bg-surface-dark transition-colors">
-                            <td class="px-6 py-4 text-primary font-mono font-bold">@p.Code</td>
-                            <td class="px-6 py-4 text-white font-bold">@p.Name</td>
-                            <td class="px-6 py-4 text-right">
-                                <button class="p-1.5 text-text-secondary hover:text-white rounded-lg transition-colors" title="Editar" @onclick="() => Sel(p)">
-                                    <span class="material-symbols-outlined text-[18px]">edit</span>
-                                </button>
-                                <button class="p-1.5 text-text-secondary hover:text-red-400 rounded-lg transition-colors" title="Eliminar" @onclick="() => Del(p)">
-                                    <span class="material-symbols-outlined text-[18px]">delete</span>
-                                </button>
+                        <tr>
+                            <td colspan="3" class="px-6 py-10 text-center">
+                                <div class="flex flex-col items-center gap-3">
+                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                    <p class="text-text-secondary text-sm font-medium">Cargando planes...</p>
+                                </div>
                             </td>
                         </tr>
                     }
-                }
-            </tbody>
-        </table>
+                    else if (!_items.Any())
+                    {
+                        <tr>
+                            <td colspan="3" class="px-6 py-10 text-center text-text-disabled">No hay planes registrados.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var p in _items)
+                        {
+                            <tr class="hover:bg-white/5 transition-colors group">
+                                <td class="px-6 py-4 text-primary font-mono text-xs font-bold uppercase">@p.Code</td>
+                                <td class="px-6 py-4 text-white font-bold text-sm">@p.Name</td>
+                                <td class="px-6 py-4 text-right">
+                                    <div class="flex items-center justify-end gap-1">
+                                        <button class="p-2 hover:bg-surface-darker rounded-lg text-text-secondary hover:text-white transition-colors" @onclick="() => Sel(p)">
+                                            <span class="material-symbols-outlined text-lg">edit</span>
+                                        </button>
+                                        <button class="p-2 hover:bg-red-500/10 rounded-lg text-text-secondary hover:text-red-400 transition-colors" @onclick="() => Del(p)">
+                                            <span class="material-symbols-outlined text-lg">delete</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 
-    <!-- Create/Edit Form -->
-    <div class="bg-background-main rounded-2xl border border-border-dark p-6">
-        <h3 class="text-white font-bold flex items-center gap-2 mb-6">
-            <span class="material-symbols-outlined text-primary">add_circle</span> @(string.IsNullOrEmpty(_sel?.Id) ? "Crear Plan de Cuenta" : "Editar Plan de Cuenta")
+    <!-- Create/Edit Form Section -->
+    <div class="mt-4 flex flex-col gap-4">
+        <h3 class="text-white text-lg font-bold flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">@(string.IsNullOrEmpty(_sel?.Id) ? "add_circle" : "edit_square")</span>
+            @(string.IsNullOrEmpty(_sel?.Id) ? "Crear Plan" : "Editar Plan")
         </h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input type="text" @bind="_sel.Code" class="w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 py-3 text-white focus:ring-primary outline-none" placeholder="Código (ej: ACT)" />
-            <input type="text" @bind="_sel.Name" class="w-full bg-[#271c1c] border-[#543b3b] rounded-xl px-4 py-3 text-white focus:ring-primary outline-none" placeholder="Nombre" />
 
-            <button class="md:col-span-2 w-full bg-primary hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2" @onclick="Save">
-                <span class="material-symbols-outlined text-[20px]">save</span> @(string.IsNullOrEmpty(_sel.Id) ? "Crear" : "Actualizar") Plan
-            </button>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input type="text" @bind="_sel.Code" class="w-full bg-surface-darker border border-border-dark rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary transition-colors font-mono uppercase" placeholder="Código (ej: ACT)" />
+            <input type="text" @bind="_sel.Name" class="w-full bg-surface-darker border border-border-dark rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary transition-colors" placeholder="Nombre descriptivo" />
         </div>
+
+        <button class="flex items-center justify-center gap-2 w-full h-12 bg-primary hover:bg-red-700 transition-colors text-white font-bold rounded-xl shadow-lg shadow-primary/20 disabled:opacity-50" 
+                @onclick="Save" disabled="@_saving">
+            @if (_saving)
+            {
+                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+            }
+            else
+            {
+                <span class="material-symbols-outlined">save</span>
+            }
+            <span>@(string.IsNullOrEmpty(_sel.Id) ? "Crear Plan" : "Guardar Cambios")</span>
+        </button>
+
+        @if (!string.IsNullOrEmpty(_sel.Id))
+        {
+            <button class="text-text-secondary hover:text-white text-xs font-bold uppercase tracking-widest transition-colors mt-1" @onclick="CancelEdit">
+                Cancelar Edición
+            </button>
+        }
     </div>
 </div>
 
 @code {
     private List<PlanCuentaMessage>? _items;
     private PlanCuentaMessage _sel = new();
+    private bool _saving;
 
     protected override async Task OnInitializedAsync() => await Load();
 
     private async Task Load() {
         if (string.IsNullOrEmpty(State.ActiveTenantId)) return;
-        var r = await GrpcClient.GetPlanesAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
-        _items = r.Planes.ToList();
-        _sel.TenantId = State.ActiveTenantId;
+        try {
+            var r = await GrpcClient.GetPlanesAsync(new GetCatalogRequest { TenantId = State.ActiveTenantId });
+            _items = r.Planes.ToList();
+            _sel.TenantId = State.ActiveTenantId;
+        } catch (Exception ex) { Console.WriteLine(ex.Message); }
     }
 
     private void Sel(PlanCuentaMessage p) => _sel = new PlanCuentaMessage { Id = p.Id, Code = p.Code, Name = p.Name, TenantId = State.ActiveTenantId };
 
+    private void CancelEdit() => _sel = new PlanCuentaMessage { TenantId = State.ActiveTenantId };
+
     private async Task Save() {
-        if (string.IsNullOrWhiteSpace(_sel.Code)) return;
-        if (string.IsNullOrEmpty(_sel.Id)) await GrpcClient.CreateEventTypeAsync(new EventTypeMessage { Code = _sel.Code, Name = _sel.Name, TenantId = _sel.TenantId }); // Fixme: need correct DTO
-        else await GrpcClient.UpdateEventTypeAsync(new EventTypeMessage { Id = _sel.Id, Code = _sel.Code, Name = _sel.Name, TenantId = _sel.TenantId });
-        _sel = new PlanCuentaMessage { TenantId = State.ActiveTenantId };
-        await Load();
+        if (string.IsNullOrWhiteSpace(_sel.Code) || string.IsNullOrWhiteSpace(_sel.Name)) return;
+        _saving = true; StateHasChanged();
+        try {
+            if (string.IsNullOrEmpty(_sel.Id)) await GrpcClient.CreatePlanAsync(_sel);
+            else await GrpcClient.UpdatePlanAsync(_sel);
+            CancelEdit();
+            await Load();
+        } catch (Exception ex) { Console.WriteLine(ex.Message); }
+        finally { _saving = false; StateHasChanged(); }
     }
 
     private async Task Del(PlanCuentaMessage p) {
-        if (!await JS.InvokeAsync<bool>("confirm", "Eliminar?")) return;
-        await GrpcClient.DeleteEventTypeAsync(new DeleteEntityRequest { Id = p.Id, TenantId = State.ActiveTenantId });
-        await Load();
+        if (!await JS.InvokeAsync<bool>("confirm", $"¿Eliminar plan '{p.Name}'?")) return;
+        try {
+            await GrpcClient.DeletePlanAsync(new DeleteEntityRequest { Id = p.Id, TenantId = State.ActiveTenantId });
+            await Load();
+        } catch (Exception ex) { Console.WriteLine(ex.Message); }
     }
 }

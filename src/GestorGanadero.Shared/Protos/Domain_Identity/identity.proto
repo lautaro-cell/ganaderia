@@ -12,10 +12,13 @@ service IdentityService {
   rpc InviteUser (InviteUserRequest) returns (common.v1.ActionResponse);
   rpc UpdateUser (UserMessage) returns (common.v1.ActionResponse);
   rpc DeleteUser (common.v1.DeleteEntityRequest) returns (common.v1.ActionResponse);
+  rpc SetPassword (SetPasswordRequest) returns (common.v1.ActionResponse);
 
-  // Tenant Management
+  // SuperAdmin — Tenant Management
   rpc GetAllTenants (google.protobuf.Empty) returns (TenantList);
+  rpc CreateTenant (CreateTenantRequest) returns (common.v1.ActionResponse);
   rpc UpdateTenant (TenantMessage) returns (common.v1.ActionResponse);
+  rpc DeleteTenant (common.v1.DeleteEntityRequest) returns (common.v1.ActionResponse);
 
   // Module 3 — Empresa / ERP connectivity
   rpc SaveCompanyConfiguration (SaveCompanyConfigurationRequest) returns (common.v1.ActionResponse);
@@ -46,6 +49,7 @@ message UserProfile {
   string role = 4;
   string active_tenant_id = 5;
   string profile_image_url = 6;
+  bool is_super_admin = 7;
 }
 
 message InviteUserRequest {
@@ -111,4 +115,14 @@ message CompanyStatusResponse {
 
 message TriggerSyncRequest {
   string tenant_id = 1;
+}
+
+message CreateTenantRequest {
+  string name = 1;
+  string description = 2;
+}
+
+message SetPasswordRequest {
+  string token = 1;
+  string new_password = 2;
 }

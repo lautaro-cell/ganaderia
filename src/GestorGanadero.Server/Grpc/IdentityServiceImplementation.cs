@@ -12,6 +12,8 @@ namespace GestorGanadero.Server.Grpc;
 public class IdentityServiceImplementation : IdentityService.IdentityServiceBase
 {
     private readonly IUserService _userService;
+    private readonly ITenantManagementService _tenantManagement;
+    private readonly ICurrentUserProvider _currentUserProvider;
     private readonly IErpConnectivityService _connectivity;
     private readonly ICompanyConfigurationService _companyConfig;
     private readonly IErpSyncService _syncService;
@@ -19,12 +21,16 @@ public class IdentityServiceImplementation : IdentityService.IdentityServiceBase
 
     public IdentityServiceImplementation(
         IUserService userService,
+        ITenantManagementService tenantManagement,
+        ICurrentUserProvider currentUserProvider,
         IErpConnectivityService connectivity,
         ICompanyConfigurationService companyConfig,
         IErpSyncService syncService,
         ILogger<IdentityServiceImplementation> logger)
     {
         _userService = userService;
+        _tenantManagement = tenantManagement;
+        _currentUserProvider = currentUserProvider;
         _connectivity = connectivity;
         _companyConfig = companyConfig;
         _syncService = syncService;
@@ -38,10 +44,11 @@ public class IdentityServiceImplementation : IdentityService.IdentityServiceBase
         {
             Id = profile.Id.ToString(),
             Email = profile.Email,
-            Name = profile.Email.Split('@')[0],
+            Name = profile.Name ?? profile.Email.Split('@')[0],
             Role = profile.Role.ToString(),
             ActiveTenantId = profile.TenantId.ToString(),
-            ProfileImageUrl = ""
+            ProfileImageUrl = "",
+            IsSuperAdmin = _currentUserProvider.IsSuperAdmin
         };
     }
 
@@ -102,12 +109,28 @@ public class IdentityServiceImplementation : IdentityService.IdentityServiceBase
 
     public override async Task<TenantList> GetAllTenants(Empty request, ServerCallContext context)
     {
-        var tenants = await _userService.GetAvailableTenantsAsync();
+        List<TenantDto> tenants;
+
+        if (_currentUserProvider.IsSuperAdmin)
+        {
+            tenants = (await _tenantManagement.GetAllTenantsAsync()).ToList();
+        }
+        else
+        {
+            tenants = (await _userService.GetAvailableTenantsAsync()).ToList();
+        }
+
         var response = new TenantList();
 
         foreach (var t in tenants)
         {
-            var status = await _connectivity.GetStatusAsync(t.Id, context.CancellationToken);
+            ErpIntegrationStatusDto? status = null;
+            try
+            {
+                status = await _connectivity.GetStatusAsync(t.Id, context.CancellationToken);
+            }
+            catch { }
+
             response.Tenants.Add(new TenantMessage
             {
                 Id = t.Id.ToString(),
@@ -123,21 +146,89 @@ public class IdentityServiceImplementation : IdentityService.IdentityServiceBase
         return response;
     }
 
+    public override async Task<ActionResponse> CreateTenant(CreateTenantRequest request, ServerCallContext context)
+    {
+        try
+        {
+            var tenant = await _tenantManagement.CreateTenantAsync(request.Name, request.Description);
+            return new ActionResponse { Success = true, Message = $"Empresa '{tenant.Name}' creada.", ObjectId = tenant.Id.ToString() };
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            throw new RpcException(new Status(StatusCode.PermissionDenied, ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al crear empresa");
+            return new ActionResponse { Success = false, Message = ex.Message };
+        }
+    }
+
     public override async Task<ActionResponse> UpdateTenant(TenantMessage request, ServerCallContext context)
     {
         try
         {
-            await _userService.UpdateTenantAsync(new TenantDto(
+            var dto = new TenantDto(
                 Guid.Parse(request.Id),
                 request.Name,
                 request.GestorMaxDatabaseId,
                 NodaTime.Instant.FromDateTimeUtc(DateTime.UtcNow),
-                request.GestorMaxApiKey));
+                request.GestorMaxApiKey);
+
+            if (_currentUserProvider.IsSuperAdmin)
+            {
+                await _tenantManagement.UpdateTenantAsync(dto);
+            }
+            else
+            {
+                await _userService.UpdateTenantAsync(dto);
+            }
+
             return new ActionResponse { Success = true, Message = "Empresa actualizada correctamente." };
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            throw new RpcException(new Status(StatusCode.PermissionDenied, ex.Message));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error actualizando empresa");
+            return new ActionResponse { Success = false, Message = ex.Message };
+        }
+    }
+
+    public override async Task<ActionResponse> DeleteTenant(DeleteEntityRequest request, ServerCallContext context)
+    {
+        try
+        {
+            await _tenantManagement.DeleteTenantAsync(Guid.Parse(request.Id));
+            return new ActionResponse { Success = true, Message = "Empresa eliminada correctamente." };
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            throw new RpcException(new Status(StatusCode.PermissionDenied, ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al eliminar empresa");
+            return new ActionResponse { Success = false, Message = ex.Message };
+        }
+    }
+
+    public override async Task<ActionResponse> SetPassword(SetPasswordRequest request, ServerCallContext context)
+    {
+        try
+        {
+            await _userService.SetPasswordAsync(request.Token, request.NewPassword);
+            return new ActionResponse { Success = true, Message = "Contraseña configurada correctamente." };
+        }
+        catch (KeyNotFoundException ex)
+        {
+            throw new RpcException(new Status(StatusCode.NotFound, ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al configurar contraseña");
             return new ActionResponse { Success = false, Message = ex.Message };
         }
     }
