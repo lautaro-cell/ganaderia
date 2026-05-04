@@ -29,7 +29,6 @@ services:
     networks:
       - default
       - web_traffic
-      - gestor_ot
 
 volumes:
   postgres_data:
