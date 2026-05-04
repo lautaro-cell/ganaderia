@@ -20,7 +20,7 @@
 
     <div class="flex flex-1 justify-end gap-4 items-center">
         <!-- Tenant Selector -->
-        @if (State.AvailableTenants != null && State.AvailableTenants.Any())
+        @if (State.IsSuperAdmin && State.AvailableTenants != null && State.AvailableTenants.Any())
         {
             <div class="relative group">
                 <select @onchange="OnTenantChanged" value="@State.ActiveTenantId" class="min-w-[180px] max-w-[280px] cursor-pointer rounded-lg h-10 px-4 bg-surface-dark border border-border-dark hover:bg-border-dark hover:border-primary/50 transition-colors text-white text-sm font-bold appearance-none pr-10 outline-none focus:border-primary focus:ring-1 focus:ring-primary">
@@ -31,12 +31,6 @@
                 </select>
                 <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" style="font-size: 20px;">expand_more</span>
             </div>
-        }
-        else
-        {
-            <select disabled class="min-w-[180px] max-w-[280px] cursor-not-allowed rounded-lg h-10 px-4 bg-surface-dark border border-border-dark text-text-disabled text-sm font-bold appearance-none">
-                <option>Cargando empresas...</option>
-            </select>
         }
 
         <!-- User Info -->
@@ -76,13 +70,6 @@
                             <span class="material-symbols-outlined text-lg">account_circle</span>
                             <span class="text-sm">Mi Perfil</span>
                         </button>
-                        @if (!State.IsSuperAdmin)
-                        {
-                            <button @onclick="GoToEmpresaConfig" class="w-full flex items-center gap-3 px-4 py-2.5 text-left text-text-secondary hover:text-white hover:bg-[#271c1c] transition-colors border-none bg-transparent">
-                                <span class="material-symbols-outlined text-lg">business</span>
-                                <span class="text-sm">Configurar Empresa</span>
-                            </button>
-                        }
                         <button @onclick="Logout" class="w-full flex items-center gap-3 px-4 py-2.5 text-left text-red-400 hover:text-red-300 hover:bg-red-900/20 transition-colors border-none bg-transparent">
                             <span class="material-symbols-outlined text-lg">logout</span>
                             <span class="text-sm">Cerrar Sesión</span>
@@ -111,12 +98,6 @@
     {
         _dropdownOpen = false;
         Nav.NavigateTo("/perfil");
-    }
-
-    private void GoToEmpresaConfig()
-    {
-        _dropdownOpen = false;
-        Nav.NavigateTo("/admin/empresas");
     }
 
     private async Task Logout()

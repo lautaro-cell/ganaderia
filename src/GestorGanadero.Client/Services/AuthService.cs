@@ -43,6 +43,8 @@ namespace GestorGanadero.Client.Services
                 _state.ActiveTenantName = result.TenantName;
                 _state.IsSuperAdmin = result.IsSuperAdmin;
 
+                await _js.InvokeVoidAsync("localStorage.setItem", "isSuperAdmin", result.IsSuperAdmin ? "1" : "0");
+
                 return true;
             }
             catch (Exception ex)
@@ -55,9 +57,11 @@ namespace GestorGanadero.Client.Services
         public async Task LogoutAsync()
         {
             await _js.InvokeVoidAsync("localStorage.removeItem", "authToken");
+            await _js.InvokeVoidAsync("localStorage.removeItem", "isSuperAdmin");
             _state.CurrentUser = null;
             _state.ActiveTenantId = string.Empty;
             _state.ActiveTenantName = string.Empty;
+            _state.IsSuperAdmin = false;
             _state.AvailableTenants.Clear();
         }
 
@@ -66,22 +70,32 @@ namespace GestorGanadero.Client.Services
             var token = await _js.InvokeAsync<string>("localStorage.getItem", "authToken");
             if (string.IsNullOrEmpty(token)) return;
 
+            var cachedSuperAdmin = await _js.InvokeAsync<string>("localStorage.getItem", "isSuperAdmin");
+            _state.IsSuperAdmin = cachedSuperAdmin == "1";
+
             try
             {
                 var profile = await _grpcClient.GetMyProfileAsync(new Google.Protobuf.WellKnownTypes.Empty());
+                _state.CurrentUser = profile;
+                _state.IsSuperAdmin = profile.IsSuperAdmin || _state.IsSuperAdmin;
 
                 TenantList tenantList;
                 if (profile.IsSuperAdmin)
                 {
-                    tenantList = await _grpcClient.GetAllTenantsAsync(new Google.Protobuf.WellKnownTypes.Empty());
+                    try
+                    {
+                        tenantList = await _grpcClient.GetAllTenantsAsync(new Google.Protobuf.WellKnownTypes.Empty());
+                    }
+                    catch
+                    {
+                        tenantList = await _grpcClient.GetAvailableTenantsAsync(new Google.Protobuf.WellKnownTypes.Empty());
+                    }
                 }
                 else
                 {
                     tenantList = await _grpcClient.GetAvailableTenantsAsync(new Google.Protobuf.WellKnownTypes.Empty());
                 }
 
-                _state.CurrentUser = profile;
-                _state.IsSuperAdmin = profile.IsSuperAdmin;
                 _state.AvailableTenants = tenantList.Tenants.ToList();
 
                 if (_state.AvailableTenants.Any())

@@ -60,7 +60,7 @@
     private void UpdateVisibleSections()
     {
         _visibleSections = Enum.GetValues<Section>()
-            .Where(s => s != Section.Empresas || State.IsSuperAdmin)
+            .Where(s => s != Section.Empresas)
             .ToList();
     }
 

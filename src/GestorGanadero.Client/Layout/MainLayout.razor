@@ -1,6 +1,7 @@
 @inherits LayoutComponentBase
 @using GestorGanadero.Client.Layout
 @using GestorGanadero.Client.Services
+@implements IDisposable
 @inject AppStateContainer State
 
 <div class="bg-background-main text-text-body font-display min-h-screen flex flex-col">
@@ -13,9 +14,6 @@
             </NavLink>
             <NavLink href="reportes/mayor" class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-text-secondary hover:text-white transition-colors pb-3 pt-4 px-2 min-w-fit no-underline" ActiveClass="!border-b-primary !text-white">
                 <span class="text-sm font-bold leading-normal tracking-tight">Mayor</span>
-            </NavLink>
-            <NavLink href="reportes/balance" class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-text-secondary hover:text-white transition-colors pb-3 pt-4 px-2 min-w-fit no-underline" ActiveClass="!border-b-primary !text-white">
-                <span class="text-sm font-bold leading-normal tracking-tight">Balance</span>
             </NavLink>
             <NavLink href="reportes/balance" class="flex flex-col items-center justify-center border-b-[3px] border-b-transparent text-text-secondary hover:text-white transition-colors pb-3 pt-4 px-2 min-w-fit no-underline" ActiveClass="!border-b-primary !text-white">
                 <span class="text-sm font-bold leading-normal tracking-tight">Balance</span>
@@ -36,3 +34,15 @@
         @Body
     </main>
 </div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        State.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        State.OnChange -= StateHasChanged;
+    }
+}

@@ -36,7 +36,14 @@ public class HttpContextCurrentUserProvider : ICurrentUserProvider
             if (context?.User == null) return false;
 
             var roleClaim = context.User.FindFirst("role");
-            return roleClaim != null && roleClaim.Value.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase);
+            if (roleClaim != null && roleClaim.Value.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            var superClaim = context.User.FindFirst("is_super_admin");
+            if (superClaim != null && superClaim.Value.Equals("true", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            return false;
         }
     }
 }
