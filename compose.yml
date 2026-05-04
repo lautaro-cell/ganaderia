@@ -37,5 +37,3 @@ volumes:
 networks:
   web_traffic:
     external: true
-  gestor_ot:
-    external: true
