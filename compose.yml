@@ -3,6 +3,8 @@ services:
     image: postgres:16
     container_name: gestorganadero-db
     restart: always
+    environment:
+      - TZ=UTC
     env_file:
       - .env
     ports:
