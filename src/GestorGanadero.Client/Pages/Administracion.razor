@@ -1,6 +1,8 @@
 @page "/admin"
+@page "/admin/{tab}"
 @using GestorGanadero.Client.Components.Admin
 @using GestorGanadero.Client.Services
+@using Microsoft.AspNetCore.Components
 @inject AppStateContainer State
 @implements IDisposable
 
@@ -11,7 +13,7 @@
 
 <!-- Tabs Pills -->
 <div class="flex flex-wrap gap-2 mb-8">
-    @foreach (var section in Enum.GetValues<Section>())
+    @foreach (var section in _visibleSections)
     {
         <button class="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all border @(_section == section ? "bg-primary text-white border-primary" : "bg-surface-dark border-border-dark text-text-secondary hover:bg-surface-darker hover:border-text-secondary")" @onclick='() => _section = section'>
             <span class="material-symbols-outlined text-lg">@GetIcon(section)</span> @GetLabel(section)
@@ -39,6 +41,36 @@
 @code {
     private enum Section { Campos, Actividades, Categorias, TiposEvento, Cuentas, Planes, Empresas, Auditores, Usuarios }
     private Section _section = Section.Campos;
+    private List<Section> _visibleSections = new();
+
+    [Parameter] public string? Tab { get; set; }
+
+    protected override void OnInitialized()
+    {
+        State.OnChange += StateHasChanged;
+        UpdateVisibleSections();
+        ApplyTabFromQuery();
+    }
+
+    protected override void OnParametersSet()
+    {
+        ApplyTabFromQuery();
+    }
+
+    private void UpdateVisibleSections()
+    {
+        _visibleSections = Enum.GetValues<Section>()
+            .Where(s => s != Section.Empresas || State.IsSuperAdmin)
+            .ToList();
+    }
+
+    private void ApplyTabFromQuery()
+    {
+        if (!string.IsNullOrEmpty(Tab) && Enum.TryParse<Section>(Tab, true, out var section))
+        {
+            _section = section;
+        }
+    }
 
     private string GetLabel(Section s) => s switch {
         Section.Campos => "Campos", Section.Actividades => "Actividades", Section.Categorias => "Categorías",
@@ -52,6 +84,5 @@
         Section.Planes => "grid_view", Section.Empresas => "business", Section.Auditores => "verified_user", Section.Usuarios => "group", _ => ""
     };
 
-    protected override void OnInitialized() => State.OnChange += StateHasChanged;
     public void Dispose() => State.OnChange -= StateHasChanged;
 }

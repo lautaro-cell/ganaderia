@@ -76,6 +76,13 @@
                             <span class="material-symbols-outlined text-lg">account_circle</span>
                             <span class="text-sm">Mi Perfil</span>
                         </button>
+                        @if (!State.IsSuperAdmin)
+                        {
+                            <button @onclick="GoToEmpresaConfig" class="w-full flex items-center gap-3 px-4 py-2.5 text-left text-text-secondary hover:text-white hover:bg-[#271c1c] transition-colors border-none bg-transparent">
+                                <span class="material-symbols-outlined text-lg">business</span>
+                                <span class="text-sm">Configurar Empresa</span>
+                            </button>
+                        }
                         <button @onclick="Logout" class="w-full flex items-center gap-3 px-4 py-2.5 text-left text-red-400 hover:text-red-300 hover:bg-red-900/20 transition-colors border-none bg-transparent">
                             <span class="material-symbols-outlined text-lg">logout</span>
                             <span class="text-sm">Cerrar Sesión</span>
@@ -104,6 +111,12 @@
     {
         _dropdownOpen = false;
         Nav.NavigateTo("/perfil");
+    }
+
+    private void GoToEmpresaConfig()
+    {
+        _dropdownOpen = false;
+        Nav.NavigateTo("/admin/empresas");
     }
 
     private async Task Logout()

@@ -69,7 +69,16 @@ namespace GestorGanadero.Client.Services
             try
             {
                 var profile = await _grpcClient.GetMyProfileAsync(new Google.Protobuf.WellKnownTypes.Empty());
-                var tenantList = await _grpcClient.GetAvailableTenantsAsync(new Google.Protobuf.WellKnownTypes.Empty());
+
+                TenantList tenantList;
+                if (profile.IsSuperAdmin)
+                {
+                    tenantList = await _grpcClient.GetAllTenantsAsync(new Google.Protobuf.WellKnownTypes.Empty());
+                }
+                else
+                {
+                    tenantList = await _grpcClient.GetAvailableTenantsAsync(new Google.Protobuf.WellKnownTypes.Empty());
+                }
 
                 _state.CurrentUser = profile;
                 _state.IsSuperAdmin = profile.IsSuperAdmin;
