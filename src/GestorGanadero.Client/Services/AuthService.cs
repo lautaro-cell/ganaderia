@@ -33,17 +33,24 @@ namespace GestorGanadero.Client.Services
                 if (!response.IsSuccessStatusCode)
                     return false;
 
-                var result = await response.Content.ReadFromJsonAsync<LoginResult>();
-                if (result == null || string.IsNullOrEmpty(result.Token))
-                    return false;
+                var json = await response.Content.ReadFromJsonAsync<JsonDocument>();
+                if (json == null) return false;
 
-                await _js.InvokeVoidAsync("localStorage.setItem", "authToken", result.Token);
+                var root = json.RootElement;
+                var token = root.GetProperty("token").GetString();
+                if (string.IsNullOrEmpty(token)) return false;
 
-                _state.ActiveTenantId = result.TenantId;
-                _state.ActiveTenantName = result.TenantName;
-                _state.IsSuperAdmin = result.IsSuperAdmin;
+                var tenantId = root.TryGetProperty("tenantId", out var tid) ? tid.GetString() ?? "" : "";
+                var tenantName = root.TryGetProperty("tenantName", out var tn) ? tn.GetString() ?? "" : "";
+                var isSuperAdmin = root.TryGetProperty("isSuperAdmin", out var isa) && isa.GetBoolean();
 
-                await _js.InvokeVoidAsync("localStorage.setItem", "isSuperAdmin", result.IsSuperAdmin ? "1" : "0");
+                await _js.InvokeVoidAsync("localStorage.setItem", "authToken", token);
+
+                _state.ActiveTenantId = tenantId;
+                _state.ActiveTenantName = tenantName;
+                _state.IsSuperAdmin = isSuperAdmin;
+
+                await _js.InvokeVoidAsync("localStorage.setItem", "isSuperAdmin", isSuperAdmin ? "1" : "0");
 
                 return true;
             }
@@ -121,13 +128,8 @@ namespace GestorGanadero.Client.Services
             }
         }
 
-        private class LoginResult
-        {
-            public string Token { get; set; } = string.Empty;
-            public string TenantId { get; set; } = string.Empty;
-            public string TenantName { get; set; } = string.Empty;
-            public bool IsSuperAdmin { get; set; }
-        }
+
+
     }
 }
 
